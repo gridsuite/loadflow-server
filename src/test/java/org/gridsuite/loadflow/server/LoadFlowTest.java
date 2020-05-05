@@ -7,12 +7,13 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.datasource.ReadOnlyDataSource;
-import com.powsybl.commons.datasource.ResourceDataSource;
-import com.powsybl.commons.datasource.ResourceSet;
-import com.powsybl.iidm.import_.Importers;
-import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
+import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.openloadflow.OpenLoadFlowParameters;
+import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -20,14 +21,19 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import java.io.ByteArrayOutputStream;
 import java.util.UUID;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
@@ -44,8 +50,6 @@ public class LoadFlowTest {
     @MockBean
     private NetworkStoreService networkStoreService;
 
-    private static final String TEST_NAME = "recollement-auto-20190124-2110-enrichi";
-
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
@@ -60,16 +64,38 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(notFoundNetworkId)).willThrow(new PowsyblException());
 
         // network not existing
-        mvc.perform(put("/v1/networks/{networkUuid}", notFoundNetworkId))
+        mvc.perform(put("/v1/networks/{networkUuid}/run", notFoundNetworkId))
                 .andExpect(status().isNotFound());
 
-        // load flow launch with success
-        mvc.perform(put("/v1/networks/{networkUuid}", testNetworkId))
-                .andExpect(status().isOk());
+        // load flow without parameters (default parameters are used)
+        MvcResult result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+
+        // load flow with parameters
+        LoadFlowParameters params = new LoadFlowParameters();
+        params.setNoGeneratorReactiveLimits(true);
+        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+                .setSlackBusSelector(new MostMeshedSlackBusSelector())
+                .setDistributedSlack(false);
+        params.addExtension(OpenLoadFlowParameters.class, parametersExt);
+
+        ByteArrayOutputStream stream = new ByteArrayOutputStream();
+        JsonLoadFlowParameters.write(params, stream);
+        String paramsString = new String(stream.toByteArray());
+
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(paramsString))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
     }
 
     public Network createNetwork() {
-        ReadOnlyDataSource dataSource = new ResourceDataSource(TEST_NAME, new ResourceSet("", TEST_NAME + ".xiidm"));
-        return Importers.importData("XIIDM", dataSource, null);
+        return EurostagTutorialExample1Factory.create();
     }
 }

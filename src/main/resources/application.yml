@@ -5,5 +5,5 @@ spring:
 server:
   port: 5008
 
-loadflow-server:
+network-store-server:
   base-uri: http://localhost:8080

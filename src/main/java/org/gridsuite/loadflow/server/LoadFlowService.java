@@ -40,21 +40,24 @@ class LoadFlowService {
         }
     }
 
-    void loadFlow(UUID networkUuid) {
+    LoadFlowResult loadFlow(UUID networkUuid, LoadFlowParameters parameters) {
         Network network = getNetwork(networkUuid);
 
-        // launch the load flow on the network
-        LoadFlowParameters parameters = new LoadFlowParameters();
-        parameters.setNoGeneratorReactiveLimits(true);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
+        LoadFlowParameters params = parameters;
+        if (parameters == null) {
+            params = new LoadFlowParameters();
+            params.setNoGeneratorReactiveLimits(true);
+            OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
                 .setSlackBusSelector(new MostMeshedSlackBusSelector())
                 .setDistributedSlack(false);
-        parameters.addExtension(OpenLoadFlowParameters.class, parametersExt);
-        LoadFlowResult result = LoadFlow.run(network, parameters);
-        if (!result.isOk()) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "The load flow computation failed");
+            params.addExtension(OpenLoadFlowParameters.class, parametersExt);
         }
 
-        networkStoreService.flush(network);
+        // launch the load flow on the network
+        LoadFlowResult result = LoadFlow.run(network, params);
+        if (!result.isOk()) {
+            networkStoreService.flush(network);
+        }
+        return result;
     }
 }
