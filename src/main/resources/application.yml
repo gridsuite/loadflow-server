@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: loadflow-server
+
+server:
+  port: 5008
+
+loadflow-server:
+  base-uri: http://localhost:8080
