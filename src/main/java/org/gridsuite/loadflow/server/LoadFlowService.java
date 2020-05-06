@@ -55,7 +55,7 @@ class LoadFlowService {
 
         // launch the load flow on the network
         LoadFlowResult result = LoadFlow.run(network, params);
-        if (!result.isOk()) {
+        if (result.isOk()) {
             networkStoreService.flush(network);
         }
         return result;
