@@ -12,8 +12,6 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpStatus;
@@ -43,15 +41,7 @@ class LoadFlowService {
     LoadFlowResult loadFlow(UUID networkUuid, LoadFlowParameters parameters) {
         Network network = getNetwork(networkUuid);
 
-        LoadFlowParameters params = parameters;
-        if (parameters == null) {
-            params = new LoadFlowParameters();
-            params.setNoGeneratorReactiveLimits(true);
-            OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector())
-                .setDistributedSlack(false);
-            params.addExtension(OpenLoadFlowParameters.class, parametersExt);
-        }
+        LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
 
         // launch the load flow on the network
         LoadFlowResult result = LoadFlow.run(network, params);

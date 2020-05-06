@@ -50,10 +50,9 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The load flow has been performed")})
     public ResponseEntity<LoadFlowResult> loadFlow(@ApiParam(value = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                                    @RequestBody(required = false) String loadflowParams) {
-        LoadFlowParameters parameters = null;
-        if (loadflowParams != null) {
-            parameters = JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()));
-        }
+        LoadFlowParameters parameters = loadflowParams != null
+                ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
+                : null;
 
         LoadFlowResult result = loadFlowService.loadFlow(networkUuid, parameters);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
