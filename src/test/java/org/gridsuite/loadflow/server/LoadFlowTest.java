@@ -12,6 +12,7 @@ import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
 import org.junit.Before;
@@ -60,8 +61,8 @@ public class LoadFlowTest {
         UUID testNetworkId = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
         UUID notFoundNetworkId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
-        given(networkStoreService.getNetwork(testNetworkId)).willReturn(createNetwork());
-        given(networkStoreService.getNetwork(notFoundNetworkId)).willThrow(new PowsyblException());
+        given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork());
+        given(networkStoreService.getNetwork(notFoundNetworkId, PreloadingStrategy.COLLECTION)).willThrow(new PowsyblException());
 
         // network not existing
         mvc.perform(put("/v1/networks/{networkUuid}/run", notFoundNetworkId))
