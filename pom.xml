@@ -51,9 +51,9 @@
         <springboot.version>2.1.5.RELEASE</springboot.version>
         <springfox.version>2.9.2</springfox.version>
 
-        <powsybl-core.version>3.5.0</powsybl-core.version>
+        <powsybl-core.version>3.5.0-SNAPSHOT</powsybl-core.version>
         <powsybl-network-store.version>1.0.0-SNAPSHOT</powsybl-network-store.version>
-        <powsybl.open-loadflow.version>0.5.0</powsybl.open-loadflow.version>
+        <powsybl.open-loadflow.version>0.4.0</powsybl.open-loadflow.version>
     </properties>
 
     <build>
@@ -134,6 +134,11 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-open-loadflow</artifactId>
             <version>${powsybl.open-loadflow.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-iidm-mergingview</artifactId>
+            <version>${powsybl-core.version}</version>
         </dependency>
 
         <!-- Runtime dependencies -->

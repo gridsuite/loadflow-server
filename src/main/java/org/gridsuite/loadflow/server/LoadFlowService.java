@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -19,6 +20,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -39,10 +42,24 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, LoadFlowParameters parameters) {
-        Network network = getNetwork(networkUuid);
-
+    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
+
+        Network network;
+
+        if (otherNetworksUuid.isEmpty()) {
+            network = getNetwork(networkUuid);
+        } else {
+            // creation of the merging view and merging the networks
+            MergingView merginvView = MergingView.create("merged", "iidm");
+
+            List<Network> networks = new ArrayList<>();
+            networks.add(getNetwork(networkUuid));
+            otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
+            merginvView.merge(networks.toArray(new Network[networks.size()]));
+
+            network = merginvView;
+        }
 
         // launch the load flow on the network
         LoadFlowResult result = LoadFlow.run(network, params);
