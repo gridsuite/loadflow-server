@@ -34,15 +34,6 @@ jobs:
 
       - name: Build and install powsybl core with Maven
         run: mvn --batch-mode -DskipTests=true --file ../powsybl-core/pom.xml install
-
-      - name: Checkout powsybl open load flow sources from 0.4.0 release
-        uses: actions/checkout@v1
-        with:
-          repository: powsybl/powsybl-open-loadflow
-          ref: refs/heads/release-v0.4.0
-
-      - name: Build and install powsybl open load flow with Maven
-        run: mvn --batch-mode -DskipTests=true --file ../powsybl-open-loadflow/pom.xml install
 ###############################################################
 
       - name: Checkout network store sources
