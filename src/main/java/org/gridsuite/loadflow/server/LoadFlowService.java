@@ -44,28 +44,34 @@ class LoadFlowService {
 
     LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
-
-        Network network;
+        LoadFlowResult result;
 
         if (otherNetworksUuid.isEmpty()) {
-            network = getNetwork(networkUuid);
+            Network network = getNetwork(networkUuid);
+
+            // launch the load flow on the network
+            result = LoadFlow.run(network, params);
+            // flush network in the network store
+            if (result.isOk()) {
+                networkStoreService.flush(network);
+            }
+
         } else {
             // creation of the merging view and merging the networks
             MergingView merginvView = MergingView.create("merged", "iidm");
-
             List<Network> networks = new ArrayList<>();
             networks.add(getNetwork(networkUuid));
             otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
             merginvView.merge(networks.toArray(new Network[networks.size()]));
 
-            network = merginvView;
+            // launch the load flow on the merging view
+            result = LoadFlow.run(merginvView, params);
+            if (result.isOk()) {
+                // flush each network of the merging view in the network store
+                networks.forEach(network -> networkStoreService.flush(network));
+            }
         }
 
-        // launch the load flow on the network
-        LoadFlowResult result = LoadFlow.run(network, params);
-        if (result.isOk()) {
-            networkStoreService.flush(network);
-        }
         return result;
     }
 }
