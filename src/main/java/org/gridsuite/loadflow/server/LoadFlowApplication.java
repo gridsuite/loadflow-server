@@ -6,8 +6,11 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.databind.Module;
+import com.powsybl.loadflow.json.LoadFlowResultJsonModule;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -18,5 +21,10 @@ public class LoadFlowApplication {
 
     public static void main(String[] args) {
         SpringApplication.run(LoadFlowApplication.class, args);
+    }
+
+    @Bean
+    public Module createLoadFlowResultModule() {
+        return new LoadFlowResultJsonModule();
     }
 }
