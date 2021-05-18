@@ -31,6 +31,8 @@ import java.util.UUID;
 @Service
 class LoadFlowService {
 
+    private static final String DEFAULT_PROVIDER_NAME = "OpenLoadFlow";
+
     @Autowired
     private NetworkStoreService networkStoreService;
 
@@ -42,15 +44,17 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters) {
+    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+                            String providerName) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
+        LoadFlow.Runner runner = LoadFlow.find(providerName != null ? providerName : DEFAULT_PROVIDER_NAME);
         if (otherNetworksUuid.isEmpty()) {
             Network network = getNetwork(networkUuid);
 
             // launch the load flow on the network
-            result = LoadFlow.run(network, params);
+            result = runner.run(network, params);
             // flush network in the network store
             if (result.isOk()) {
                 networkStoreService.flush(network);
@@ -65,7 +69,7 @@ class LoadFlowService {
             merginvView.merge(networks.toArray(new Network[networks.size()]));
 
             // launch the load flow on the merging view
-            result = LoadFlow.run(merginvView, params);
+            result = runner.run(merginvView, params);
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));
