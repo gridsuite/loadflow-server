@@ -43,7 +43,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @Api(tags = "loadflow-server")
 @ComponentScan(basePackageClasses = LoadFlowService.class)
 public class LoadFlowController {
-
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowController.class);
 
     @Autowired
