@@ -41,7 +41,7 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The load flow has been performed")})
     public ResponseEntity<LoadFlowResult> loadFlow(@ApiParam(value = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                                    @ApiParam(value = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
-                                                   @ApiParam(value = "Provider name") @RequestParam(name = "provider-name", required = false) String providerName,
+                                                   @ApiParam(value = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                                    @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null
                 ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
@@ -49,7 +49,7 @@ public class LoadFlowController {
 
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
 
-        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters, providerName);
+        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters, provider);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 }
