@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.commons.reporter.ReporterModelDeserializer;
 import com.powsybl.commons.reporter.ReporterModelJsonModule;
@@ -33,6 +34,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.gridsuite.loadflow.server.LoadFlowConstants.DELIMITER;
@@ -67,11 +69,11 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters) {
+    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters, Optional<UUID> reportId, Optional<String> reportName) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
-        ReporterModel reporter;
+        Reporter reporter;
         if (otherNetworksUuid.isEmpty()) {
             Network network = getNetwork(networkUuid);
 
@@ -83,8 +85,9 @@ class LoadFlowService {
             if (result.isOk()) {
                 networkStoreService.flush(network);
             }
-
+            sendReport(networkUuid, reporter);
         } else {
+            boolean doReport = reportId.isPresent() && reportName.isPresent();
             // creation of the merging view and merging the networks
             MergingView merginvView = MergingView.create("merged", "iidm");
             List<Network> networks = new ArrayList<>();
@@ -93,20 +96,21 @@ class LoadFlowService {
             merginvView.merge(networks.toArray(new Network[0]));
 
             // launch the load flow on the merging view
-            reporter = new ReporterModel("mergingView", "mergingView");
+            reporter = doReport ? new ReporterModel(reportName.get(), reportName.get()) : Reporter.NO_OP;
             result = LoadFlow.find().run(merginvView, merginvView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
 
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));
             }
+            if (doReport) {
+                sendReport(reportId.get(), reporter);
+            }
         }
-
-        sendReport(networkUuid, reporter);
         return result;
     }
 
-    private void sendReport(UUID networkUuid, ReporterModel reporter) {
+    private void sendReport(UUID networkUuid, Reporter reporter) {
         try {
             var restTemplate = new RestTemplate();
             var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "report" + DELIMITER + networkUuid.toString();

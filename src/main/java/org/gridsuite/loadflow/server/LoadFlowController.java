@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -53,6 +54,8 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The load flow has been performed")})
     public ResponseEntity<LoadFlowResult> loadFlow(@ApiParam(value = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                                    @ApiParam(value = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
+                                                   @ApiParam(value = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
+                                                   @ApiParam(value = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
                                                    @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null
                 ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
@@ -60,7 +63,7 @@ public class LoadFlowController {
 
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
 
-        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters);
+        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters, Optional.ofNullable(reportId), Optional.ofNullable(reportName));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 }
