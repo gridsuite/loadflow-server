@@ -162,13 +162,15 @@ public class LoadFlowTest {
         UUID testNetworkId1 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
         UUID testNetworkId2 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
         UUID testNetworkId3 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
+        UUID reportId = UUID.fromString("7928181c-7977-4592-ba19-88027e425445");
 
         given(networkStoreService.getNetwork(testNetworkId1, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("1_"));
         given(networkStoreService.getNetwork(testNetworkId2, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("2_"));
         given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("3_"));
 
         // load flow without parameters (default parameters are used)
-        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2.toString() + "&networkUuid=" + testNetworkId3.toString();
+        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
+            + "&reportId=" + reportId + "&reportName=report_name";
 
         MvcResult result = mvc.perform(put(url, testNetworkId1))
                 .andExpect(status().isOk())
