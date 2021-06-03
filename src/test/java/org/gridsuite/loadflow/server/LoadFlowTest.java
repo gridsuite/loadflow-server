@@ -88,9 +88,9 @@ public class LoadFlowTest {
             @Override
             public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
                 String path = Objects.requireNonNull(request.getPath());
-                if (path.matches("/v1/report/" + testNetworkId)) {
-                    System.err.println(request.getBody().readUtf8());
-                    return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8");
+                if (path.matches("/v1/report/" + testNetworkId + "[?]overwrite=true")) {
+                    return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8")
+                        .setBody(testNetworkId.toString());
                 } else if (path.matches("/v1/report/" + "")) {
                     System.err.println("plop");
                 }
@@ -141,7 +141,8 @@ public class LoadFlowTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
-        assertTrue(getRequestsDone(1).contains(String.format("/v1/report/%s", testNetworkId)));
+        var requestsDone = getRequestsDone(1);
+        assertTrue(requestsDone.contains("/v1/report/" + testNetworkId + "?overwrite=true"));
 
     }
 
