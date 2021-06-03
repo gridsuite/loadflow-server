@@ -21,16 +21,21 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -46,8 +51,9 @@ import static org.gridsuite.loadflow.server.LoadFlowConstants.REPORT_API_VERSION
 @ComponentScan(basePackageClasses = {NetworkStoreService.class})
 @Service
 class LoadFlowService {
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
-    @Value("${backing-services.report-server.base-uri:https://report-server}")
+    @Value("${backing-services.report-server.base-uri:http://report-server}")
     String reportServerURI;
 
     @Autowired
@@ -85,7 +91,7 @@ class LoadFlowService {
             if (result.isOk()) {
                 networkStoreService.flush(network);
             }
-            sendReport(networkUuid, reporter);
+            sendReport(networkUuid, reporter, true);
         } else {
             boolean doReport = reportId.isPresent() && reportName.isPresent();
             // creation of the merging view and merging the networks
@@ -104,18 +110,22 @@ class LoadFlowService {
                 networks.forEach(network -> networkStoreService.flush(network));
             }
             if (doReport) {
-                sendReport(reportId.get(), reporter);
+                sendReport(reportId.get(), reporter, false);
             }
         }
         return result;
     }
 
-    private void sendReport(UUID networkUuid, Reporter reporter) {
+    private void sendReport(UUID networkUuid, Reporter reporter, boolean overwrite) {
+        var restTemplate = new RestTemplate();
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "report" + DELIMITER + networkUuid.toString();
+        var uriBuilder = UriComponentsBuilder.fromHttpUrl(resourceUrl).queryParam("overwrite", overwrite);
         try {
-            var restTemplate = new RestTemplate();
-            var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "report" + DELIMITER + networkUuid.toString();
-            restTemplate.exchange(resourceUrl, HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter)), ReporterModel.class);
-        } catch (Exception ignored) {
+            restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), ReporterModel.class);
+        } catch (Exception error) {
+            LOGGER.error(error.getMessage());
         }
     }
 }
