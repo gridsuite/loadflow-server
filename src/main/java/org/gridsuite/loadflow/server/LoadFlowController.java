@@ -9,23 +9,12 @@ package org.gridsuite.loadflow.server;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-import io.swagger.annotations.ApiParam;
-import io.swagger.annotations.ApiResponse;
-import io.swagger.annotations.ApiResponses;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.swagger.annotations.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.io.ByteArrayInputStream;
 import java.util.Collections;
@@ -44,8 +33,6 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 @ComponentScan(basePackageClasses = LoadFlowService.class)
 public class LoadFlowController {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowController.class);
-
     @Autowired
     private LoadFlowService loadFlowService;
 
@@ -54,6 +41,7 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(code = 200, message = "The load flow has been performed")})
     public ResponseEntity<LoadFlowResult> loadFlow(@ApiParam(value = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                                    @ApiParam(value = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
+                                                   @ApiParam(value = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                                    @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null
                 ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
@@ -61,7 +49,7 @@ public class LoadFlowController {
 
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
 
-        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters);
+        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters, provider);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 }
