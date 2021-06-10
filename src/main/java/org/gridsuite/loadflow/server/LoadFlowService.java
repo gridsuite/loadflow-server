@@ -26,11 +26,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
+import org.springframework.http.*;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -56,6 +52,8 @@ class LoadFlowService {
     @Value("${backing-services.report-server.base-uri:http://report-server}")
     String reportServerURI;
 
+    private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
+
     @Autowired
     private NetworkStoreService networkStoreService;
     private ObjectMapper objectMapper;
@@ -75,18 +73,19 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters, Optional<UUID> reportId, Optional<String> reportName) {
+    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+                            String provider, Optional<UUID> reportId, Optional<String> reportName) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
+        LoadFlow.Runner runner = LoadFlow.find(provider != null ? provider : DEFAULT_PROVIDER);
         Reporter reporter;
         if (otherNetworksUuid.isEmpty()) {
             Network network = getNetwork(networkUuid);
 
             reporter = new ReporterModel("loadFlow", "loadFlow");
             // launch the load flow on the network
-            result = LoadFlow.find().run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
-
+            result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), params, reporter);
             // flush network in the network store
             if (result.isOk()) {
                 networkStoreService.flush(network);
@@ -95,16 +94,15 @@ class LoadFlowService {
         } else {
             boolean doReport = reportId.isPresent() && reportName.isPresent();
             // creation of the merging view and merging the networks
-            MergingView merginvView = MergingView.create("merged", "iidm");
+            MergingView mergingView = MergingView.create("merged", "iidm");
             List<Network> networks = new ArrayList<>();
             networks.add(getNetwork(networkUuid));
             otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
-            merginvView.merge(networks.toArray(new Network[0]));
+            mergingView.merge(networks.toArray(new Network[0]));
 
             // launch the load flow on the merging view
             reporter = doReport ? new ReporterModel(reportName.get(), reportName.get()) : Reporter.NO_OP;
-            result = LoadFlow.find().run(merginvView, merginvView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
-
+            result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), params, reporter);
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));

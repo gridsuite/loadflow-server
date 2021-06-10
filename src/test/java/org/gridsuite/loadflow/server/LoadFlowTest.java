@@ -7,22 +7,14 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Country;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -127,7 +119,7 @@ public class LoadFlowTest {
                 .setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         params.addExtension(OpenLoadFlowParameters.class, parametersExt);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -184,7 +176,7 @@ public class LoadFlowTest {
                 .setDistributedSlack(false);
 
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         params.addExtension(OpenLoadFlowParameters.class, parametersExt);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
