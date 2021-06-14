@@ -43,8 +43,8 @@ public class LoadFlowController {
     public ResponseEntity<LoadFlowResult> loadFlow(@ApiParam(value = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                                    @ApiParam(value = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
                                                    @ApiParam(value = "Provider") @RequestParam(name = "provider", required = false) String provider,
-                                                   @ApiParam(value = "reportId") @RequestParam(name = "reportId", required = false) Optional<UUID> reportId,
-                                                   @ApiParam(value = "reportName") @RequestParam(name = "reportName", required = false) Optional<String> reportName,
+                                                   @ApiParam(value = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
+                                                   @ApiParam(value = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
                                                    @ApiParam(value = "overwriteReport") @RequestParam(name = "overwriteReport", required = false, defaultValue = "true") Boolean overwriteReport,
                                                    @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null

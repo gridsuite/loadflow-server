@@ -78,14 +78,14 @@ class LoadFlowService {
     }
 
     LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
-                            String provider, Optional<UUID> reportId, Optional<String> optReportName, Boolean overwriteReport) {
+                            String provider, UUID reportId, String reportName, Boolean overwriteReport) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
         Reporter reporter;
-        if (reportId.isPresent()) {
-            String reportName = optReportName.orElse("loadflow");
-            reporter = new ReporterModel(reportName, reportName);
+        if (reportId != null ) {
+            String name = reportName == null ? "loadflow" : reportName;
+            reporter = new ReporterModel(name, name);
         } else {
             reporter = Reporter.NO_OP;
         }
@@ -115,21 +115,24 @@ class LoadFlowService {
                 networks.forEach(network -> networkStoreService.flush(network));
             }
         }
-        reportId.ifPresent(uuid -> sendReport(uuid, reporter, reportId.get(), overwriteReport));
+        if (reportId != null) {
+            sendReport(reportId, reporter, overwriteReport);
+        }
 
         return result;
     }
 
-    private void sendReport(UUID networkUuid, Reporter reporter, UUID reportId, boolean overwrite) {
+    private void sendReport(UUID reportId, Reporter reporter, boolean overwrite) {
         var restTemplate = new RestTemplate();
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + networkUuid.toString();
+        var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + reportId.toString();
         var uriBuilder = UriComponentsBuilder.fromHttpUrl(resourceUrl).queryParam("overwrite", overwrite);
         try {
             restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), ReporterModel.class);
         } catch (Exception error) {
             LOGGER.error(error.getMessage());
+            throw new PowsyblException(error);
         }
     }
 }

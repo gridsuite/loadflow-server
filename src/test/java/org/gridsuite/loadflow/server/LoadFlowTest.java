@@ -37,7 +37,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -81,11 +80,9 @@ public class LoadFlowTest {
             @Override
             public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
                 String path = Objects.requireNonNull(request.getPath());
-                if (path.matches("/v1/reports/" + testNetworkId + "[?]overwrite=true")) {
+                if (path.matches("/v1/reports/" + reportId + ".*")) {
                     return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8")
-                        .setBody(testNetworkId.toString());
-                } else if (path.matches("/v1/reports/" + "")) {
-                    System.err.println("plop");
+                        .setBody("");
                 }
                 return new MockResponse().setResponseCode(404);
 
@@ -96,11 +93,11 @@ public class LoadFlowTest {
     }
 
     UUID testNetworkId = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    UUID reportId = UUID.fromString("7928181c-7977-4592-ba19-aaaaaaaaaaaa");
 
     @Test
     public void test() throws Exception {
         UUID notFoundNetworkId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
-        UUID reportUUID = UUID.fromString("bbbbbbbb-bbbb-bbbb-aaaa-bbbbbbbbbbbb");
 
         given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork());
         given(networkStoreService.getNetwork(notFoundNetworkId, PreloadingStrategy.COLLECTION)).willThrow(new PowsyblException());
@@ -128,7 +125,7 @@ public class LoadFlowTest {
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = new String(stream.toByteArray());
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run?reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportUUID)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
@@ -136,9 +133,9 @@ public class LoadFlowTest {
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
         var requestsDone = getRequestsDone(1);
-        assertTrue(requestsDone.contains("/v1/reports/" + reportUUID + "?overwrite=true"));
+        assertTrue(requestsDone.contains("/v1/reports/" + reportId + "?overwrite=true"));
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId, reportUUID)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId, reportId)
             .contentType(MediaType.APPLICATION_JSON)
             .content(paramsString))
             .andExpect(status().isOk())
@@ -169,7 +166,6 @@ public class LoadFlowTest {
         UUID testNetworkId1 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
         UUID testNetworkId2 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
         UUID testNetworkId3 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
-        UUID reportId = UUID.fromString("7928181c-7977-4592-ba19-88027e425445");
 
         given(networkStoreService.getNetwork(testNetworkId1, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("1_"));
         given(networkStoreService.getNetwork(testNetworkId2, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("2_"));
