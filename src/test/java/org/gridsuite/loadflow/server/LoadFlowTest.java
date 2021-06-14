@@ -7,22 +7,14 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.iidm.network.Bus;
-import com.powsybl.iidm.network.Country;
-import com.powsybl.iidm.network.Generator;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.NetworkFactory;
-import com.powsybl.iidm.network.Substation;
-import com.powsybl.iidm.network.TopologyKind;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
-import com.powsybl.iidm.network.VoltageLevel;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.MostMeshedSlackBusSelector;
+import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +37,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -88,10 +81,10 @@ public class LoadFlowTest {
             @Override
             public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
                 String path = Objects.requireNonNull(request.getPath());
-                if (path.matches("/v1/report/" + testNetworkId + "[?]overwrite=true")) {
+                if (path.matches("/v1/reports/" + testNetworkId + "[?]overwrite=true")) {
                     return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8")
                         .setBody(testNetworkId.toString());
-                } else if (path.matches("/v1/report/" + "")) {
+                } else if (path.matches("/v1/reports/" + "")) {
                     System.err.println("plop");
                 }
                 return new MockResponse().setResponseCode(404);
@@ -107,6 +100,7 @@ public class LoadFlowTest {
     @Test
     public void test() throws Exception {
         UUID notFoundNetworkId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
+        UUID reportUUID = UUID.fromString("bbbbbbbb-bbbb-bbbb-aaaa-bbbbbbbbbbbb");
 
         given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork());
         given(networkStoreService.getNetwork(notFoundNetworkId, PreloadingStrategy.COLLECTION)).willThrow(new PowsyblException());
@@ -127,14 +121,14 @@ public class LoadFlowTest {
                 .setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         params.addExtension(OpenLoadFlowParameters.class, parametersExt);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = new String(stream.toByteArray());
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportUUID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
@@ -142,14 +136,27 @@ public class LoadFlowTest {
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
         var requestsDone = getRequestsDone(1);
-        assertTrue(requestsDone.contains("/v1/report/" + testNetworkId + "?overwrite=true"));
+        assertTrue(requestsDone.contains("/v1/reports/" + reportUUID + "?overwrite=true"));
 
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId, reportUUID)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(paramsString))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+        requestsDone = getRequestsDone(1);
+        assertTrue(requestsDone.contains(null));
     }
 
     private Set<String> getRequestsDone(int n) {
         return IntStream.range(0, n).mapToObj(i -> {
             try {
-                return server.takeRequest(0, TimeUnit.SECONDS).getPath();
+                var res = server.takeRequest(0, TimeUnit.SECONDS);
+                if (res != null) {
+                    return res.getPath();
+                }
+                return null;
             } catch (InterruptedException e) {
                 //LOGGER.error("Error while attempting to get the request done : ", e);
             }
@@ -184,7 +191,7 @@ public class LoadFlowTest {
                 .setDistributedSlack(false);
 
         OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelector(new MostMeshedSlackBusSelector());
+                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
         params.addExtension(OpenLoadFlowParameters.class, parametersExt);
 
         ByteArrayOutputStream stream = new ByteArrayOutputStream();

@@ -56,6 +56,8 @@ class LoadFlowService {
     @Value("${backing-services.report-server.base-uri:http://report-server}")
     String reportServerURI;
 
+    private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
+
     @Autowired
     private NetworkStoreService networkStoreService;
     private ObjectMapper objectMapper;
@@ -75,52 +77,54 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters, Optional<UUID> reportId, Optional<String> reportName) {
+    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+                            String provider, Optional<UUID> reportId, Optional<String> optReportName, Boolean overwriteReport) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
         Reporter reporter;
+        if (reportId.isPresent()) {
+            String reportName = optReportName.orElse("loadflow");
+            reporter = new ReporterModel(reportName, reportName);
+        } else {
+            reporter = Reporter.NO_OP;
+        }
+        LoadFlow.Runner runner = LoadFlow.find(provider != null ? provider : DEFAULT_PROVIDER);
+
         if (otherNetworksUuid.isEmpty()) {
             Network network = getNetwork(networkUuid);
 
-            reporter = new ReporterModel("loadFlow", "loadFlow");
             // launch the load flow on the network
-            result = LoadFlow.find().run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
-
+            result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
             // flush network in the network store
             if (result.isOk()) {
                 networkStoreService.flush(network);
             }
-            sendReport(networkUuid, reporter, true);
         } else {
-            boolean doReport = reportId.isPresent() && reportName.isPresent();
             // creation of the merging view and merging the networks
-            MergingView merginvView = MergingView.create("merged", "iidm");
+            MergingView mergingView = MergingView.create("merged", "iidm");
             List<Network> networks = new ArrayList<>();
             networks.add(getNetwork(networkUuid));
             otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
-            merginvView.merge(networks.toArray(new Network[0]));
+            mergingView.merge(networks.toArray(new Network[0]));
 
             // launch the load flow on the merging view
-            reporter = doReport ? new ReporterModel(reportName.get(), reportName.get()) : Reporter.NO_OP;
-            result = LoadFlow.find().run(merginvView, merginvView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
-
+            result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));
             }
-            if (doReport) {
-                sendReport(reportId.get(), reporter, false);
-            }
         }
+        reportId.ifPresent(uuid -> sendReport(uuid, reporter, reportId.get(), overwriteReport));
+
         return result;
     }
 
-    private void sendReport(UUID networkUuid, Reporter reporter, boolean overwrite) {
+    private void sendReport(UUID networkUuid, Reporter reporter, UUID reportId, boolean overwrite) {
         var restTemplate = new RestTemplate();
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
-        var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "report" + DELIMITER + networkUuid.toString();
+        var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + networkUuid.toString();
         var uriBuilder = UriComponentsBuilder.fromHttpUrl(resourceUrl).queryParam("overwrite", overwrite);
         try {
             restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), ReporterModel.class);
