@@ -39,7 +39,6 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.gridsuite.loadflow.server.LoadFlowConstants.DELIMITER;
@@ -83,7 +82,7 @@ class LoadFlowService {
         LoadFlowResult result;
 
         Reporter reporter;
-        if (reportId != null ) {
+        if (reportId != null) {
             String name = reportName == null ? "loadflow" : reportName;
             reporter = new ReporterModel(name, name);
         } else {
