@@ -105,7 +105,7 @@ class LoadFlowService {
             List<Network> networks = new ArrayList<>();
             networks.add(getNetwork(networkUuid));
             otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
-            mergingView.merge(networks.toArray(new Network[0]));
+            mergingView.merge(networks.toArray(new Network[networks.size()]));
 
             // launch the load flow on the merging view
             result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
