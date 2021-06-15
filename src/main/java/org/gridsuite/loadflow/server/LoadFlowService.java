@@ -52,7 +52,7 @@ import static org.gridsuite.loadflow.server.LoadFlowConstants.REPORT_API_VERSION
 class LoadFlowService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
-    @Value("${backing-services.report-server.base-uri:http://report-server}")
+    @Value("${report-server.base-uri:http://report-server}")
     String reportServerURI;
 
     private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
