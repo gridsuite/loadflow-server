@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
@@ -129,9 +130,8 @@ class LoadFlowService {
         var uriBuilder = UriComponentsBuilder.fromHttpUrl(resourceUrl).queryParam("overwrite", overwrite);
         try {
             restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), ReporterModel.class);
-        } catch (Exception error) {
-            LOGGER.error(error.getMessage());
-            throw new PowsyblException(error);
+        } catch (JsonProcessingException error) {
+            throw new PowsyblException("error creating report", error);
         }
     }
 }
