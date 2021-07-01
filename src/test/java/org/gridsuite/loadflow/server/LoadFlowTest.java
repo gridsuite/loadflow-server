@@ -29,13 +29,24 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import okhttp3.mockwebserver.Dispatcher;
+import okhttp3.mockwebserver.MockResponse;
+import okhttp3.mockwebserver.MockWebServer;
+import okhttp3.mockwebserver.RecordedRequest;
+import okhttp3.HttpUrl;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -46,19 +57,46 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 public class LoadFlowTest {
 
     @Autowired
+    private LoadFlowService loadFlowService;
+    @Autowired
     private MockMvc mvc;
 
     @MockBean
     private NetworkStoreService networkStoreService;
 
+    private MockWebServer server;
+
     @Before
-    public void setUp() {
+    public void setUp() throws IOException  {
+
         MockitoAnnotations.initMocks(this);
+        server = new MockWebServer();
+        // Start the server.
+        server.start();
+        HttpUrl baseHttpUrl = server.url("");
+        String baseUrl = baseHttpUrl.toString().substring(0, baseHttpUrl.toString().length() - 1);
+        loadFlowService.reportServerURI = baseUrl;
+        final Dispatcher dispatcher = new Dispatcher() {
+            @Override
+            public MockResponse dispatch(RecordedRequest request) throws InterruptedException {
+                String path = Objects.requireNonNull(request.getPath());
+                if (path.matches("/v1/reports/" + reportId + ".*")) {
+                    return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8")
+                        .setBody("");
+                }
+                return new MockResponse().setResponseCode(404);
+
+            }
+        };
+        server.setDispatcher(dispatcher);
+
     }
+
+    UUID testNetworkId = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+    UUID reportId = UUID.fromString("7928181c-7977-4592-ba19-aaaaaaaaaaaa");
 
     @Test
     public void test() throws Exception {
-        UUID testNetworkId = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
         UUID notFoundNetworkId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
         given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork());
@@ -87,13 +125,40 @@ public class LoadFlowTest {
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = new String(stream.toByteArray());
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+        var requestsDone = getRequestsDone(1);
+        assertTrue(requestsDone.contains("/v1/reports/" + reportId + "?overwrite=true"));
+
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId, reportId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(paramsString))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+        requestsDone = getRequestsDone(1);
+        assertTrue(requestsDone.contains(null));
+    }
+
+    private Set<String> getRequestsDone(int n) {
+        return IntStream.range(0, n).mapToObj(i -> {
+            try {
+                var res = server.takeRequest(0, TimeUnit.SECONDS);
+                if (res != null) {
+                    return res.getPath();
+                }
+                return null;
+            } catch (InterruptedException e) {
+                //LOGGER.error("Error while attempting to get the request done : ", e);
+            }
+            return null;
+        }).collect(Collectors.toSet());
     }
 
     @Test
@@ -107,7 +172,8 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("3_"));
 
         // load flow without parameters (default parameters are used)
-        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2.toString() + "&networkUuid=" + testNetworkId3.toString();
+        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
+            + "&reportId=" + reportId + "&reportName=report_name";
 
         MvcResult result = mvc.perform(put(url, testNetworkId1))
                 .andExpect(status().isOk())
