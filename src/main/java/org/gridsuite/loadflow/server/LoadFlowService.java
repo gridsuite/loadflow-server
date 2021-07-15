@@ -78,18 +78,21 @@ class LoadFlowService {
         }
     }
 
+    private Reporter createReporter(UUID reportId, String reportName, String provider) {
+        if (reportId != null && (provider == null || !provider.equals(HADES2_PROVIDER))) {
+            String name = reportName == null ? "loadflow" : reportName;
+            return new ReporterModel(name, name);
+        } else {
+            return Reporter.NO_OP;
+        }
+    }
+
     LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
                             String provider, UUID reportId, String reportName, Boolean overwriteReport) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
-        Reporter reporter;
-        if (reportId != null && (provider == null || !provider.equals(HADES2_PROVIDER))) {
-            String name = reportName == null ? "loadflow" : reportName;
-            reporter = new ReporterModel(name, name);
-        } else {
-            reporter = Reporter.NO_OP;
-        }
+        Reporter reporter = createReporter(reportId, reportName, provider);
         LoadFlow.Runner runner = LoadFlow.find(provider != null ? provider : DEFAULT_PROVIDER);
 
         if (otherNetworksUuid.isEmpty()) {
