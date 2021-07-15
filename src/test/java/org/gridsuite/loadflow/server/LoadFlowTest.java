@@ -125,7 +125,7 @@ public class LoadFlowTest {
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = new String(stream.toByteArray());
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run?reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportId)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?provider=OpenLoadFlow&reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
