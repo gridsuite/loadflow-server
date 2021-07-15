@@ -144,6 +144,17 @@ public class LoadFlowTest {
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
         requestsDone = getRequestsDone(1);
         assertTrue(requestsDone.contains(null));
+
+        // loadflow with hades2
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?provider=Hades2&reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportId)
+            .contentType(MediaType.APPLICATION_JSON)
+            .content(paramsString))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("isOK\":true"));
+        requestsDone = getRequestsDone(1);
+        assertTrue(requestsDone.contains(null));
     }
 
     private Set<String> getRequestsDone(int n) {
