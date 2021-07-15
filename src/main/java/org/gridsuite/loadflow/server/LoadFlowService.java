@@ -57,6 +57,7 @@ class LoadFlowService {
     String reportServerURI;
 
     private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
+    private static final String HADES2_PROVIDER = "Hades2";
 
     @Autowired
     private NetworkStoreService networkStoreService;
@@ -83,7 +84,7 @@ class LoadFlowService {
         LoadFlowResult result;
 
         Reporter reporter;
-        if (reportId != null) {
+        if (reportId != null && (provider == null || !provider.equals(HADES2_PROVIDER))) {
             String name = reportName == null ? "loadflow" : reportName;
             reporter = new ReporterModel(name, name);
         } else {
@@ -115,7 +116,7 @@ class LoadFlowService {
                 networks.forEach(network -> networkStoreService.flush(network));
             }
         }
-        if (reportId != null) {
+        if (reportId != null && reporter != Reporter.NO_OP) {
             sendReport(reportId, reporter, overwriteReport);
         }
 
