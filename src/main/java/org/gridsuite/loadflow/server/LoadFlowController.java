@@ -9,7 +9,11 @@ package org.gridsuite.loadflow.server;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
-import io.swagger.annotations.*;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
@@ -29,7 +33,7 @@ import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
  */
 @RestController
 @RequestMapping(value = "/" + LoadFlowApi.API_VERSION + "/")
-@Api(tags = "loadflow-server")
+@Tag(name = "loadflow-server")
 @ComponentScan(basePackageClasses = LoadFlowService.class)
 public class LoadFlowController {
 
@@ -37,14 +41,14 @@ public class LoadFlowController {
     private LoadFlowService loadFlowService;
 
     @PutMapping(value = "/networks/{networkUuid}/run", produces = APPLICATION_JSON_VALUE)
-    @ApiOperation(value = "run a load flow on a network", produces = APPLICATION_JSON_VALUE)
-    @ApiResponses(value = {@ApiResponse(code = 200, message = "The load flow has been performed")})
-    public ResponseEntity<LoadFlowResult> loadFlow(@ApiParam(value = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
-                                                   @ApiParam(value = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
-                                                   @ApiParam(value = "Provider") @RequestParam(name = "provider", required = false) String provider,
-                                                   @ApiParam(value = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
-                                                   @ApiParam(value = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
-                                                   @ApiParam(value = "overwriteReport") @RequestParam(name = "overwriteReport", required = false, defaultValue = "true") Boolean overwriteReport,
+    @Operation(summary = "run a load flow on a network")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
+    public ResponseEntity<LoadFlowResult> loadFlow(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
+                                                   @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
+                                                   @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
+                                                   @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
+                                                   @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
+                                                   @Parameter(description = "overwriteReport") @RequestParam(name = "overwriteReport", required = false, defaultValue = "true") Boolean overwriteReport,
                                                    @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null
                 ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
