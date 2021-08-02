@@ -2,10 +2,6 @@ spring:
   application:
     name: loadflow-server
 
-springdoc:
-  swagger-ui:
-    path: swagger-ui.html
-
 server:
   port: 5008
   forward-headers-strategy: framework
