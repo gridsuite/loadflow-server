@@ -1,12 +1,9 @@
 spring:
+  profiles:
+    active: default,local
+
   application:
     name: loadflow-server
 
 server:
-  port: 5008
   forward-headers-strategy: framework
-
-network-store-server:
-  base-uri: http://localhost:8080
-report-server:
-  base-uri: http://localhost:5028
