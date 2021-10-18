@@ -48,7 +48,7 @@
 
         <jib.from.image>gridsuite/java-hades2</jib.from.image>
         <jib.container.environment>SPRING_PROFILES_ACTIVE=default</jib.container.environment>
-        <gridsuite-dependencies.version>11-SNAPSHOT</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>11</gridsuite-dependencies.version>
     </properties>
 
     <build>
