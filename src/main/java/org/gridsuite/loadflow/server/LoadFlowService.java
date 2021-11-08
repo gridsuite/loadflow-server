@@ -69,15 +69,19 @@ class LoadFlowService {
 
     }
 
-    private Network getNetwork(UUID networkUuid) {
+    private Network getNetwork(UUID networkUuid, String variantId) {
         try {
-            return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+            if (variantId != null) {
+                network.getVariantManager().setWorkingVariant(variantId);
+            }
+            return network;
         } catch (PowsyblException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Network '" + networkUuid + "' not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+    LoadFlowResult loadFlow(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
                             String provider, UUID reportId, String reportName, Boolean overwriteReport) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
@@ -92,10 +96,10 @@ class LoadFlowService {
         LoadFlow.Runner runner = LoadFlow.find(provider != null ? provider : DEFAULT_PROVIDER);
 
         if (otherNetworksUuid.isEmpty()) {
-            Network network = getNetwork(networkUuid);
+            Network network = getNetwork(networkUuid, variantId);
 
             // launch the load flow on the network
-            result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
+            result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), params, reporter);
             // flush network in the network store
             if (result.isOk()) {
                 networkStoreService.flush(network);
@@ -104,12 +108,12 @@ class LoadFlowService {
             // creation of the merging view and merging the networks
             MergingView mergingView = MergingView.create("merged", "iidm");
             List<Network> networks = new ArrayList<>();
-            networks.add(getNetwork(networkUuid));
-            otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
+            networks.add(getNetwork(networkUuid, variantId));
+            otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid, variantId)));
             mergingView.merge(networks.toArray(new Network[networks.size()]));
 
             // launch the load flow on the merging view
-            result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
+            result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), params, reporter);
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));

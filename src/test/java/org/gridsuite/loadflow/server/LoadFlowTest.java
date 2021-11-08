@@ -66,6 +66,11 @@ public class LoadFlowTest {
 
     private MockWebServer server;
 
+    private static String VARIANT_1_ID = "variant_1";
+    private static String VARIANT_2_ID = "variant_2";
+    private static String VARIANT_3_ID = "variant_3";
+    private static String VARIANT_NOT_FOUND_ID = "variant_notFound";
+
     @Before
     public void setUp() throws IOException  {
 
@@ -104,16 +109,20 @@ public class LoadFlowTest {
 
         // network not existing
         mvc.perform(put("/v1/networks/{networkUuid}/run", notFoundNetworkId))
-                .andExpect(status().isNotFound());
+            .andExpect(status().isNotFound());
 
-        // load flow without parameters (default parameters are used)
+        // variant not existing
+        mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", testNetworkId, VARIANT_NOT_FOUND_ID))
+            .andExpect(status().isNotFound());
+
+        // load flow without parameters (default parameters are used) on implicit initial variant
         MvcResult result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
 
-        // load flow with parameters
+        // load flow with parameters on explicitly given variant
         LoadFlowParameters params = new LoadFlowParameters()
                 .setNoGeneratorReactiveLimits(true)
                 .setDistributedSlack(false);
@@ -125,7 +134,7 @@ public class LoadFlowTest {
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = new String(stream.toByteArray());
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run?reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, reportId)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, VARIANT_2_ID, reportId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
@@ -135,7 +144,7 @@ public class LoadFlowTest {
         var requestsDone = getRequestsDone(1);
         assertTrue(requestsDone.contains("/v1/reports/" + reportId + "?overwrite=true"));
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId, reportId)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", testNetworkId, VARIANT_3_ID)
             .contentType(MediaType.APPLICATION_JSON)
             .content(paramsString))
             .andExpect(status().isOk())
@@ -204,7 +213,11 @@ public class LoadFlowTest {
     }
 
     public Network createNetwork() {
-        return EurostagTutorialExample1Factory.create();
+        Network network = EurostagTutorialExample1Factory.create();
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
+        network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
+        return network;
     }
 
     public Network createNetwork(String prefix) {
