@@ -17,6 +17,7 @@ import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -70,13 +71,9 @@ class LoadFlowService {
 
     }
 
-    private Network getNetwork(UUID networkUuid, String variantId) {
+    private Network getNetwork(UUID networkUuid) {
         try {
-            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
-            if (variantId != null) {
-                network.getVariantManager().setWorkingVariant(variantId);
-            }
-            return network;
+            return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
         } catch (PowsyblException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
@@ -97,10 +94,10 @@ class LoadFlowService {
         LoadFlow.Runner runner = LoadFlow.find(provider != null ? provider : DEFAULT_PROVIDER);
 
         if (otherNetworksUuid.isEmpty()) {
-            Network network = getNetwork(networkUuid, variantId);
+            Network network = getNetwork(networkUuid);
 
             // launch the load flow on the network
-            result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), params, reporter);
+            result = runner.run(network, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
             // flush network in the network store
             if (result.isOk()) {
                 networkStoreService.flush(network);
@@ -109,12 +106,12 @@ class LoadFlowService {
             // creation of the merging view and merging the networks
             MergingView mergingView = MergingView.create("merged", "iidm");
             List<Network> networks = new ArrayList<>();
-            networks.add(getNetwork(networkUuid, variantId));
-            otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid, variantId)));
+            networks.add(getNetwork(networkUuid));
+            otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
             mergingView.merge(networks.toArray(new Network[networks.size()]));
 
             // launch the load flow on the merging view
-            result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(), params, reporter);
+            result = runner.run(mergingView, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));

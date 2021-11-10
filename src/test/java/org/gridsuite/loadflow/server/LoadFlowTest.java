@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
 import com.powsybl.openloadflow.OpenLoadFlowParameters;
 import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import org.junit.Before;
@@ -37,6 +38,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
@@ -47,6 +50,7 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import okhttp3.HttpUrl;
+import org.springframework.web.util.NestedServletException;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -104,7 +108,7 @@ public class LoadFlowTest {
     public void test() throws Exception {
         UUID notFoundNetworkId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
 
-        given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork());
+        given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork(false));
         given(networkStoreService.getNetwork(notFoundNetworkId, PreloadingStrategy.COLLECTION)).willThrow(new PowsyblException());
 
         // network not existing
@@ -112,8 +116,8 @@ public class LoadFlowTest {
             .andExpect(status().isNotFound());
 
         // variant not existing
-        mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", testNetworkId, VARIANT_NOT_FOUND_ID))
-            .andExpect(status().isNotFound());
+        Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", testNetworkId, VARIANT_NOT_FOUND_ID)));
+        assertTrue(exception.getCause().getMessage().contains("Variant '" + VARIANT_NOT_FOUND_ID + "' not found"));
 
         // load flow without parameters (default parameters are used) on implicit initial variant
         MvcResult result = mvc.perform(put("/v1/networks/{networkUuid}/run", testNetworkId))
@@ -155,6 +159,18 @@ public class LoadFlowTest {
         assertTrue(requestsDone.contains(null));
     }
 
+    @Test
+    public void testLoadFlowFailingVariant() throws Exception {
+        given(networkStoreService.getNetwork(testNetworkId, PreloadingStrategy.COLLECTION)).willReturn(createNetwork(true));
+
+        // load flow without parameters (default parameters are used) on failing variant
+        MvcResult result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", testNetworkId, VARIANT_3_ID))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("status\":\"MAX_ITERATION_REACHED\""));
+    }
+
     private Set<String> getRequestsDone(int n) {
         return IntStream.range(0, n).mapToObj(i -> {
             try {
@@ -176,9 +192,9 @@ public class LoadFlowTest {
         UUID testNetworkId2 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
         UUID testNetworkId3 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
 
-        given(networkStoreService.getNetwork(testNetworkId1, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("1_"));
-        given(networkStoreService.getNetwork(testNetworkId2, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("2_"));
-        given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("3_"));
+        given(networkStoreService.getNetwork(testNetworkId1, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("1_", false));
+        given(networkStoreService.getNetwork(testNetworkId2, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("2_", false));
+        given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("3_", false));
 
         // load flow without parameters (default parameters are used)
         String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
@@ -212,16 +228,53 @@ public class LoadFlowTest {
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
     }
 
-    public Network createNetwork() {
-        Network network = EurostagTutorialExample1Factory.create();
+    @Test
+    public void testMergingViewLoadFlowFailWithMultipleVariants() throws Exception {
+        UUID testNetworkId1 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
+        UUID testNetworkId2 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
+        UUID testNetworkId3 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
+
+        given(networkStoreService.getNetwork(testNetworkId1, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("1_", true));
+        given(networkStoreService.getNetwork(testNetworkId2, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("2_", true));
+        given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.COLLECTION)).willReturn(createNetwork("3_", true));
+
+        // load flow without parameters (default parameters are used)
+        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
+            + "&reportId=" + reportId + "&reportName=report_name";
+
+        Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put(url, testNetworkId1)));
+        assertEquals("Merging of multi-variants network is not supported", exception.getCause().getMessage());
+    }
+
+    public Network createNetwork(boolean withFailingVariant) {
+        Network network = EurostagTutorialExample1Factory.create(new NetworkFactoryImpl());
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
+
+        if (withFailingVariant) {
+            network.getVariantManager().setWorkingVariant(VARIANT_3_ID);
+            VoltageLevel vl = network.getVoltageLevel("VLGEN");
+            Bus bus = vl.getBusBreakerView().getBus("NGEN");
+            vl.newGenerator()
+                .setId("FAILING_GEN")
+                .setBus(bus.getId())
+                .setConnectableBus(bus.getId())
+                .setMinP(-9999.99)
+                .setMaxP(9999.99)
+                .setVoltageRegulatorOn(true)
+                .setTargetV(24.5)
+                .setTargetP(20000.)
+                .setTargetQ(301.0)
+                .add();
+
+            network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
+        }
         return network;
     }
 
-    public Network createNetwork(String prefix) {
-        Network network = NetworkFactory.findDefault().createNetwork(prefix + "network", "test");
+    public Network createNetwork(String prefix, boolean createVariant) {
+        Network network = new NetworkFactoryImpl().createNetwork(prefix + "network", "test");
         Substation p1 = network.newSubstation()
                 .setId(prefix + "P1")
                 .setCountry(Country.FR)
@@ -380,6 +433,11 @@ public class LoadFlowTest {
                 .setMinQ(-9999.99)
                 .setMaxQ(9999.99)
                 .add();
+
+        if (createVariant) {
+            network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
+        }
+
         return network;
     }
 }
