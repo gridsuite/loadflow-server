@@ -22,6 +22,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.gridsuite.loadflow.utils.ReportInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -82,13 +83,13 @@ class LoadFlowService {
     }
 
     LoadFlowResult loadFlow(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
-                            String provider, UUID reportId, String reportName, Boolean overwriteReport) {
+                            String provider, ReportInfos reportInfos) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
         Reporter reporter;
-        if (reportId != null) {
-            String name = reportName == null ? "loadflow" : reportName;
+        if (reportInfos.getReportId() != null) {
+            String name = reportInfos.getReportName() == null ? "loadflow" : reportInfos.getReportName();
             reporter = new ReporterModel(name, name);
         } else {
             reporter = Reporter.NO_OP;
@@ -119,8 +120,8 @@ class LoadFlowService {
                 networks.forEach(network -> networkStoreService.flush(network));
             }
         }
-        if (reportId != null) {
-            sendReport(reportId, reporter, overwriteReport);
+        if (reportInfos.getReportId() != null) {
+            sendReport(reportInfos.getReportId(), reporter, reportInfos.getOverwriteReport());
         }
 
         return result;
