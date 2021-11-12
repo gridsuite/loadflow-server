@@ -1,9 +1,0 @@
-spring:
-  profiles:
-    active: default,local
-
-  application:
-    name: loadflow-server
-
-server:
-  forward-headers-strategy: framework
