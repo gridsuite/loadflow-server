@@ -137,7 +137,7 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-iidm-impl</artifactId>
+            <artifactId>powsybl-network-store-iidm-impl</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
