@@ -17,11 +17,13 @@ import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.gridsuite.loadflow.utils.ReportInfos;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,18 +75,18 @@ class LoadFlowService {
         try {
             return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
         } catch (PowsyblException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Network '" + networkUuid + "' not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
-                            String provider, UUID reportId, String reportName, Boolean overwriteReport) {
+    LoadFlowResult loadFlow(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+                            String provider, ReportInfos reportInfos) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
 
         Reporter reporter;
-        if (reportId != null) {
-            String name = reportName == null ? "loadflow" : reportName;
+        if (reportInfos.getReportId() != null) {
+            String name = reportInfos.getReportName() == null ? "loadflow" : reportInfos.getReportName();
             reporter = new ReporterModel(name, name);
         } else {
             reporter = Reporter.NO_OP;
@@ -95,7 +97,7 @@ class LoadFlowService {
             Network network = getNetwork(networkUuid);
 
             // launch the load flow on the network
-            result = runner.run(network, network.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
+            result = runner.run(network, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
             // flush network in the network store
             if (result.isOk()) {
                 networkStoreService.flush(network);
@@ -109,14 +111,14 @@ class LoadFlowService {
             mergingView.merge(networks.toArray(new Network[networks.size()]));
 
             // launch the load flow on the merging view
-            result = runner.run(mergingView, mergingView.getVariantManager().getWorkingVariantId(), LocalComputationManager.getDefault(),  params, reporter);
+            result = runner.run(mergingView, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
             if (result.isOk()) {
                 // flush each network of the merging view in the network store
                 networks.forEach(network -> networkStoreService.flush(network));
             }
         }
-        if (reportId != null) {
-            sendReport(reportId, reporter, overwriteReport);
+        if (reportInfos.getReportId() != null) {
+            sendReport(reportInfos.getReportId(), reporter, reportInfos.getOverwriteReport());
         }
 
         return result;

@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.gridsuite.loadflow.utils.ReportInfos;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
@@ -44,6 +45,7 @@ public class LoadFlowController {
     @Operation(summary = "run a load flow on a network")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
     public ResponseEntity<LoadFlowResult> loadFlow(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
+                                                   @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
                                                    @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
                                                    @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                                    @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
@@ -56,7 +58,8 @@ public class LoadFlowController {
 
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
 
-        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, otherNetworksUuid, parameters, provider, reportId, reportName, overwriteReport);
+        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, variantId, otherNetworksUuid, parameters, provider,
+            new ReportInfos(reportId, reportName, overwriteReport));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 }
