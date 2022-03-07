@@ -47,7 +47,7 @@
         <java.version>11</java.version>
 
         <jib.from.image>gridsuite/java-hades2</jib.from.image>
-        <gridsuite-dependencies.version>13</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>14</gridsuite-dependencies.version>
     </properties>
 
     <build>
