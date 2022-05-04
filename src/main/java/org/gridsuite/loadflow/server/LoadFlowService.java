@@ -58,7 +58,8 @@ class LoadFlowService {
     @Value("${report-server.base-uri:http://report-server}")
     String reportServerURI;
 
-    private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
+    @Value("${loadflow.default-provider}")
+    String defaultProvider;
 
     @Autowired
     private NetworkStoreService networkStoreService;
@@ -83,15 +84,18 @@ class LoadFlowService {
                             String provider, ReportInfos reportInfos) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
+        String providerToUse = provider != null ? provider : defaultProvider;
 
         Reporter reporter;
         if (reportInfos.getReportId() != null) {
-            String name = reportInfos.getReportName() == null ? "loadflow" : reportInfos.getReportName();
+            String name =
+                    (reportInfos.getReportName() == null ? "loadflow" : reportInfos.getReportName())
+                    + " (" + providerToUse + ")";
             reporter = new ReporterModel(name, name);
         } else {
             reporter = Reporter.NO_OP;
         }
-        LoadFlow.Runner runner = LoadFlow.find(provider != null ? provider : DEFAULT_PROVIDER);
+        LoadFlow.Runner runner = LoadFlow.find(providerToUse);
 
         if (otherNetworksUuid.isEmpty()) {
             Network network = getNetwork(networkUuid);
