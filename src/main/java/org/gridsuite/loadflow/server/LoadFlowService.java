@@ -58,7 +58,7 @@ class LoadFlowService {
     @Value("${report-server.base-uri:http://report-server}")
     String reportServerURI;
 
-    @Value("${loadflow.default-provider:OpenLoadFlow}")
+    @Value("${loadflow.default-provider}")
     String defaultProvider;
 
     @Autowired
