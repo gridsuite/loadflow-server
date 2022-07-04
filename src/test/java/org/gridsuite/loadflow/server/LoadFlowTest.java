@@ -138,7 +138,7 @@ public class LoadFlowTest {
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = new String(stream.toByteArray());
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&overwrite=true&reportName=loadflow", testNetworkId, VARIANT_2_ID, reportId)
+        result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", testNetworkId, VARIANT_2_ID, reportId)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
@@ -146,7 +146,7 @@ public class LoadFlowTest {
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
         var requestsDone = getRequestsDone(1);
-        assertTrue(requestsDone.contains("/v1/reports/" + reportId + "?overwrite=true"));
+        assertTrue(requestsDone.contains("/v1/reports/" + reportId));
 
         result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", testNetworkId, VARIANT_3_ID)
             .contentType(MediaType.APPLICATION_JSON)

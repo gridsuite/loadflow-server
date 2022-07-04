@@ -19,5 +19,4 @@ import java.util.UUID;
 public class ReportInfos {
     private UUID reportId;
     private String reportName;
-    private Boolean overwriteReport;
 }
