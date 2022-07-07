@@ -122,18 +122,18 @@ class LoadFlowService {
             }
         }
         if (reportInfos.getReportId() != null) {
-            sendReport(reportInfos.getReportId(), reporter, reportInfos.getOverwriteReport());
+            sendReport(reportInfos.getReportId(), reporter);
         }
 
         return result;
     }
 
-    private void sendReport(UUID reportId, Reporter reporter, boolean overwrite) {
+    private void sendReport(UUID reportId, Reporter reporter) {
         var restTemplate = new RestTemplate();
         var headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
         var resourceUrl = reportServerURI + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER + reportId.toString();
-        var uriBuilder = UriComponentsBuilder.fromHttpUrl(resourceUrl).queryParam("overwrite", overwrite);
+        var uriBuilder = UriComponentsBuilder.fromHttpUrl(resourceUrl);
         try {
             restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), ReporterModel.class);
         } catch (JsonProcessingException error) {
