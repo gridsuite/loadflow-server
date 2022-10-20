@@ -89,7 +89,7 @@ class LoadFlowService {
         Reporter rootReporter = Reporter.NO_OP;
         Reporter reporter = Reporter.NO_OP;
         if (reportInfos.getReportId() != null) {
-            String rootReporterId = reportInfos.getReportName() +  "@" + LOAD_FLOW_TYPE_REPORT;
+            String rootReporterId = reportInfos.getReportName() == null ? LOAD_FLOW_TYPE_REPORT : reportInfos.getReportName() +  "@" + LOAD_FLOW_TYPE_REPORT;
             rootReporter = new ReporterModel(rootReporterId, rootReporterId);
             reporter = rootReporter.createSubReporter(LOAD_FLOW_TYPE_REPORT, LOAD_FLOW_TYPE_REPORT + " (${providerToUse})", "providerToUse", providerToUse);
         }
