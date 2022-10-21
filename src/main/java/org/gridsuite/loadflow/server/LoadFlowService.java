@@ -24,8 +24,6 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.gridsuite.loadflow.server.utils.ReportInfos;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
@@ -53,7 +51,6 @@ import static org.gridsuite.loadflow.server.LoadFlowConstants.REPORT_API_VERSION
 @ComponentScan(basePackageClasses = {NetworkStoreService.class})
 @Service
 class LoadFlowService {
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
     @Value("${report-server.base-uri:http://report-server}")
     String reportServerURI;
@@ -63,7 +60,10 @@ class LoadFlowService {
 
     @Autowired
     private NetworkStoreService networkStoreService;
-    private ObjectMapper objectMapper;
+
+    private final ObjectMapper objectMapper;
+
+    private static final String LOAD_FLOW_TYPE_REPORT = "LoadFlow";
 
     public LoadFlowService() {
         objectMapper = Jackson2ObjectMapperBuilder.json().build();
@@ -86,15 +86,14 @@ class LoadFlowService {
         LoadFlowResult result;
         String providerToUse = provider != null ? provider : defaultProvider;
 
-        Reporter reporter;
+        Reporter rootReporter = Reporter.NO_OP;
+        Reporter reporter = Reporter.NO_OP;
         if (reportInfos.getReportId() != null) {
-            String name =
-                    (reportInfos.getReportName() == null ? "loadflow" : reportInfos.getReportName())
-                    + " (" + providerToUse + ")";
-            reporter = new ReporterModel(name, name);
-        } else {
-            reporter = Reporter.NO_OP;
+            String rootReporterId = reportInfos.getReportName() == null ? LOAD_FLOW_TYPE_REPORT : reportInfos.getReportName() +  "@" + LOAD_FLOW_TYPE_REPORT;
+            rootReporter = new ReporterModel(rootReporterId, rootReporterId);
+            reporter = rootReporter.createSubReporter(LOAD_FLOW_TYPE_REPORT, LOAD_FLOW_TYPE_REPORT + " (${providerToUse})", "providerToUse", providerToUse);
         }
+
         LoadFlow.Runner runner = LoadFlow.find(providerToUse);
 
         if (otherNetworksUuid.isEmpty()) {
@@ -122,7 +121,7 @@ class LoadFlowService {
             }
         }
         if (reportInfos.getReportId() != null) {
-            sendReport(reportInfos.getReportId(), reporter);
+            sendReport(reportInfos.getReportId(), rootReporter);
         }
 
         return result;
