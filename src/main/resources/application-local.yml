@@ -3,5 +3,7 @@ server:
 
 network-store-server:
   base-uri: http://localhost:8080
-report-server:
-  base-uri: http://localhost:5028
+
+backing-services:
+  report-server:
+    base-uri: http://localhost:5028
