@@ -74,7 +74,7 @@ class LoadFlowService {
 
     private Network getNetwork(UUID networkUuid) {
         try {
-            return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+            return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW);
         } catch (PowsyblException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
