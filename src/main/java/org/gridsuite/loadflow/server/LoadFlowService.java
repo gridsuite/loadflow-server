@@ -55,7 +55,7 @@ class LoadFlowService {
     @Value("${report-server.base-uri:http://report-server}")
     String reportServerURI;
 
-    @Value("${loadflow.default-provider}")
+    @Value("${powsybl-ws.loadflow.default-provider}")
     String defaultProvider;
 
     @Autowired
