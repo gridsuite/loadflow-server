@@ -33,7 +33,6 @@ import org.springframework.web.util.NestedServletException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -44,6 +43,7 @@ import java.util.stream.IntStream;
 import static org.gridsuite.loadflow.server.Networks.*;
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -236,7 +236,11 @@ public class LoadFlowTest {
     }
 
     @Test
-    public void getProvidersTest() {
-        assertEquals(List.of("OpenLoadFlow", "Hades2", "DynaFlow"), loadFlowService.getProviders());
+    public void getProvidersTest() throws Exception {
+        mvc.perform(get("/v1/providers"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("[\"OpenLoadFlow\",\"Hades2\",\"DynaFlow\"]"))
+                .andReturn();
     }
 }

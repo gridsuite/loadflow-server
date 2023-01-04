@@ -42,15 +42,15 @@ public class LoadFlowController {
     private LoadFlowService loadFlowService;
 
     @PutMapping(value = "/networks/{networkUuid}/run", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "run a load flow on a network")
+    @Operation(summary = "Run a load flow on a network")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
-    public ResponseEntity<LoadFlowResult> loadFlow(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
-                                                   @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
-                                                   @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
-                                                   @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
-                                                   @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
-                                                   @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
-                                                   @RequestBody(required = false) String loadflowParams) {
+    public ResponseEntity<LoadFlowResult> run(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
+                                              @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
+                                              @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
+                                              @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
+                                              @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
+                                              @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
+                                              @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null
                 ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
                 : null;
@@ -60,5 +60,13 @@ public class LoadFlowController {
         LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, parameters, provider,
             new ReportContext(reportId, reportName));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+    }
+
+    @GetMapping(value = "/providers", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get all loadflow providers")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200")})
+    public ResponseEntity<List<String>> getProviders() {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
+                .body(loadFlowService.getProviders());
     }
 }
