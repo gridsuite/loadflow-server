@@ -7,13 +7,10 @@
 package org.gridsuite.loadflow.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.InjectableValues;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
-import com.powsybl.commons.reporter.ReporterModelDeserializer;
-import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
@@ -23,16 +20,11 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
-import org.gridsuite.loadflow.server.utils.ReportInfos;
+import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
@@ -56,21 +48,15 @@ class LoadFlowService {
     String reportServerURI;
 
     @Value("${loadflow.default-provider}")
-    String defaultProvider;
+    private String defaultProvider;
 
     @Autowired
     private NetworkStoreService networkStoreService;
 
-    private final ObjectMapper objectMapper;
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private static final String LOAD_FLOW_TYPE_REPORT = "LoadFlow";
-
-    public LoadFlowService() {
-        objectMapper = Jackson2ObjectMapperBuilder.json().build();
-        objectMapper.registerModule(new ReporterModelJsonModule());
-        objectMapper.setInjectableValues(new InjectableValues.Std().addValue(ReporterModelDeserializer.DICTIONARY_VALUE_ID, null));
-
-    }
 
     private Network getNetwork(UUID networkUuid) {
         try {
@@ -80,16 +66,16 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult loadFlow(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
-                            String provider, ReportInfos reportInfos) {
+    LoadFlowResult run(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+                       String provider, ReportContext reportContext) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
         LoadFlowResult result;
         String providerToUse = provider != null ? provider : defaultProvider;
 
         Reporter rootReporter = Reporter.NO_OP;
         Reporter reporter = Reporter.NO_OP;
-        if (reportInfos.getReportId() != null) {
-            String rootReporterId = reportInfos.getReportName() == null ? LOAD_FLOW_TYPE_REPORT : reportInfos.getReportName() +  "@" + LOAD_FLOW_TYPE_REPORT;
+        if (reportContext.getReportId() != null) {
+            String rootReporterId = reportContext.getReportName() == null ? LOAD_FLOW_TYPE_REPORT : reportContext.getReportName() +  "@" + LOAD_FLOW_TYPE_REPORT;
             rootReporter = new ReporterModel(rootReporterId, rootReporterId);
             reporter = rootReporter.createSubReporter(LOAD_FLOW_TYPE_REPORT, LOAD_FLOW_TYPE_REPORT + " (${providerToUse})", "providerToUse", providerToUse);
         }
@@ -111,7 +97,7 @@ class LoadFlowService {
             List<Network> networks = new ArrayList<>();
             networks.add(getNetwork(networkUuid));
             otherNetworksUuid.forEach(uuid -> networks.add(getNetwork(uuid)));
-            mergingView.merge(networks.toArray(new Network[networks.size()]));
+            mergingView.merge(networks.toArray(new Network[0]));
 
             // launch the load flow on the merging view
             result = runner.run(mergingView, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
@@ -120,8 +106,8 @@ class LoadFlowService {
                 networks.forEach(network -> networkStoreService.flush(network));
             }
         }
-        if (reportInfos.getReportId() != null) {
-            sendReport(reportInfos.getReportId(), rootReporter);
+        if (reportContext.getReportId() != null) {
+            sendReport(reportContext.getReportId(), rootReporter);
         }
 
         return result;
