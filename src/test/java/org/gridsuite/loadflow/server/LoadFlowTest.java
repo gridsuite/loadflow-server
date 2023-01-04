@@ -33,6 +33,7 @@ import org.springframework.web.util.NestedServletException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -217,7 +218,7 @@ public class LoadFlowTest {
     }
 
     @Test
-    public void testMergingViewLoadFlowFailWithMultipleVariants() throws Exception {
+    public void testMergingViewLoadFlowFailWithMultipleVariants() {
         UUID testNetworkId1 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
         UUID testNetworkId2 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e5");
         UUID testNetworkId3 = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e6");
@@ -232,5 +233,10 @@ public class LoadFlowTest {
 
         Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put(url, testNetworkId1)));
         assertEquals("Merging of multi-variants network is not supported", exception.getCause().getMessage());
+    }
+
+    @Test
+    public void getProvidersTest() {
+        assertEquals(List.of("OpenLoadFlow", "Hades2", "DynaFlow"), loadFlowService.getProviders());
     }
 }
