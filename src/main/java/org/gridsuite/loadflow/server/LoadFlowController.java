@@ -14,7 +14,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.gridsuite.loadflow.server.utils.ReportInfos;
+import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
@@ -42,23 +42,23 @@ public class LoadFlowController {
     private LoadFlowService loadFlowService;
 
     @PutMapping(value = "/networks/{networkUuid}/run", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "run a load flow on a network")
+    @Operation(summary = "Run a load flow on a network")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
-    public ResponseEntity<LoadFlowResult> loadFlow(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
-                                                   @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
-                                                   @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
-                                                   @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
-                                                   @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
-                                                   @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
-                                                   @RequestBody(required = false) String loadflowParams) {
+    public ResponseEntity<LoadFlowResult> run(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
+                                              @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
+                                              @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
+                                              @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
+                                              @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
+                                              @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
+                                              @RequestBody(required = false) String loadflowParams) {
         LoadFlowParameters parameters = loadflowParams != null
                 ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
                 : null;
 
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
 
-        LoadFlowResult result = loadFlowService.loadFlow(networkUuid, variantId, otherNetworksUuid, parameters, provider,
-            new ReportInfos(reportId, reportName));
+        LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, parameters, provider,
+            new ReportContext(reportId, reportName));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 }
