@@ -59,6 +59,8 @@ public class LoadFlowTest {
     private static final String VARIANT_NOT_FOUND_ID = "variant_notFound";
     private static final UUID TEST_NETWORK_ID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID REPORT_ID = UUID.fromString("7928181c-7977-4592-ba19-aaaaaaaaaaaa");
+    private static final String VERSION = "v1";
+    private static final String REPORT_VERSION = "v1";
 
     @Autowired
     private LoadFlowService loadFlowService;
@@ -82,7 +84,7 @@ public class LoadFlowTest {
             @Override
             public MockResponse dispatch(RecordedRequest request) {
                 String path = Objects.requireNonNull(request.getPath());
-                if (path.matches("/v1/reports/" + REPORT_ID + ".*")) {
+                if (path.matches("/" + REPORT_VERSION + "/reports/" + REPORT_ID + ".*")) {
                     return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8")
                         .setBody("");
                 }
@@ -101,15 +103,15 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(notFoundNetworkId, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willThrow(new PowsyblException());
 
         // network not existing
-        mvc.perform(put("/v1/networks/{networkUuid}/run", notFoundNetworkId))
+        mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run", notFoundNetworkId))
             .andExpect(status().isNotFound());
 
         // variant not existing
-        Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_NOT_FOUND_ID)));
+        Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_NOT_FOUND_ID)));
         assertTrue(exception.getCause().getMessage().contains("Variant '" + VARIANT_NOT_FOUND_ID + "' not found"));
 
         // load flow without parameters (default parameters are used) on implicit initial variant
-        MvcResult result = mvc.perform(put("/v1/networks/{networkUuid}/run", TEST_NETWORK_ID))
+        MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run", TEST_NETWORK_ID))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
@@ -127,7 +129,7 @@ public class LoadFlowTest {
         JsonLoadFlowParameters.write(params, stream);
         String paramsString = stream.toString();
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", TEST_NETWORK_ID, VARIANT_2_ID, REPORT_ID)
+        result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", TEST_NETWORK_ID, VARIANT_2_ID, REPORT_ID)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(paramsString))
                 .andExpect(status().isOk())
@@ -135,9 +137,9 @@ public class LoadFlowTest {
                 .andReturn();
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
         var requestsDone = getRequestsDone(1);
-        assertTrue(requestsDone.contains("/v1/reports/" + REPORT_ID));
+        assertTrue(requestsDone.contains("/" + REPORT_VERSION + "/reports/" + REPORT_ID));
 
-        result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
+        result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
             .contentType(MediaType.APPLICATION_JSON)
             .content(paramsString))
             .andExpect(status().isOk())
@@ -153,7 +155,7 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(TEST_NETWORK_ID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(createNetwork(true));
 
         // load flow without parameters (default parameters are used) on failing variant
-        MvcResult result = mvc.perform(put("/v1/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID))
+        MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andReturn();
@@ -186,7 +188,7 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(createNetwork("3_", false));
 
         // load flow without parameters (default parameters are used)
-        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
+        String url = "/" + VERSION + "/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
             + "&reportId=" + REPORT_ID + "&reportName=report_name";
 
         MvcResult result = mvc.perform(put(url, testNetworkId1))
@@ -228,7 +230,7 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(testNetworkId3, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(createNetwork("3_", true));
 
         // load flow without parameters (default parameters are used)
-        String url = "/v1/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
+        String url = "/" + VERSION + "/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
             + "&reportId=" + REPORT_ID + "&reportName=report_name";
 
         Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put(url, testNetworkId1)));
