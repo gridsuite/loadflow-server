@@ -239,7 +239,7 @@ public class LoadFlowTest {
 
     @Test
     public void getProvidersTest() throws Exception {
-        mvc.perform(get("/v1/providers"))
+        mvc.perform(get("/" + VERSION + "/providers"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().string("[\"OpenLoadFlow\",\"Hades2\"]"))
