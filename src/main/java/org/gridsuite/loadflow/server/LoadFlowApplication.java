@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.fasterxml.jackson.databind.Module;
+import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.loadflow.json.LoadFlowResultJsonModule;
 import com.powsybl.ws.commons.Utils;
 import org.springframework.boot.SpringApplication;
@@ -28,5 +29,10 @@ public class LoadFlowApplication {
     @Bean
     public Module createLoadFlowResultModule() {
         return new LoadFlowResultJsonModule();
+    }
+
+    @Bean
+    public Module createReportModule() {
+        return new ReporterModelJsonModule();
     }
 }

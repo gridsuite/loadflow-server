@@ -16,7 +16,9 @@ import java.util.UUID;
  */
 @Getter
 @AllArgsConstructor
-public class ReportInfos {
+public class ReportContext {
+
     private UUID reportId;
+
     private String reportName;
 }

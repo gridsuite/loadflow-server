@@ -45,7 +45,7 @@
 
     <properties>
         <java.version>11</java.version>
-        <jib.from.image>gridsuite/java-hades2</jib.from.image>
+        <jib.from.image>gridsuite/java-simulator</jib.from.image>
         <gridsuite-dependencies.version>21</gridsuite-dependencies.version>
     </properties>
 
@@ -141,6 +141,11 @@
         <dependency>
             <groupId>com.rte-france.powsybl</groupId>
             <artifactId>powsybl-hades2-integration</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-dynaflow</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
