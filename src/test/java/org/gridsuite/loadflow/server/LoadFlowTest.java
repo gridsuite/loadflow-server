@@ -240,7 +240,7 @@ public class LoadFlowTest {
         mvc.perform(get("/v1/providers"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().string("[\"OpenLoadFlow\",\"Hades2\",\"DynaFlow\"]"))
+                .andExpect(content().string("[\"OpenLoadFlow\",\"Hades2\"]"))
                 .andReturn();
     }
 }
