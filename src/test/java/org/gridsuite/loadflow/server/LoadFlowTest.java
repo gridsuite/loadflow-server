@@ -33,6 +33,7 @@ import org.springframework.web.util.NestedServletException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -243,6 +244,15 @@ public class LoadFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(content().string("[\"OpenLoadFlow\",\"Hades2\"]"))
+                .andReturn();
+    }
+
+    @Test
+    public void getDefaultProviderTest() throws Exception {
+        mvc.perform(get("/" + VERSION + "/default-provider"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
+                .andExpect(content().string("OpenLoadFlow"))
                 .andReturn();
     }
 }

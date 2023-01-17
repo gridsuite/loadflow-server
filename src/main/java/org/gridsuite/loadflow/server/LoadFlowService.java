@@ -134,4 +134,8 @@ class LoadFlowService {
                 .map(LoadFlowProvider::getName)
                 .collect(Collectors.toList());
     }
+
+    public String getDefaultProvider() {
+        return defaultProvider;
+    }
 }
