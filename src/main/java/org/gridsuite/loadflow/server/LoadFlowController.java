@@ -28,6 +28,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
+import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -60,5 +61,20 @@ public class LoadFlowController {
         LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, parameters, provider,
             new ReportContext(reportId, reportName));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+    }
+
+    @GetMapping(value = "/providers", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get all loadflow providers")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200")})
+    public ResponseEntity<List<String>> getProviders() {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
+                .body(loadFlowService.getProviders());
+    }
+
+    @GetMapping(value = "/default-provider", produces = TEXT_PLAIN_VALUE)
+    @Operation(summary = "Get loadflow default provider")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "The load flow default provider has been found"))
+    public ResponseEntity<String> getDefaultLoadflowProvider() {
+        return ResponseEntity.ok().body(loadFlowService.getDefaultProvider());
     }
 }
