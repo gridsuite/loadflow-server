@@ -135,12 +135,12 @@
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-network-store-iidm-impl</artifactId>
+            <artifactId>powsybl-dynaflow</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
-            <artifactId>powsybl-dynaflow</artifactId>
+            <artifactId>powsybl-network-store-iidm-impl</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>
