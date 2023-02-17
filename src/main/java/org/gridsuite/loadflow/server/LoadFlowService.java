@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
-import com.powsybl.commons.util.ServiceLoaderCache;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
@@ -130,7 +129,7 @@ class LoadFlowService {
     }
 
     List<String> getProviders() {
-        return new ServiceLoaderCache<>(LoadFlowProvider.class).getServices().stream()
+        return LoadFlowProvider.findAll().stream()
                 .map(LoadFlowProvider::getName)
                 .collect(Collectors.toList());
     }
