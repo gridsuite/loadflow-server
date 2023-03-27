@@ -9,6 +9,8 @@ package org.gridsuite.loadflow.server;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.parameters.Parameter;
+import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -21,6 +23,7 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,6 +36,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -136,5 +140,25 @@ class LoadFlowService {
 
     public String getDefaultProvider() {
         return defaultProvider;
+    }
+
+    private static ParameterInfos toParameterInfos(Parameter param) {
+        return ParameterInfos.builder()
+            .name(param.getName())
+            .type(param.getType())
+            .description(param.getDescription())
+            .defaultValue(param.getDefaultValue())
+            .possibleValues(param.getPossibleValues())
+            .build();
+    }
+
+    public List<ParameterInfos> getSpecificLoadFlowParameters(String providerName) {
+        Objects.requireNonNull(providerName);
+        LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
+            .filter(provider -> provider.getName().equals(providerName))
+            .findFirst().orElseThrow(() -> new RuntimeException("Model not found " + providerName));
+        return lfProvider.getSpecificParameters().stream()
+            .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
+            .map(LoadFlowService::toParameterInfos).collect(Collectors.toList());
     }
 }

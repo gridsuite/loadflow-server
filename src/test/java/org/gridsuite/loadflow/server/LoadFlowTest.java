@@ -6,6 +6,8 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
@@ -18,6 +20,7 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,6 +37,7 @@ import org.springframework.web.util.NestedServletException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -68,6 +72,9 @@ public class LoadFlowTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private ObjectMapper mapper;
 
     @MockBean
     private NetworkStoreService networkStoreService;
@@ -254,5 +261,17 @@ public class LoadFlowTest {
                 .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
                 .andExpect(content().string("OpenLoadFlow"))
                 .andReturn();
+    }
+
+    @Test
+    public void getSpecificParametersTest() throws Exception {
+        MvcResult result = mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
+                .andExpect(status().isOk())
+                .andReturn();
+        List<ParameterInfos> params = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<ParameterInfos>>() { });
+        assertFalse(params.isEmpty());
+
+        // error case unknown model
+        assertThrows(NestedServletException.class, () -> mvc.perform(get("/" + VERSION + "/specific-parameters?provider=ModelXYZ")));
     }
 }

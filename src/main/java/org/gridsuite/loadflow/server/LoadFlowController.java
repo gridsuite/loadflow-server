@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
@@ -76,5 +77,14 @@ public class LoadFlowController {
     @ApiResponses(@ApiResponse(responseCode = "200", description = "The load flow default provider has been found"))
     public ResponseEntity<String> getDefaultLoadflowProvider() {
         return ResponseEntity.ok().body(loadFlowService.getDefaultProvider());
+    }
+
+    @GetMapping(value = "/specific-parameters")
+    @Operation(summary = "Get all existing loadflow specific parameters for a given provider")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow model-specific parameters")})
+    public ResponseEntity<List<ParameterInfos>> getSpecificLoadflowParameters(
+            @Parameter(description = "The model provider") @RequestParam("provider") String provider) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
+                .body(loadFlowService.getSpecificLoadFlowParameters(provider));
     }
 }
