@@ -50,7 +50,7 @@ import static org.gridsuite.loadflow.server.LoadFlowConstants.REPORT_API_VERSION
 @Service
 class LoadFlowService {
 
-    @Value("${report-server.base-uri:http://report-server}")
+    @Value("${gridsuite.services.report-server.base-uri:http://report-server}")
     String reportServerURI;
 
     @Value("${loadflow.default-provider}")
