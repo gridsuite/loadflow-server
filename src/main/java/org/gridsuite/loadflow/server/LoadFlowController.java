@@ -6,14 +6,13 @@
  */
 package org.gridsuite.loadflow.server;
 
-import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
-import com.powsybl.loadflow.json.JsonLoadFlowParameters;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +21,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.io.ByteArrayInputStream;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -52,14 +50,9 @@ public class LoadFlowController {
                                               @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                               @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
                                               @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
-                                              @RequestBody(required = false) String loadflowParams) {
-        LoadFlowParameters parameters = loadflowParams != null
-                ? JsonLoadFlowParameters.read(new ByteArrayInputStream(loadflowParams.getBytes()))
-                : null;
-
+                                              @RequestBody(required = false) LoadFlowParametersInfos loadflowParams) {
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
-
-        LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, parameters, provider,
+        LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, loadflowParams, provider,
             new ReportContext(reportId, reportName));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
