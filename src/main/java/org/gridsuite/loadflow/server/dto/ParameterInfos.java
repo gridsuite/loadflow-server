@@ -10,6 +10,8 @@ import com.powsybl.commons.parameters.ParameterType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.util.List;
 
 /**
@@ -18,17 +20,22 @@ import java.util.List;
 @Getter
 @AllArgsConstructor
 @Builder
+@NoArgsConstructor
 public class ParameterInfos {
 
-    private final String name;
+    private String provider;
 
-    private final ParameterType type;
+    private String name;
 
-    private final String description;
+    private String value;
 
-    private final Object defaultValue;
+    private ParameterType type;
 
-    private final List<Object> possibleValues;
+    private String description;
+
+    private String defaultValue;
+
+    private List<String> possibleValues;
 }
 
 

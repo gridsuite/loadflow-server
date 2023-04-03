@@ -158,23 +158,27 @@ class LoadFlowService {
         return defaultProvider;
     }
 
-    private static ParameterInfos toParameterInfos(Parameter param) {
+    private static ParameterInfos toParameterInfos(Parameter param, String provider) {
         return ParameterInfos.builder()
+            .provider(provider)
             .name(param.getName())
             .type(param.getType())
             .description(param.getDescription())
-            .defaultValue(param.getDefaultValue())
-            .possibleValues(param.getPossibleValues())
+            .defaultValue(Objects.toString(param.getDefaultValue()))
+            .possibleValues(param.getPossibleValues() == null ? null : param.getPossibleValues().stream()
+                .map(object -> Objects.toString(object, null))
+                .collect(Collectors.toList()))
             .build();
     }
 
     public List<ParameterInfos> getSpecificLoadFlowParameters(String providerName) {
-        Objects.requireNonNull(providerName);
-        LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
-            .filter(provider -> provider.getName().equals(providerName))
-            .findFirst().orElseThrow(() -> new PowsyblException("Model not found " + providerName));
-        return lfProvider.getSpecificParameters().stream()
-            .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
-            .map(LoadFlowService::toParameterInfos).collect(Collectors.toList());
+        List<ParameterInfos> params = new ArrayList<>();
+        LoadFlowProvider.findAll().stream()
+                .filter(provider -> providerName == null || provider.getName().equals(providerName))
+                .forEach(prov -> prov.getSpecificParameters().stream()
+                        .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
+                        .map(param -> LoadFlowService.toParameterInfos(param, prov.getName()))
+                        .forEach(params::add));
+        return params;
     }
 }

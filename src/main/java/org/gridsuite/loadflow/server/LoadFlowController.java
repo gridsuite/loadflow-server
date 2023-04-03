@@ -73,10 +73,10 @@ public class LoadFlowController {
     }
 
     @GetMapping(value = "/specific-parameters")
-    @Operation(summary = "Get all existing loadflow specific parameters for a given provider")
+    @Operation(summary = "Get all existing loadflow specific parameters for a given provider, or for all of them")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow model-specific parameters")})
     public ResponseEntity<List<ParameterInfos>> getSpecificLoadflowParameters(
-            @Parameter(description = "The model provider") @RequestParam("provider") String provider) {
+            @Parameter(description = "The model provider") @RequestParam(name = "provider", required = false) String provider) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
                 .body(loadFlowService.getSpecificLoadFlowParameters(provider));
     }
