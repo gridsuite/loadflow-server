@@ -75,11 +75,9 @@ class LoadFlowService {
     }
 
     private LoadFlowParameters buildLoadFlowParameters(LoadFlowParametersInfos loadflowParams, String provider) {
-        if (loadflowParams == null || loadflowParams.getCommonParameters() == null) {
-            return new LoadFlowParameters(); // default params
-        }
-        LoadFlowParameters params = loadflowParams.getCommonParameters();
-        if (loadflowParams.getSpecificParameters() == null || loadflowParams.getSpecificParameters().isEmpty()) {
+        LoadFlowParameters params = loadflowParams == null || loadflowParams.getCommonParameters() == null ?
+             new LoadFlowParameters() : loadflowParams.getCommonParameters();
+        if (loadflowParams == null || loadflowParams.getSpecificParameters() == null || loadflowParams.getSpecificParameters().isEmpty()) {
             return params; // no specific params
         }
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()

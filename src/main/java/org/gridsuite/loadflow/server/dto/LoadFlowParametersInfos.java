@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.server.dto;
 
 import com.powsybl.loadflow.LoadFlowParameters;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import java.util.Map;
 
@@ -16,6 +17,7 @@ import java.util.Map;
  */
 @Getter
 @AllArgsConstructor
+@Builder
 public class LoadFlowParametersInfos {
 
     private final LoadFlowParameters commonParameters;
