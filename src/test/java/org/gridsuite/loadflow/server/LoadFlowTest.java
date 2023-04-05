@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server;
 
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.powsybl.commons.PowsyblException;
@@ -19,7 +18,6 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
-import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -282,10 +280,19 @@ public class LoadFlowTest {
 
     @Test
     public void getSpecificParametersTest() throws Exception {
-        MvcResult result = mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
+        // just Hades2
+        MvcResult result =  mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
                 .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andReturn();
-        List<ParameterInfos> params = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<ParameterInfos>>() { });
-        assertFalse(params.isEmpty());
+        String resultAsString = result.getResponse().getContentAsString();
+        assertTrue(resultAsString.contains("\"Hades2\"") && !resultAsString.contains("\"OpenLoadFlow\"") && !resultAsString.contains("\"DynaFlow\""));
+        // all providers
+        result =  mvc.perform(get("/" + VERSION + "/specific-parameters"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andReturn();
+        resultAsString = result.getResponse().getContentAsString();
+        assertTrue(resultAsString.contains("\"Hades2\"") && resultAsString.contains("\"OpenLoadFlow\"") && resultAsString.contains("\"DynaFlow\""));
     }
 }

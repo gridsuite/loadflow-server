@@ -24,8 +24,8 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
-import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -36,10 +36,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.LoadFlowConstants.DELIMITER;
@@ -156,27 +153,14 @@ class LoadFlowService {
         return defaultProvider;
     }
 
-    private static ParameterInfos toParameterInfos(Parameter param, String provider) {
-        return ParameterInfos.builder()
-            .provider(provider)
-            .name(param.getName())
-            .type(param.getType())
-            .description(param.getDescription())
-            .defaultValue(Objects.toString(param.getDefaultValue()))
-            .possibleValues(param.getPossibleValues() == null ? null : param.getPossibleValues().stream()
-                .map(object -> Objects.toString(object, null))
-                .collect(Collectors.toList()))
-            .build();
-    }
-
-    public List<ParameterInfos> getSpecificLoadFlowParameters(String providerName) {
-        List<ParameterInfos> params = new ArrayList<>();
-        LoadFlowProvider.findAll().stream()
+    public Map<String, List< Parameter>> getSpecificLoadFlowParameters(String providerName) {
+        return LoadFlowProvider.findAll().stream()
                 .filter(provider -> providerName == null || provider.getName().equals(providerName))
-                .forEach(prov -> prov.getSpecificParameters().stream()
-                        .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
-                        .map(param -> LoadFlowService.toParameterInfos(param, prov.getName()))
-                        .forEach(params::add));
-        return params;
+                .map(provider -> {
+                    List<Parameter> params = provider.getSpecificParameters().stream()
+                            .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
+                            .collect(Collectors.toList());
+                    return Pair.of(provider.getName(), params);
+                }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 }

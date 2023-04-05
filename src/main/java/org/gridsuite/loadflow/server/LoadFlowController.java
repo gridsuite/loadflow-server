@@ -13,7 +13,6 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
-import org.gridsuite.loadflow.server.dto.ParameterInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
@@ -23,6 +22,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -75,7 +75,7 @@ public class LoadFlowController {
     @GetMapping(value = "/specific-parameters")
     @Operation(summary = "Get all existing loadflow specific parameters for a given provider, or for all of them")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow model-specific parameters")})
-    public ResponseEntity<List<ParameterInfos>> getSpecificLoadflowParameters(
+    public ResponseEntity<Map<String, List< com.powsybl.commons.parameters.Parameter>>> getSpecificLoadflowParameters(
             @Parameter(description = "The model provider") @RequestParam(name = "provider", required = false) String provider) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
                 .body(loadFlowService.getSpecificLoadFlowParameters(provider));
