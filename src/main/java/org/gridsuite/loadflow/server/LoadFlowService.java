@@ -73,15 +73,15 @@ class LoadFlowService {
 
     private LoadFlowParameters buildLoadFlowParameters(LoadFlowParametersInfos loadflowParams, String provider) {
         LoadFlowParameters params = loadflowParams == null || loadflowParams.getCommonParameters() == null ?
-             new LoadFlowParameters() : loadflowParams.getCommonParameters();
+             LoadFlowParameters.load() : loadflowParams.getCommonParameters();
         if (loadflowParams == null || loadflowParams.getSpecificParameters() == null || loadflowParams.getSpecificParameters().isEmpty()) {
             return params; // no specific params
         }
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
                 .filter(p -> p.getName().equals(provider))
-                .findFirst().orElseThrow(() -> new PowsyblException("Model not found " + provider));
+                .findFirst().orElseThrow(() -> new PowsyblException("Loadflow provider not found " + provider));
         Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(loadflowParams.getSpecificParameters())
-                .orElseThrow(() -> new PowsyblException("Cannot add specific parameters with model " + provider));
+                .orElseThrow(() -> new PowsyblException("Cannot add specific parameters with Loadflow provider " + provider));
         params.addExtension((Class) extension.getClass(), extension);
         return params;
     }
@@ -93,7 +93,7 @@ class LoadFlowService {
         Reporter rootReporter = Reporter.NO_OP;
         Reporter reporter = Reporter.NO_OP;
         if (reportContext.getReportId() != null) {
-            String rootReporterId = reportContext.getReportName() == null ? LOAD_FLOW_TYPE_REPORT : reportContext.getReportName() +  "@" + LOAD_FLOW_TYPE_REPORT;
+            String rootReporterId = reportContext.getReportName() == null ? LOAD_FLOW_TYPE_REPORT : reportContext.getReportName() + "@" + LOAD_FLOW_TYPE_REPORT;
             rootReporter = new ReporterModel(rootReporterId, rootReporterId);
             reporter = rootReporter.createSubReporter(LOAD_FLOW_TYPE_REPORT, LOAD_FLOW_TYPE_REPORT + " (${providerToUse})", "providerToUse", providerToUse);
         }
@@ -153,7 +153,7 @@ class LoadFlowService {
         return defaultProvider;
     }
 
-    public Map<String, List< Parameter>> getSpecificLoadFlowParameters(String providerName) {
+    public Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
         return LoadFlowProvider.findAll().stream()
                 .filter(provider -> providerName == null || provider.getName().equals(providerName))
                 .map(provider -> {

@@ -6,10 +6,12 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.ObjectWriter;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import okhttp3.HttpUrl;
@@ -17,6 +19,7 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.junit.Before;
 import org.junit.Test;
@@ -77,7 +80,8 @@ public class LoadFlowTest {
     private MockWebServer server;
 
     @Before
-    public void setUp() throws IOException  {
+    public void setUp() throws IOException {
+        mapper.registerModule(new LoadFlowParametersJsonModule());
         objectWriter = mapper.writer().withDefaultPrettyPrinter();
         server = new MockWebServer();
         // Start the server.
@@ -127,7 +131,6 @@ public class LoadFlowTest {
                 .specificParameters(Map.of("SlackBusSelectionMode", "MOST_MESHED"))
                 .build();
         String paramsString = objectWriter.writeValueAsString(fullParams);
-        paramsString = paramsString.replace("\"extensions\" : [ ],", "");
 
         result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", TEST_NETWORK_ID, VARIANT_2_ID, REPORT_ID)
                 .content(paramsString)
@@ -158,7 +161,6 @@ public class LoadFlowTest {
                 .specificParameters(specificParams)
                 .build();
         String paramsString = objectWriter.writeValueAsString(fullParams);
-        paramsString = paramsString.replace("\"extensions\" : [ ],", "");
 
         MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
                 .content(paramsString)
@@ -231,7 +233,6 @@ public class LoadFlowTest {
                 .specificParameters(Map.of("SlackBusSelectionMode", "MOST_MESHED"))
                 .build();
         String paramsString = objectWriter.writeValueAsString(fullParams);
-        paramsString = paramsString.replace("\"extensions\" : [ ],", "");
 
         result = mvc.perform(put(url, testNetworkId1)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -281,18 +282,28 @@ public class LoadFlowTest {
     @Test
     public void getSpecificParametersTest() throws Exception {
         // just Hades2
-        MvcResult result =  mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
+        MvcResult result = mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andReturn();
         String resultAsString = result.getResponse().getContentAsString();
-        assertTrue(resultAsString.contains("\"Hades2\"") && !resultAsString.contains("\"OpenLoadFlow\"") && !resultAsString.contains("\"DynaFlow\""));
+        Map<String, List<Object>> lfParams = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
+        assertNotNull(lfParams);
+        assertEquals(Set.of("Hades2"), lfParams.keySet());
+        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+
         // all providers
-        result =  mvc.perform(get("/" + VERSION + "/specific-parameters"))
+        result = mvc.perform(get("/" + VERSION + "/specific-parameters"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
                 .andReturn();
         resultAsString = result.getResponse().getContentAsString();
-        assertTrue(resultAsString.contains("\"Hades2\"") && resultAsString.contains("\"OpenLoadFlow\"") && resultAsString.contains("\"DynaFlow\""));
+        lfParams = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
+        assertNotNull(lfParams);
+        assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());
+        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+
     }
 }
