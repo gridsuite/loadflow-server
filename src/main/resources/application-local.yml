@@ -5,6 +5,7 @@ powsybl:
   services:
     network-store-server:
       base-uri: http://localhost:8080
+
 gridsuite:
   services:
     report-server:
