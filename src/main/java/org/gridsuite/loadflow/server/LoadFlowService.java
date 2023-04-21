@@ -12,6 +12,8 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.dynaflow.DynaFlowConstants;
+import com.powsybl.dynaflow.DynaFlowParameters;
 import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -71,6 +73,10 @@ class LoadFlowService {
     LoadFlowResult run(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
                        String provider, ReportContext reportContext) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
+        //TODO: temporary hack - to be removed when Dynaflow loads merge is fixed
+        if(provider.equals(DynaFlowConstants.DYNAFLOW_NAME)) {
+            parameters.addExtension(DynaFlowParameters.class, new DynaFlowParameters().setMergeLoads(false));
+        }
         LoadFlowResult result;
         String providerToUse = provider != null ? provider : defaultProvider;
 
