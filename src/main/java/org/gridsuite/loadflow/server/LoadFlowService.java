@@ -17,6 +17,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
+import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
@@ -33,6 +34,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.LoadFlowConstants.DELIMITER;
 import static org.gridsuite.loadflow.server.LoadFlowConstants.REPORT_API_VERSION;
@@ -124,5 +126,15 @@ class LoadFlowService {
         } catch (JsonProcessingException error) {
             throw new PowsyblException("error creating report", error);
         }
+    }
+
+    List<String> getProviders() {
+        return LoadFlowProvider.findAll().stream()
+                .map(LoadFlowProvider::getName)
+                .collect(Collectors.toList());
+    }
+
+    public String getDefaultProvider() {
+        return defaultProvider;
     }
 }

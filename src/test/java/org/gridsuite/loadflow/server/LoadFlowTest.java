@@ -33,6 +33,7 @@ import org.springframework.web.util.NestedServletException;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -43,6 +44,7 @@ import java.util.stream.IntStream;
 import static org.gridsuite.loadflow.server.Networks.*;
 import static org.junit.Assert.*;
 import static org.mockito.BDDMockito.given;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -234,5 +236,23 @@ public class LoadFlowTest {
 
         Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put(url, testNetworkId1)));
         assertEquals("Merging of multi-variants network is not supported", exception.getCause().getMessage());
+    }
+
+    @Test
+    public void getProvidersTest() throws Exception {
+        mvc.perform(get("/" + VERSION + "/providers"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(content().string("[\"OpenLoadFlow\",\"DynaFlow\",\"Hades2\"]"))
+                .andReturn();
+    }
+
+    @Test
+    public void getDefaultProviderTest() throws Exception {
+        mvc.perform(get("/" + VERSION + "/default-provider"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
+                .andExpect(content().string("OpenLoadFlow"))
+                .andReturn();
     }
 }
