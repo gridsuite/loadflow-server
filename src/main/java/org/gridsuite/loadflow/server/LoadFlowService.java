@@ -73,7 +73,6 @@ class LoadFlowService {
     LoadFlowResult run(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
                        String provider, ReportContext reportContext) {
         LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
-
         LoadFlowResult result;
         String providerToUse = provider != null ? provider : defaultProvider;
 
