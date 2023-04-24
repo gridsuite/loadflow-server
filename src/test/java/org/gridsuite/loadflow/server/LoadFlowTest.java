@@ -6,6 +6,8 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.json.JsonLoadFlowParameters;
@@ -34,6 +36,7 @@ import org.springframework.web.util.NestedServletException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -68,6 +71,9 @@ public class LoadFlowTest {
 
     @Autowired
     private MockMvc mvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @MockBean
     private NetworkStoreService networkStoreService;
@@ -240,11 +246,15 @@ public class LoadFlowTest {
 
     @Test
     public void getProvidersTest() throws Exception {
-        mvc.perform(get("/" + VERSION + "/providers"))
+        MvcResult result = mvc.perform(get("/" + VERSION + "/providers"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().string("[\"OpenLoadFlow\",\"DynaFlow\",\"Hades2\"]"))
                 .andReturn();
+        List<String> providers = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(3, providers.size());
+        assertTrue(providers.contains("DynaFlow"));
+        assertTrue(providers.contains("OpenLoadFlow"));
+        assertTrue(providers.contains("Hades2"));
     }
 
     @Test
