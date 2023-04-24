@@ -75,7 +75,7 @@ public class LoadFlowTest {
     private MockWebServer server;
 
     @Before
-    public void setUp() throws IOException  {
+    public void setUp() throws IOException {
         server = new MockWebServer();
         // Start the server.
         server.start();
