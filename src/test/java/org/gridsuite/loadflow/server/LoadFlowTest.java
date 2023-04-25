@@ -263,11 +263,15 @@ public class LoadFlowTest {
 
     @Test
     public void getProvidersTest() throws Exception {
-        mvc.perform(get("/" + VERSION + "/providers"))
+        MvcResult result = mvc.perform(get("/" + VERSION + "/providers"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andExpect(content().string("[\"OpenLoadFlow\",\"DynaFlow\",\"Hades2\"]"))
                 .andReturn();
+        List<String> providers = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(3, providers.size());
+        assertTrue(providers.contains("DynaFlow"));
+        assertTrue(providers.contains("OpenLoadFlow"));
+        assertTrue(providers.contains("Hades2"));
     }
 
     @Test
