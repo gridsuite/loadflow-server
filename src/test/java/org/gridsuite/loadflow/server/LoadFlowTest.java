@@ -267,7 +267,7 @@ public class LoadFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-        List<String> providers = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        List<String> providers = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
         assertEquals(3, providers.size());
         assertTrue(providers.contains("DynaFlow"));
         assertTrue(providers.contains("OpenLoadFlow"));
