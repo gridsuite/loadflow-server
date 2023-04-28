@@ -9,6 +9,9 @@ package org.gridsuite.loadflow.server;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.extensions.Extension;
+import com.powsybl.commons.parameters.Parameter;
+import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -23,6 +26,8 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import org.apache.commons.lang3.tuple.Pair;
+import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
@@ -33,9 +38,7 @@ import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.LoadFlowConstants.DELIMITER;
@@ -48,7 +51,7 @@ import static org.gridsuite.loadflow.server.LoadFlowConstants.REPORT_API_VERSION
 @Service
 class LoadFlowService {
 
-    @Value("${gridsuite.services.report-server.base-uri:http://report-server}")
+    @Value("${gridsuite.services.report-server.base-uri:http://report-server}/")
     String reportServerURI;
 
     @Value("${loadflow.default-provider}")
@@ -70,11 +73,25 @@ class LoadFlowService {
         }
     }
 
-    LoadFlowResult run(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParameters parameters,
+    private LoadFlowParameters buildLoadFlowParameters(LoadFlowParametersInfos loadflowParams, String provider) {
+        LoadFlowParameters params = loadflowParams == null || loadflowParams.getCommonParameters() == null ?
+             LoadFlowParameters.load() : loadflowParams.getCommonParameters();
+        if (loadflowParams == null || loadflowParams.getSpecificParameters() == null || loadflowParams.getSpecificParameters().isEmpty()) {
+            return params; // no specific params
+        }
+        LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
+                .filter(p -> p.getName().equals(provider))
+                .findFirst().orElseThrow(() -> new PowsyblException("Loadflow provider not found " + provider));
+        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(loadflowParams.getSpecificParameters())
+                .orElseThrow(() -> new PowsyblException("Cannot add specific parameters with Loadflow provider " + provider));
+        params.addExtension((Class) extension.getClass(), extension);
+        return params;
+    }
+
+    LoadFlowResult run(UUID networkUuid, String variantId, List<UUID> otherNetworksUuid, LoadFlowParametersInfos loadflowParams,
                        String provider, ReportContext reportContext) {
-        LoadFlowParameters params = parameters != null ? parameters : new LoadFlowParameters();
-        LoadFlowResult result;
         String providerToUse = provider != null ? provider : defaultProvider;
+        LoadFlowParameters params = buildLoadFlowParameters(loadflowParams, providerToUse);
 
         // TODO: to be removed after loads merge fix in powsybl-dynaflow
         if (providerToUse.equals(DynaFlowConstants.DYNAFLOW_NAME)) {
@@ -90,10 +107,9 @@ class LoadFlowService {
         }
 
         LoadFlow.Runner runner = LoadFlow.find(providerToUse);
-
+        LoadFlowResult result;
         if (otherNetworksUuid.isEmpty()) {
             Network network = getNetwork(networkUuid);
-
             // launch the load flow on the network
             result = runner.run(network, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
             // flush network in the network store
@@ -143,5 +159,16 @@ class LoadFlowService {
 
     public String getDefaultProvider() {
         return defaultProvider;
+    }
+
+    public Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
+        return LoadFlowProvider.findAll().stream()
+                .filter(provider -> providerName == null || provider.getName().equals(providerName))
+                .map(provider -> {
+                    List<Parameter> params = provider.getSpecificParameters().stream()
+                            .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
+                            .collect(Collectors.toList());
+                    return Pair.of(provider.getName(), params);
+                }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 }

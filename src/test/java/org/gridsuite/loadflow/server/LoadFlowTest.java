@@ -8,18 +8,19 @@ package org.gridsuite.loadflow.server;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.ObjectWriter;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.loadflow.LoadFlowParameters;
-import com.powsybl.loadflow.json.JsonLoadFlowParameters;
+import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
-import com.powsybl.openloadflow.OpenLoadFlowParameters;
-import com.powsybl.openloadflow.network.SlackBusSelectionMode;
 import okhttp3.HttpUrl;
 import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
+import org.apache.commons.collections4.CollectionUtils;
+import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,13 +34,9 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.util.NestedServletException;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -73,7 +70,9 @@ public class LoadFlowTest {
     private MockMvc mvc;
 
     @Autowired
-    private ObjectMapper objectMapper;
+    private ObjectMapper mapper;
+
+    private ObjectWriter objectWriter;
 
     @MockBean
     private NetworkStoreService networkStoreService;
@@ -82,6 +81,8 @@ public class LoadFlowTest {
 
     @Before
     public void setUp() throws IOException {
+        mapper.registerModule(new LoadFlowParametersJsonModule());
+        objectWriter = mapper.writer().withDefaultPrettyPrinter();
         server = new MockWebServer();
         // Start the server.
         server.start();
@@ -125,20 +126,15 @@ public class LoadFlowTest {
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
 
         // load flow with parameters on explicitly given variant
-        LoadFlowParameters params = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        params.addExtension(OpenLoadFlowParameters.class, parametersExt);
-
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        JsonLoadFlowParameters.write(params, stream);
-        String paramsString = stream.toString();
+        LoadFlowParametersInfos fullParams = LoadFlowParametersInfos.builder()
+                .commonParameters(new LoadFlowParameters())
+                .specificParameters(Map.of("SlackBusSelectionMode", "MOST_MESHED"))
+                .build();
+        String paramsString = objectWriter.writeValueAsString(fullParams);
 
         result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", TEST_NETWORK_ID, VARIANT_2_ID, REPORT_ID)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(paramsString))
+                .content(paramsString)
+                .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
@@ -155,6 +151,33 @@ public class LoadFlowTest {
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
         requestsDone = getRequestsDone(1);
         assertTrue(requestsDone.contains(null));
+    }
+
+    private void simpleRunWithLFParams(LoadFlowParameters lfParams, Map<String, String> specificParams) throws Exception {
+        given(networkStoreService.getNetwork(TEST_NETWORK_ID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(createNetwork(true));
+
+        LoadFlowParametersInfos fullParams = LoadFlowParametersInfos.builder()
+                .commonParameters(lfParams)
+                .specificParameters(specificParams)
+                .build();
+        String paramsString = objectWriter.writeValueAsString(fullParams);
+
+        MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
+                .content(paramsString)
+                .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        assertTrue(result.getResponse().getContentAsString().contains("status\":\"MAX_ITERATION_REACHED\""));
+    }
+
+    @Test
+    public void testLoadFlowWithLFParams() throws Exception {
+        simpleRunWithLFParams(null, null);
+        LoadFlowParameters lfParams = new LoadFlowParameters();
+        simpleRunWithLFParams(lfParams, null);
+        simpleRunWithLFParams(lfParams, Map.of());
+        simpleRunWithLFParams(lfParams, Map.of("reactiveRangeCheckMode", "TARGET_P"));
     }
 
     @Test
@@ -205,17 +228,11 @@ public class LoadFlowTest {
         assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
 
         // load flow with parameters
-        LoadFlowParameters params = new LoadFlowParameters()
-                .setNoGeneratorReactiveLimits(true)
-                .setDistributedSlack(false);
-
-        OpenLoadFlowParameters parametersExt = new OpenLoadFlowParameters()
-                .setSlackBusSelectionMode(SlackBusSelectionMode.MOST_MESHED);
-        params.addExtension(OpenLoadFlowParameters.class, parametersExt);
-
-        ByteArrayOutputStream stream = new ByteArrayOutputStream();
-        JsonLoadFlowParameters.write(params, stream);
-        String paramsString = stream.toString();
+        LoadFlowParametersInfos fullParams = LoadFlowParametersInfos.builder()
+                .commonParameters(new LoadFlowParameters())
+                .specificParameters(Map.of("SlackBusSelectionMode", "MOST_MESHED"))
+                .build();
+        String paramsString = objectWriter.writeValueAsString(fullParams);
 
         result = mvc.perform(put(url, testNetworkId1)
                 .contentType(MediaType.APPLICATION_JSON)
@@ -250,7 +267,7 @@ public class LoadFlowTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-        List<String> providers = objectMapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        List<String> providers = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
         assertEquals(3, providers.size());
         assertTrue(providers.contains("DynaFlow"));
         assertTrue(providers.contains("OpenLoadFlow"));
@@ -264,5 +281,33 @@ public class LoadFlowTest {
                 .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
                 .andExpect(content().string("OpenLoadFlow"))
                 .andReturn();
+    }
+
+    @Test
+    public void getSpecificParametersTest() throws Exception {
+        // just Hades2
+        MvcResult result = mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andReturn();
+        String resultAsString = result.getResponse().getContentAsString();
+        Map<String, List<Object>> lfParams = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
+        assertNotNull(lfParams);
+        assertEquals(Set.of("Hades2"), lfParams.keySet());
+        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+
+        // all providers
+        result = mvc.perform(get("/" + VERSION + "/specific-parameters"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
+                .andReturn();
+        resultAsString = result.getResponse().getContentAsString();
+        lfParams = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
+        assertNotNull(lfParams);
+        assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());
+        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+
     }
 }
