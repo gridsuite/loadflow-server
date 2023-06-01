@@ -14,6 +14,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
+import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,9 +62,6 @@ public class LoadFlowController {
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
         Mono<LoadFlowResult> result = loadFlowWorkerService.run(new LoadFlowRunContext(networkUuid, variantId, otherNetworksUuid, null, providerToUse, loadflowParams, new ReportContext(reportId, reportName)));
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result.block());
-       /* LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, loadflowParams, provider,
-                new ReportContext(reportId, reportName));
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);*/
     }
 
     @GetMapping(value = "/providers", produces = APPLICATION_JSON_VALUE)

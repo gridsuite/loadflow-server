@@ -53,7 +53,7 @@ public class LoadFlowRunContext {
     }
 
     private static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
-        LoadFlowParameters params = parameters == null ?
+        LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();
         if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
             return params; // no specific LF params

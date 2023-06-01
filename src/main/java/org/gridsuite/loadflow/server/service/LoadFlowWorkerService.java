@@ -42,7 +42,7 @@ public class LoadFlowWorkerService {
         // FIXME to re-implement when network store service will be reactive
         return Mono.fromCallable(() -> {
             try {
-                return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+                return networkStoreService.getNetwork(networkUuid, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW);
             } catch (PowsyblException e) {
                 throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
             }
