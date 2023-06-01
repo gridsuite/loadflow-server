@@ -21,6 +21,7 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.service.ReportService;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -76,6 +77,9 @@ public class LoadFlowTest {
 
     @MockBean
     private NetworkStoreService networkStoreService;
+
+    @MockBean
+    private ReportService reportService;
 
     private MockWebServer server;
 

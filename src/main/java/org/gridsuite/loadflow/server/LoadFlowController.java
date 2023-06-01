@@ -13,12 +13,15 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
+import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import reactor.core.publisher.Mono;
 
 import java.util.Collections;
 import java.util.List;
@@ -41,6 +44,9 @@ public class LoadFlowController {
     @Autowired
     private LoadFlowService loadFlowService;
 
+    @Autowired
+    private LoadFlowWorkerService loadFlowWorkerService;
+
     @PutMapping(value = "/networks/{networkUuid}/run", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Run a load flow on a network")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
@@ -51,10 +57,13 @@ public class LoadFlowController {
                                               @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
                                               @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
                                               @RequestBody(required = false) LoadFlowParametersInfos loadflowParams) {
+        String providerToUse = provider != null ? provider : loadFlowService.getDefaultProvider();
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
-        LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, loadflowParams, provider,
-            new ReportContext(reportId, reportName));
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+        Mono<LoadFlowResult> result = loadFlowWorkerService.run(new LoadFlowRunContext(networkUuid, variantId, otherNetworksUuid, null, providerToUse, loadflowParams, new ReportContext(reportId, reportName)));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result.block());
+       /* LoadFlowResult result = loadFlowService.run(networkUuid, variantId, otherNetworksUuid, loadflowParams, provider,
+                new ReportContext(reportId, reportName));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);*/
     }
 
     @GetMapping(value = "/providers", produces = APPLICATION_JSON_VALUE)
