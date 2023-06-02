@@ -104,6 +104,16 @@ public class LoadFlowTest {
         server.setDispatcher(dispatcher);
     }
 
+    private WebTestClient.ResponseSpec performExchangeException(String url, Object... uriVariables) {
+        try {
+            return webTestClient.put()
+                    .uri(url, uriVariables)
+                    .exchange();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
     @Test
     public void test() throws Exception {
         UUID notFoundNetworkId = UUID.fromString("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa");
@@ -119,9 +129,7 @@ public class LoadFlowTest {
                 .expectStatus().isNotFound();
 
         // variant not existing
-        Exception exception = assertThrows(WebClientRequestException.class, () -> webTestClient.put()
-                .uri("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_NOT_FOUND_ID)
-                .exchange());
+        Exception exception = assertThrows(WebClientRequestException.class, () -> performExchangeException("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_NOT_FOUND_ID));
         assertTrue(exception.getCause().getMessage().contains("Variant '" + VARIANT_NOT_FOUND_ID + "' not found"));
 
         // load flow without parameters (default parameters are used) on implicit initial variant
@@ -260,7 +268,7 @@ public class LoadFlowTest {
         String url = "/" + VERSION + "/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
                 + "&reportId=" + REPORT_ID + "&reportName=report_name";
 
-        Exception exception = assertThrows(WebClientRequestException.class, () -> webTestClient.put().uri(url, testNetworkId1).exchange());
+        Exception exception = assertThrows(WebClientRequestException.class, () -> performExchangeException(url, testNetworkId1));
         assertTrue(exception.getCause().getMessage().contains("Merging of multi-variants network is not supported"));
     }
 
