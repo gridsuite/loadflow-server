@@ -88,9 +88,7 @@ public class LoadFlowWorkerService {
             Reporter reporter) {
         lockRunAndCancelLF.lock();
         try {
-            CompletableFuture<LoadFlowResult> future =
-                    loadFLoRunner.runAsync(network, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
-            return future;
+            return loadFLoRunner.runAsync(network, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
         } finally {
             lockRunAndCancelLF.unlock();
         }
