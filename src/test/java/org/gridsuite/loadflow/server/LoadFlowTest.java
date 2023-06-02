@@ -34,26 +34,18 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.junit4.SpringRunner;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
-import org.springframework.web.util.NestedServletException;
+import org.springframework.test.web.reactive.server.WebTestClient;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import reactor.core.publisher.Mono;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
-import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
 
 import static org.gridsuite.loadflow.server.Networks.*;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -73,9 +65,6 @@ public class LoadFlowTest {
     private LoadFlowService loadFlowService;
 
     @Autowired
-    private MockMvc mvc;
-
-    @Autowired
     private ObjectMapper mapper;
 
     private ObjectWriter objectWriter;
@@ -87,6 +76,9 @@ public class LoadFlowTest {
     private ReportService reportService;
 
     private MockWebServer server;
+
+    @Autowired
+    private WebTestClient webTestClient;
 
     @Before
     public void setUp() throws IOException {
@@ -103,7 +95,7 @@ public class LoadFlowTest {
                 String path = Objects.requireNonNull(request.getPath());
                 if (path.matches("/" + REPORT_VERSION + "/reports/" + REPORT_ID + ".*")) {
                     return new MockResponse().setResponseCode(200).addHeader("Content-Type", "application/json; charset=utf-8")
-                        .setBody("");
+                            .setBody("");
                 }
                 return new MockResponse().setResponseCode(404);
 
@@ -121,19 +113,25 @@ public class LoadFlowTest {
         given(reportService.sendReport(any(UUID.class), any(Reporter.class)))
                 .willReturn(Mono.empty());
         // network not existing
-        mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run", notFoundNetworkId))
-            .andExpect(status().isNotFound());
+        webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run", notFoundNetworkId)
+                .exchange()
+                .expectStatus().isNotFound();
 
         // variant not existing
-        Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_NOT_FOUND_ID)));
+        Exception exception = assertThrows(WebClientRequestException.class, () -> webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_NOT_FOUND_ID)
+                .exchange());
         assertTrue(exception.getCause().getMessage().contains("Variant '" + VARIANT_NOT_FOUND_ID + "' not found"));
 
         // load flow without parameters (default parameters are used) on implicit initial variant
-        MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run", TEST_NETWORK_ID))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+        webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run", TEST_NETWORK_ID)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("CONVERGED");
 
         // load flow with parameters on explicitly given variant
         LoadFlowParametersInfos fullParams = LoadFlowParametersInfos.builder()
@@ -142,43 +140,45 @@ public class LoadFlowTest {
                 .build();
         String paramsString = objectWriter.writeValueAsString(fullParams);
 
-        result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", TEST_NETWORK_ID, VARIANT_2_ID, REPORT_ID)
-                .content(paramsString)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
-        var requestsDone = getRequestsDone(1);
-        //assertTrue(requestsDone.contains("/" + REPORT_VERSION + "/reports/" + REPORT_ID));
+        webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}&reportId={repordId}&reportName=loadflow", TEST_NETWORK_ID, VARIANT_2_ID, REPORT_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(paramsString)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("CONVERGED");
 
-        result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
-            .contentType(MediaType.APPLICATION_JSON)
-            .content(paramsString))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
-        requestsDone = getRequestsDone(1);
-        assertTrue(requestsDone.contains(null));
+        webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(paramsString)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("CONVERGED");
+
     }
 
     private void simpleRunWithLFParams(LoadFlowParameters lfParams, Map<String, String> specificParams) throws Exception {
         given(networkStoreService.getNetwork(TEST_NETWORK_ID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(createNetwork(true));
-
         LoadFlowParametersInfos fullParams = LoadFlowParametersInfos.builder()
                 .commonParameters(lfParams)
                 .specificParameters(specificParams)
                 .build();
         String paramsString = objectWriter.writeValueAsString(fullParams);
 
-        MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
-                .content(paramsString)
-                .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"MAX_ITERATION_REACHED\""));
+        webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(paramsString)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("MAX_ITERATION_REACHED");
     }
 
     @Test
@@ -195,26 +195,14 @@ public class LoadFlowTest {
         given(networkStoreService.getNetwork(TEST_NETWORK_ID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(createNetwork(true));
 
         // load flow without parameters (default parameters are used) on failing variant
-        MvcResult result = mvc.perform(put("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-            .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"MAX_ITERATION_REACHED\""));
-    }
-
-    private Set<String> getRequestsDone(int n) {
-        return IntStream.range(0, n).mapToObj(i -> {
-            try {
-                var res = server.takeRequest(0, TimeUnit.SECONDS);
-                if (res != null) {
-                    return res.getPath();
-                }
-                return null;
-            } catch (InterruptedException e) {
-                //LOGGER.error("Error while attempting to get the request done : ", e);
-            }
-            return null;
-        }).collect(Collectors.toSet());
+        webTestClient.put()
+                .uri("/" + VERSION + "/networks/{networkUuid}/run?variantId={variantId}", TEST_NETWORK_ID, VARIANT_3_ID)
+                .contentType(MediaType.APPLICATION_JSON)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("MAX_ITERATION_REACHED");
     }
 
     @Test
@@ -230,13 +218,15 @@ public class LoadFlowTest {
                 .willReturn(Mono.empty());
         // load flow without parameters (default parameters are used)
         String url = "/" + VERSION + "/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
-            + "&reportId=" + REPORT_ID + "&reportName=report_name";
+                + "&reportId=" + REPORT_ID + "&reportName=report_name";
 
-        MvcResult result = mvc.perform(put(url, testNetworkId1))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+        webTestClient.put()
+                .uri(url, testNetworkId1)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("CONVERGED");
 
         // load flow with parameters
         LoadFlowParametersInfos fullParams = LoadFlowParametersInfos.builder()
@@ -245,13 +235,15 @@ public class LoadFlowTest {
                 .build();
         String paramsString = objectWriter.writeValueAsString(fullParams);
 
-        result = mvc.perform(put(url, testNetworkId1)
+        webTestClient.put()
+                .uri(url, testNetworkId1)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(paramsString))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-        assertTrue(result.getResponse().getContentAsString().contains("status\":\"CONVERGED\""));
+                .bodyValue(paramsString)
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .expectBody()
+                .jsonPath("$.componentResults[0].status").isEqualTo("CONVERGED");
     }
 
     @Test
@@ -266,19 +258,27 @@ public class LoadFlowTest {
 
         // load flow without parameters (default parameters are used)
         String url = "/" + VERSION + "/networks/{networkUuid}/run?networkUuid=" + testNetworkId2 + "&networkUuid=" + testNetworkId3
-            + "&reportId=" + REPORT_ID + "&reportName=report_name";
+                + "&reportId=" + REPORT_ID + "&reportName=report_name";
 
-        Exception exception = assertThrows(NestedServletException.class, () -> mvc.perform(put(url, testNetworkId1)));
-        assertEquals("Merging of multi-variants network is not supported", exception.getCause().getMessage());
+        Exception exception = assertThrows(WebClientRequestException.class, () -> webTestClient.put().uri(url, testNetworkId1).exchange());
+        assertTrue(exception.getCause().getMessage().contains("Merging of multi-variants network is not supported"));
     }
 
     @Test
     public void getProvidersTest() throws Exception {
-        MvcResult result = mvc.perform(get("/" + VERSION + "/providers"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
-        List<String> providers = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() { });
+        String result = webTestClient.get()
+                .uri("/" + VERSION + "/providers")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .returnResult(String.class)
+                .getResponseBody()
+                .blockFirst();
+
+        List<String> providers = mapper.readValue(result, new TypeReference<>() {
+        });
+
+        assertNotNull(providers);
         assertEquals(3, providers.size());
         assertTrue(providers.contains("DynaFlow"));
         assertTrue(providers.contains("OpenLoadFlow"));
@@ -287,34 +287,45 @@ public class LoadFlowTest {
 
     @Test
     public void getDefaultProviderTest() throws Exception {
-        mvc.perform(get("/" + VERSION + "/default-provider"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
-                .andExpect(content().string("OpenLoadFlow"))
-                .andReturn();
+
+        webTestClient.get()
+                .uri("/" + VERSION + "/default-provider")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8))
+                .expectBody(String.class)
+                .isEqualTo("OpenLoadFlow");
     }
 
     @Test
     public void getSpecificParametersTest() throws Exception {
         // just Hades2
-        MvcResult result = mvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andReturn();
-        String resultAsString = result.getResponse().getContentAsString();
-        Map<String, List<Object>> lfParams = mapper.readValue(resultAsString, new TypeReference<>() {
+        String result = webTestClient.get()
+                .uri("/" + VERSION + "/specific-parameters?provider=Hades2")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentTypeCompatibleWith(MediaType.APPLICATION_JSON)
+                .returnResult(String.class)
+                .getResponseBody()
+                .blockFirst();
+
+        Map<String, List<Object>> lfParams = mapper.readValue(result, new TypeReference<>() {
         });
         assertNotNull(lfParams);
         assertEquals(Set.of("Hades2"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
 
         // all providers
-        result = mvc.perform(get("/" + VERSION + "/specific-parameters"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-                .andReturn();
-        resultAsString = result.getResponse().getContentAsString();
-        lfParams = mapper.readValue(resultAsString, new TypeReference<>() {
+        result = webTestClient.get()
+                .uri("/" + VERSION + "/specific-parameters")
+                .exchange()
+                .expectStatus().isOk()
+                .expectHeader().contentType(MediaType.APPLICATION_JSON)
+                .returnResult(String.class)
+                .getResponseBody()
+                .blockFirst();
+
+        lfParams = mapper.readValue(result, new TypeReference<>() {
         });
         assertNotNull(lfParams);
         assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());

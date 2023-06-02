@@ -51,7 +51,7 @@ public class LoadFlowController {
     @PutMapping(value = "/networks/{networkUuid}/run", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Run a load flow on a network")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
-    public ResponseEntity<LoadFlowResult> run(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
+    public ResponseEntity<Mono<LoadFlowResult>> run(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                               @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
                                               @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
                                               @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
@@ -61,7 +61,7 @@ public class LoadFlowController {
         String providerToUse = provider != null ? provider : loadFlowService.getDefaultProvider();
         List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
         Mono<LoadFlowResult> result = loadFlowWorkerService.run(new LoadFlowRunContext(networkUuid, variantId, otherNetworksUuid, null, providerToUse, loadflowParams, new ReportContext(reportId, reportName)));
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result.block());
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 
     @GetMapping(value = "/providers", produces = APPLICATION_JSON_VALUE)
