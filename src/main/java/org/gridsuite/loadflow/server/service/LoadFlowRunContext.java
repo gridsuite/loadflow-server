@@ -10,16 +10,19 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
+import lombok.Builder;
+import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
 import java.util.List;
-import java.util.Objects;
 import java.util.UUID;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
+@Getter
+@Builder
 public class LoadFlowRunContext {
 
     private final UUID networkUuid;
@@ -36,9 +39,11 @@ public class LoadFlowRunContext {
 
     private final ReportContext reportContext;
 
-    public LoadFlowRunContext(UUID networkUuid, String variantId, List<UUID> otherNetworkUuids,
+    private final String userId;
+
+  /*  public LoadFlowRunContext(UUID networkUuid, String variantId, List<UUID> otherNetworkUuids,
                               String receiver, String provider, LoadFlowParametersInfos parameters, ReportContext reportContext) {
-        this(networkUuid, variantId, otherNetworkUuids, receiver, provider, buildParameters(parameters, provider), reportContext);
+        this(networkUuid, variantId, otherNetworkUuids, receiver, provider, buildParameters(parameters, provider), reportContext, userId);
     }
 
     public LoadFlowRunContext(UUID networkUuid, String variantId, List<UUID> otherNetworkUuids,
@@ -50,9 +55,9 @@ public class LoadFlowRunContext {
         this.provider = provider;
         this.parameters = Objects.requireNonNull(parameters);
         this.reportContext = new ReportContext(reportContext.getReportId(), reportContext.getReportName());
-    }
+    }*/
 
-    private static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
+    public static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
         LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();
         if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
@@ -65,33 +70,5 @@ public class LoadFlowRunContext {
                 .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
         params.addExtension((Class) extension.getClass(), extension);
         return params;
-    }
-
-    public UUID getNetworkUuid() {
-        return networkUuid;
-    }
-
-    public String getVariantId() {
-        return variantId;
-    }
-
-    public List<UUID> getOtherNetworkUuids() {
-        return otherNetworkUuids;
-    }
-
-    public String getReceiver() {
-        return receiver;
-    }
-
-    public String getProvider() {
-        return provider;
-    }
-
-    public LoadFlowParameters getParameters() {
-        return parameters;
-    }
-
-    public ReportContext getReportContext() {
-        return reportContext;
     }
 }

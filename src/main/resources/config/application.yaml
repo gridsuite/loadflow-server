@@ -2,6 +2,44 @@ spring:
   application:
     name: loadflow-server
 
+  jpa:
+    properties:
+      hibernate:
+        order_inserts: true
+        order_updates: true
+        jdbc:
+          batch_size: 100
+
+  cloud:
+    function:
+      definition: consumeRun;consumeCancel
+    stream:
+      bindings:
+        consumeRun-in-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
+          group: loadflowGroup
+          consumer:
+            concurrency: 2
+        publishRun-out-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
+        publishResult-out-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.result
+        consumeCancel-in-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancel
+        publishCancel-out-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancel
+        publishStopped-out-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.stopped
+        publishFailed-out-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.failed
+      source: publishRun;publishResult;publishCancel;publishStopped;publishFailed
+
+powsybl-ws:
+  database:
+    queryBegin: '&'
+    customQuery: ${powsybl-ws.database.customQueryBegin}reWriteBatchedInserts=true
+    name: loadflow
+
 # default values for loadflow providers "Hades2" or "OpenLoadFlow"
 loadflow:
   default-provider: OpenLoadFlow

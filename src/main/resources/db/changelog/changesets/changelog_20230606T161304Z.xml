@@ -1,0 +1,52 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
+    <changeSet author="tourian1 (generated)" id="1686067991749-1">
+        <createTable tableName="component_result_entity">
+            <column name="component_result_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="component_result_entityPK"/>
+            </column>
+            <column name="connected_component_num" type="INT"/>
+            <column name="distributed_active_power" type="FLOAT8"/>
+            <column name="iteration_count" type="INT"/>
+            <column name="slack_bus_active_power_mismatch" type="FLOAT8"/>
+            <column name="slack_bus_id" type="VARCHAR(255)"/>
+            <column name="status" type="VARCHAR(255)"/>
+            <column name="synchronous_component_num" type="INT"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1686067991749-2">
+        <createTable tableName="global_status">
+            <column name="result_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="global_statusPK"/>
+            </column>
+            <column name="status" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1686067991749-3">
+        <createTable tableName="loadflow_result">
+            <column name="result_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="loadflow_resultPK"/>
+            </column>
+            <column name="write_time_stamp" type="TIMESTAMP"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1686067991749-4">
+        <createTable tableName="loadflow_result_component_results">
+            <column name="load_flow_result_entity_result_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="component_results_component_result_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1686067991749-5">
+        <addUniqueConstraint columnNames="component_results_component_result_uuid" constraintName="UK_2tje7ausg09ktd33y8cfttskn" tableName="loadflow_result_component_results"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1686067991749-6">
+        <addForeignKeyConstraint baseColumnNames="load_flow_result_entity_result_uuid" baseTableName="loadflow_result_component_results" constraintName="FK4gfn04nhkp1y3sl7gcl8i0p6o" deferrable="false" initiallyDeferred="false" referencedColumnNames="result_uuid" referencedTableName="loadflow_result" validate="true"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1686067991749-7">
+        <addForeignKeyConstraint baseColumnNames="component_results_component_result_uuid" baseTableName="loadflow_result_component_results" constraintName="FKcpd9vg2indbuetwyl14h5qb2w" deferrable="false" initiallyDeferred="false" referencedColumnNames="component_result_uuid" referencedTableName="component_result_entity" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

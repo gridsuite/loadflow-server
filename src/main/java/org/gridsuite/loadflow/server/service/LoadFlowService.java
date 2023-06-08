@@ -6,17 +6,29 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.network.store.client.NetworkStoreService;
 import org.apache.commons.lang3.tuple.Pair;
+import org.gridsuite.loadflow.server.dto.ComponentResult;
+import org.gridsuite.loadflow.server.dto.LoadFlowResult;
+import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
+import org.gridsuite.loadflow.server.repositories.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.Map;
+import javax.persistence.Column;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
 /**
@@ -26,11 +38,21 @@ import java.util.stream.Collectors;
 @Service
 public class LoadFlowService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
+
     @Value("${gridsuite.services.report-server.base-uri:http://report-server}/")
     public String reportServerURI;
 
     @Value("${loadflow.default-provider}")
     private String defaultProvider;
+
+    @Autowired
+    private LoadFlowResultRepository resultRepository;
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    NotificationService notificationService;
 
     public List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
@@ -40,6 +62,10 @@ public class LoadFlowService {
 
     public String getDefaultProvider() {
         return defaultProvider;
+    }
+
+    public void setStatus(List<UUID> resultUuids, String status) {
+        resultRepository.insertStatus(resultUuids, status);
     }
 
     public Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
@@ -52,4 +78,57 @@ public class LoadFlowService {
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
+
+    public UUID runAndSaveResult(LoadFlowRunContext runContext) {
+        Objects.requireNonNull(runContext);
+        var resultUuid = UUID.randomUUID();
+
+        // update status to running status
+        setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING.name());
+        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, runContext).toMessage(objectMapper));
+        return resultUuid;
+    }
+
+    private static LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity) {
+        return LoadFlowResult.builder()
+                .resultUuid(resultEntity.getResultUuid())
+                .writeTimeStamp(resultEntity.getWriteTimeStamp())
+                .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).collect(Collectors.toList()))
+                .build();
+    }
+
+    private static ComponentResult fromEntity(ComponentResultEntity componentResultEntity) {
+        return ComponentResult.builder()
+                .componentResultUuid(componentResultEntity.getComponentResultUuid())
+                .connectedComponentNum(componentResultEntity.getConnectedComponentNum())
+                .synchronousComponentNum(componentResultEntity.getSynchronousComponentNum())
+                .status(componentResultEntity.getStatus())
+                .iterationCount(componentResultEntity.getIterationCount())
+                .slackBusId(componentResultEntity.getSlackBusId())
+                .slackBusActivePowerMismatch(componentResultEntity.getSlackBusActivePowerMismatch())
+                .distributedActivePower(componentResultEntity.getDistributedActivePower())
+                .build();
+    }
+
+    public LoadFlowResult getResult(UUID resultUuid) {
+        AtomicReference<Long> startTime = new AtomicReference<>();
+        startTime.set(System.nanoTime());
+        Optional<LoadFlowResultEntity> result = resultRepository.findResults(resultUuid);
+        LoadFlowResult loadFlowResult = result.map(r -> fromEntity(r)).orElse(null);
+        LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
+        return loadFlowResult;
+    }
+
+    public void deleteResult(UUID resultUuid) {
+        resultRepository.delete(resultUuid);
+    }
+
+    public String getStatus(UUID resultUuid) {
+        return resultRepository.findStatus(resultUuid);
+    }
+
+    public void stop(UUID resultUuid, String receiver) {
+        notificationService.sendCancelMessage(new LoadFlowCancelContext(resultUuid, receiver).toMessage());
+    }
+
 }
