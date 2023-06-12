@@ -25,7 +25,6 @@ import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
@@ -53,22 +52,27 @@ public class LoadFlowWorkerService {
 
     private Lock lockRunAndCancelLF = new ReentrantLock();
 
-    @Autowired
     private ObjectMapper objectMapper;
 
     private Set<UUID> runRequests = Sets.newConcurrentHashSet();
-    @Autowired
     private NetworkStoreService networkStoreService;
-    @Autowired
     private ReportService reportService;
 
-    @Autowired
     NotificationService notificationService;
 
-    @Autowired
     private LoadFlowResultRepository resultRepository;
 
+    public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
+                                 LoadFlowResultRepository resultRepository, ObjectMapper objectMapper) {
+        this.networkStoreService = Objects.requireNonNull(networkStoreService);
+        this.notificationService = Objects.requireNonNull(notificationService);
+        this.reportService = Objects.requireNonNull(reportService);
+        this.resultRepository = Objects.requireNonNull(resultRepository);
+        this.objectMapper = Objects.requireNonNull(objectMapper);
+    }
+
     private Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();
+
     private Map<UUID, LoadFlowCancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
 
     private Network getNetwork(UUID networkUuid, String variantId) {

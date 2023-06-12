@@ -10,17 +10,20 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
+
 import java.util.Map;
 
 /**
  * @author David Braquart <david.braquart@rte-france.com>
  */
 @Getter
+@NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class LoadFlowParametersInfos {
 
-    private final LoadFlowParameters commonParameters;
+    private LoadFlowParameters commonParameters;
 
-    private final Map<String, String> specificParameters;
+    private Map<String, String> specificParameters;
 }

@@ -19,7 +19,6 @@ import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -41,7 +40,6 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 @RestController
 @RequestMapping(value = "/" + LoadFlowApi.API_VERSION + "/")
 @Tag(name = "loadflow-server")
-@ComponentScan(basePackageClasses = LoadFlowService.class)
 public class LoadFlowController {
 
     @Autowired
@@ -97,6 +95,14 @@ public class LoadFlowController {
         return ResponseEntity.ok().build();
     }
 
+    @DeleteMapping(value = "/results", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Delete all loadflow results from the database")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "All loadflow results have been deleted")})
+    public ResponseEntity<Void> deleteResults() {
+        loadFlowService.deleteResults();
+        return ResponseEntity.ok().build();
+    }
+
     @GetMapping(value = "/results/{resultUuid}/status", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get the loadflow status from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status")})
@@ -121,7 +127,6 @@ public class LoadFlowController {
         loadFlowService.stop(resultUuid, receiver);
         return ResponseEntity.ok().build();
     }
-
 
     @GetMapping(value = "/providers", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get all loadflow providers")

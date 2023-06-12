@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
-import com.powsybl.network.store.client.NetworkStoreService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
@@ -22,10 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.context.annotation.ComponentScan;
 import org.springframework.stereotype.Service;
 
-import javax.persistence.Column;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
@@ -34,7 +31,6 @@ import java.util.stream.Collectors;
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
-@ComponentScan(basePackageClasses = {NetworkStoreService.class})
 @Service
 public class LoadFlowService {
 
@@ -46,13 +42,21 @@ public class LoadFlowService {
     @Value("${loadflow.default-provider}")
     private String defaultProvider;
 
-    @Autowired
     private LoadFlowResultRepository resultRepository;
-    @Autowired
+
     private ObjectMapper objectMapper;
 
     @Autowired
     NotificationService notificationService;
+
+    private UuidGeneratorService uuidGeneratorService;
+
+    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService) {
+        this.notificationService = Objects.requireNonNull(notificationService);
+        this.resultRepository = Objects.requireNonNull(resultRepository);
+        this.objectMapper = Objects.requireNonNull(objectMapper);
+        this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
+    }
 
     public List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
@@ -81,7 +85,7 @@ public class LoadFlowService {
 
     public UUID runAndSaveResult(LoadFlowRunContext runContext) {
         Objects.requireNonNull(runContext);
-        var resultUuid = UUID.randomUUID();
+        UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING.name());
@@ -121,6 +125,10 @@ public class LoadFlowService {
 
     public void deleteResult(UUID resultUuid) {
         resultRepository.delete(resultUuid);
+    }
+
+    public void deleteResults() {
+        resultRepository.deleteAll();
     }
 
     public String getStatus(UUID resultUuid) {

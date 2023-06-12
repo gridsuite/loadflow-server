@@ -6,13 +6,20 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.reactive.function.BodyInserters;
-import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -24,28 +31,44 @@ import java.util.UUID;
 public class ReportService {
 
     static final String REPORT_API_VERSION = "v1";
-
-    private final WebClient webClient;
+    private static final String DELIMITER = "/";
+    private String reportServerBaseUri;
 
     @Autowired
-    public ReportService(WebClient.Builder builder,
-                         @Value("${gridsuite.services.report-server.base-uri:http://report-server/}") String baseUri) {
-        webClient = builder.baseUrl(baseUri)
-                .build();
+    private RestTemplate restTemplate;
+
+    private ObjectMapper objectMapper;
+
+    @Autowired
+    public ReportService(ObjectMapper objectMapper,
+                         @Value("${gridsuite.services.report-server.base-uri:http://report-server/}") String reportServerBaseUri) {
+        this.reportServerBaseUri = reportServerBaseUri;
+        this.objectMapper = objectMapper;
+        ReporterModelJsonModule reporterModelJsonModule = new ReporterModelJsonModule();
+        objectMapper.registerModule(reporterModelJsonModule);
     }
 
-    public ReportService(WebClient webClient) {
-        this.webClient = Objects.requireNonNull(webClient);
+    public void setReportServerBaseUri(String reportServerBaseUri) {
+        this.reportServerBaseUri = reportServerBaseUri;
     }
 
-    public Mono<Void> sendReport(UUID reportUuid, Reporter reporter) {
+    private String getReportServerURI() {
+        return this.reportServerBaseUri + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER;
+    }
+
+    public void sendReport(UUID reportUuid, Reporter reporter) {
         Objects.requireNonNull(reportUuid);
-        return webClient.put()
-                .uri(uriBuilder -> uriBuilder
-                        .path(REPORT_API_VERSION + "/reports/{reportUuid}")
-                        .build(reportUuid))
-                .body(BodyInserters.fromValue(reporter))
-                .retrieve()
-                .bodyToMono(Void.class);
+
+        var path = UriComponentsBuilder.fromPath("{reportUuid}")
+                .buildAndExpand(reportUuid)
+                .toUriString();
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        try {
+            restTemplate.exchange(getReportServerURI() + path, HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), Reporter.class);
+        } catch (JsonProcessingException error) {
+            throw new PowsyblException("Error sending report", error);
+        }
     }
 }

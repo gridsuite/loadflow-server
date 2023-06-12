@@ -97,24 +97,6 @@ public class LoadFlowResultRepository {
         resultRepository.deleteAll();
     }
 
-   /* @Transactional(readOnly = true)
-    public Optional<ShortCircuitAnalysisResultEntity> find(UUID resultUuid) {
-        Objects.requireNonNull(resultUuid);
-        return resultRepository.findByResultUuid(resultUuid);
-    }
-
-    @Transactional(readOnly = true)
-    public Optional<ShortCircuitAnalysisResultEntity> findFullResults(UUID resultUuid) {
-        Objects.requireNonNull(resultUuid);
-        Optional<ShortCircuitAnalysisResultEntity> result = resultRepository.findAllWithLimitViolationsByResultUuid(resultUuid);
-        if (!result.isPresent()) {
-            return result;
-        }
-        // using the the Hibernate First-Level Cache or Persistence Context
-        // cf.https://vladmihalcea.com/spring-data-jpa-multiplebagfetchexception/
-        return !result.get().getFaultResults().isEmpty() ? resultRepository.findAllWithFeederResultsByResultUuid(resultUuid) : result;
-    }*/
-
     @Transactional(readOnly = true)
     public String findStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
@@ -125,6 +107,5 @@ public class LoadFlowResultRepository {
             return null;
         }
     }
-
 
 }
