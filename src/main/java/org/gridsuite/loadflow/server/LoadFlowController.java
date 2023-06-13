@@ -133,7 +133,7 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200")})
     public ResponseEntity<List<String>> getProviders() {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
-                .body(loadFlowService.getProviders());
+                .body(LoadFlowService.getProviders());
     }
 
     @GetMapping(value = "/default-provider", produces = TEXT_PLAIN_VALUE)
@@ -149,6 +149,6 @@ public class LoadFlowController {
     public ResponseEntity<Map<String, List<com.powsybl.commons.parameters.Parameter>>> getSpecificLoadflowParameters(
             @Parameter(description = "The model provider") @RequestParam(name = "provider", required = false) String provider) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
-                .body(loadFlowService.getSpecificLoadFlowParameters(provider));
+                .body(LoadFlowService.getSpecificLoadFlowParameters(provider));
     }
 }

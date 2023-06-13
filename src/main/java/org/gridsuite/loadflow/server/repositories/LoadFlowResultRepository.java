@@ -46,7 +46,7 @@ public class LoadFlowResultRepository {
         String slackBusId = componentResult.getSlackBusId();
         double slackBusActivePowerMismatch = componentResult.getSlackBusActivePowerMismatch();
         double distributedActivePower = componentResult.getDistributedActivePower();
-        ComponentResultEntity componentResultEntity = ComponentResultEntity.builder().connectedComponentNum(connectedComponentNum)
+        return ComponentResultEntity.builder().connectedComponentNum(connectedComponentNum)
                 .synchronousComponentNum(synchronousComponentNum)
                 .status(status)
                 .iterationCount(iterationCount)
@@ -56,7 +56,6 @@ public class LoadFlowResultRepository {
                 .slackBusActivePowerMismatch(slackBusActivePowerMismatch)
                 .distributedActivePower(distributedActivePower)
                 .build();
-        return componentResultEntity;
     }
 
     private static GlobalStatusEntity toStatusEntity(UUID resultUuid, String status) {

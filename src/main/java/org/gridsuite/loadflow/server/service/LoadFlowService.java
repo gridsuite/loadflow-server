@@ -58,7 +58,7 @@ public class LoadFlowService {
         this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
     }
 
-    public List<String> getProviders() {
+    public static List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
                 .map(LoadFlowProvider::getName)
                 .collect(Collectors.toList());
@@ -72,7 +72,7 @@ public class LoadFlowService {
         resultRepository.insertStatus(resultUuids, status);
     }
 
-    public Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
+    public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
         return LoadFlowProvider.findAll().stream()
                 .filter(provider -> providerName == null || provider.getName().equals(providerName))
                 .map(provider -> {

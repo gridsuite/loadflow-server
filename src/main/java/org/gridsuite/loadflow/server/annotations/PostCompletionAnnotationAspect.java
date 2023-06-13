@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,6 +10,8 @@ import lombok.AllArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -19,6 +21,8 @@ import org.springframework.stereotype.Component;
 @AllArgsConstructor
 @Component
 public class PostCompletionAnnotationAspect {
+
+    private static final Logger LOGGER = LoggerFactory.getLogger(PostCompletionAnnotationAspect.class);
     private final PostCompletionAdapter postCompletionAdapter;
 
     @Around("@annotation(PostCompletion)")
@@ -39,6 +43,7 @@ public class PostCompletionAnnotationAspect {
             try {
                 pjp.proceed(pjp.getArgs());
             } catch (Throwable e) {
+                LOGGER.error(e.getMessage());
                 throw new RuntimeException(e);
             }
         }

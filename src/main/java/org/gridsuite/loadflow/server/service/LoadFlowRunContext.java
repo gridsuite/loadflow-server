@@ -41,22 +41,6 @@ public class LoadFlowRunContext {
 
     private final String userId;
 
-  /*  public LoadFlowRunContext(UUID networkUuid, String variantId, List<UUID> otherNetworkUuids,
-                              String receiver, String provider, LoadFlowParametersInfos parameters, ReportContext reportContext) {
-        this(networkUuid, variantId, otherNetworkUuids, receiver, provider, buildParameters(parameters, provider), reportContext, userId);
-    }
-
-    public LoadFlowRunContext(UUID networkUuid, String variantId, List<UUID> otherNetworkUuids,
-                              String receiver, String provider, LoadFlowParameters parameters, ReportContext reportContext) {
-        this.networkUuid = Objects.requireNonNull(networkUuid);
-        this.variantId = variantId;
-        this.otherNetworkUuids = Objects.requireNonNull(otherNetworkUuids);
-        this.receiver = receiver;
-        this.provider = provider;
-        this.parameters = Objects.requireNonNull(parameters);
-        this.reportContext = new ReportContext(reportContext.getReportId(), reportContext.getReportName());
-    }*/
-
     public static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
         LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();
