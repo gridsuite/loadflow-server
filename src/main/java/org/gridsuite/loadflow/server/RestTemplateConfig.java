@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.powsybl.commons.reporter.ReporterModelDeserializer;
 import com.powsybl.commons.reporter.ReporterModelJsonModule;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -25,6 +26,9 @@ import org.springframework.web.client.RestTemplate;
  */
 @Configuration
 public class RestTemplateConfig {
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     @Bean
     public RestTemplate restTemplate() {
@@ -43,21 +47,17 @@ public class RestTemplateConfig {
 
     private MappingJackson2HttpMessageConverter mappingJackson2HttpMessageConverter() {
         MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        converter.setObjectMapper(objectMapper());
+        converter.setObjectMapper(objectMapper);
         return converter;
     }
 
-    private static ObjectMapper createObjectMapper() {
+    @Bean
+    public static ObjectMapper objectMapper() {
         var objectMapper = Jackson2ObjectMapperBuilder.json().build();
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         objectMapper.registerModule(new LoadFlowParametersJsonModule());
         objectMapper.registerModule(new ReporterModelJsonModule());
         objectMapper.setInjectableValues(new InjectableValues.Std().addValue(ReporterModelDeserializer.DICTIONARY_VALUE_ID, null));
         return objectMapper;
-    }
-
-    @Bean
-    public static ObjectMapper objectMapper() {
-        return createObjectMapper();
     }
 }

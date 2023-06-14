@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server.repositories;
 import com.powsybl.loadflow.LoadFlowResult;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
+import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

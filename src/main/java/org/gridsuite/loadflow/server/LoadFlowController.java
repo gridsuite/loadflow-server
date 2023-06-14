@@ -62,25 +62,25 @@ public class LoadFlowController {
                                     @RequestBody(required = false) LoadFlowParametersInfos loadflowParams
                                     ) {
         String providerToUse = provider != null ? provider : loadFlowService.getDefaultProvider();
-        List<UUID> otherNetworksUuid = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
+        List<UUID> otherNetworksUuids = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
                 .networkUuid(networkUuid)
                 .variantId(variantId)
-                .otherNetworkUuids(otherNetworksUuid)
+                .otherNetworksUuids(otherNetworksUuids)
                 .receiver(receiver)
                 .provider(providerToUse)
                 .parameters(buildParameters(loadflowParams, provider))
                 .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).build())
                 .userId(userId)
                 .build();
-        UUID result = loadFlowService.runAndSaveResult(loadFlowRunContext);
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
     }
 
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a loadflow result from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow result"),
-            @ApiResponse(responseCode = "404", description = "loadflow result has not been found")})
+            @ApiResponse(responseCode = "404", description = "The loadflow result has not been found")})
     public ResponseEntity<LoadFlowResult> getResult(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         LoadFlowResult result = loadFlowService.getResult(resultUuid);
         return result != null ? ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result)

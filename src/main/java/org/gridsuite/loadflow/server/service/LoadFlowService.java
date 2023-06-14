@@ -15,7 +15,7 @@ import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,9 +35,6 @@ import java.util.stream.Collectors;
 public class LoadFlowService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
-
-    @Value("${gridsuite.services.report-server.base-uri:http://report-server}/")
-    public String reportServerURI;
 
     @Value("${loadflow.default-provider}")
     private String defaultProvider;

@@ -128,7 +128,7 @@ public class LoadFlowWorkerService {
     public LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws ExecutionException, InterruptedException {
         LoadFlowParameters params = context.getParameters();
         LOGGER.info("Run loadFlow...");
-        Network network = getNetwork(context.getNetworkUuid(), context.getOtherNetworkUuids(), context.getVariantId());
+        Network network = getNetwork(context.getNetworkUuid(), context.getOtherNetworksUuids(), context.getVariantId());
 
         Reporter rootReporter = Reporter.NO_OP;
         Reporter reporter = Reporter.NO_OP;

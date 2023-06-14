@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server.repositories;
 
+import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 

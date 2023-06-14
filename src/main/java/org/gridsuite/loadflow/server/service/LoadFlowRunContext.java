@@ -29,7 +29,7 @@ public class LoadFlowRunContext {
 
     private final String variantId;
 
-    private final List<UUID> otherNetworkUuids;
+    private final List<UUID> otherNetworksUuids;
 
     private final String receiver;
 

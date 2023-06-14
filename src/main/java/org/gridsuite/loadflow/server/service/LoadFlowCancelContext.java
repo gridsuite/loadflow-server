@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.powsybl.commons.PowsyblException;
+import lombok.Getter;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
@@ -17,6 +18,7 @@ import java.util.UUID;
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
+@Getter
 public class LoadFlowCancelContext {
 
     private final UUID resultUuid;
@@ -26,14 +28,6 @@ public class LoadFlowCancelContext {
     public LoadFlowCancelContext(UUID resultUuid, String receiver) {
         this.resultUuid = Objects.requireNonNull(resultUuid);
         this.receiver = Objects.requireNonNull(receiver);
-    }
-
-    public UUID getResultUuid() {
-        return resultUuid;
-    }
-
-    public String getReceiver() {
-        return receiver;
     }
 
     private static String getNonNullHeader(MessageHeaders headers, String name) {

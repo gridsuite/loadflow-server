@@ -112,7 +112,8 @@ public class LoadFlowControllerTest {
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
     private final RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
-    private final ObjectMapper mapper = restTemplateConfig.objectMapper();
+    @Autowired
+    private ObjectMapper mapper;
     private Network network;
     private Network network1;
     private Network networkForMergingView;
