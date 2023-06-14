@@ -45,7 +45,7 @@
 
     <properties>
         <jib.from.image>gridsuite/java-simulator:2.0.0</jib.from.image>
-        <gridsuite-dependencies.version>23</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>25-SNAPSHOT</gridsuite-dependencies.version>
     </properties>
 
     <build>
