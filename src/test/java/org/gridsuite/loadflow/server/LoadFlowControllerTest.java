@@ -56,7 +56,6 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_MESSAGE;
 import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -180,7 +179,7 @@ public class LoadFlowControllerTest {
     @SneakyThrows
     @After
     public void tearDown() {
-        mockMvc.perform(delete("/" + VERSION + "/results"))
+        mockMvc.perform(delete("/" + VERSION + "/results/all"))
                 .andExpect(status().isOk());
     }
 
@@ -220,6 +219,44 @@ public class LoadFlowControllerTest {
             // test one result deletion
             mockMvc.perform(delete("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isOk());
+
+            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+                    .andExpect(status().isNotFound());
+        }
+    }
+
+    @Test
+    public void testDeleteResults() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?receiver=me&variantId=" + VARIANT_2_ID, NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            result = mockMvc.perform(get(
+                            "/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
+            assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
+
+            // test result deletion
+            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString())
+            ).andExpect(status().isOk());
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isNotFound());
