@@ -52,8 +52,8 @@ public class LoadFlowController {
                                     @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
                                     @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                     @Parameter(description = "Result receiver") @RequestParam(name = "receiver", required = false) String receiver,
-                                    @Parameter(description = "reportId") @RequestParam(name = "reportId", required = false) UUID reportId,
-                                    @Parameter(description = "reportName") @RequestParam(name = "reportName", required = false) String reportName,
+                                    @Parameter(description = "reportUuid") @RequestParam(name = "reportUuid", required = false) UUID reportId,
+                                    @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
                                     @RequestHeader(HEADER_USER_ID) String userId,
                                     @RequestBody(required = false) LoadFlowParametersInfos loadflowParams
                                     ) {
