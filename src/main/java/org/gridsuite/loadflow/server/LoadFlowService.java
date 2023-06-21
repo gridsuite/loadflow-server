@@ -15,8 +15,6 @@ import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.dynaflow.DynaFlowConstants;
-import com.powsybl.dynaflow.DynaFlowParameters;
 import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -92,11 +90,6 @@ class LoadFlowService {
                        String provider, ReportContext reportContext) {
         String providerToUse = provider != null ? provider : defaultProvider;
         LoadFlowParameters params = buildLoadFlowParameters(loadflowParams, providerToUse);
-
-        // TODO: to be removed after loads merge fix in powsybl-dynaflow
-        if (providerToUse.equals(DynaFlowConstants.DYNAFLOW_NAME)) {
-            params.addExtension(DynaFlowParameters.class, new DynaFlowParameters().setMergeLoads(false));
-        }
 
         Reporter rootReporter = Reporter.NO_OP;
         Reporter reporter = Reporter.NO_OP;
