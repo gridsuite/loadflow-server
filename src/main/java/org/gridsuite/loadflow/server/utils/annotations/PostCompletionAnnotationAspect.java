@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.gridsuite.loadflow.server.annotations;
+package org.gridsuite.loadflow.server.utils.annotations;
 
 import lombok.AllArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
@@ -25,7 +25,7 @@ public class PostCompletionAnnotationAspect {
     private static final Logger LOGGER = LoggerFactory.getLogger(PostCompletionAnnotationAspect.class);
     private final PostCompletionAdapter postCompletionAdapter;
 
-    @Around("@annotation(PostCompletion)")
+    @Around("@annotation(org.gridsuite.loadflow.server.utils.annotations.PostCompletion)")
     public Object executePostCompletion(final ProceedingJoinPoint pjp) {
         postCompletionAdapter.execute(new PjpAfterCompletionRunnable(pjp));
         return null;

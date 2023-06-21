@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2022, RTE (http://www.rte-france.com)
+ * Copyright (c) 2023, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -40,22 +40,15 @@ public class LoadFlowResultRepository {
     }
 
     private static ComponentResultEntity toComponentResultEntity(LoadFlowResult.ComponentResult componentResult) {
-        int connectedComponentNum = componentResult.getConnectedComponentNum();
-        int synchronousComponentNum = componentResult.getSynchronousComponentNum();
-        String status = componentResult.getStatus().name();
-        int iterationCount = componentResult.getIterationCount();
-        String slackBusId = componentResult.getSlackBusId();
-        double slackBusActivePowerMismatch = componentResult.getSlackBusActivePowerMismatch();
-        double distributedActivePower = componentResult.getDistributedActivePower();
-        return ComponentResultEntity.builder().connectedComponentNum(connectedComponentNum)
-                .synchronousComponentNum(synchronousComponentNum)
-                .status(status)
-                .iterationCount(iterationCount)
-                .slackBusId(slackBusId)
-                .iterationCount(iterationCount)
-                .slackBusId(slackBusId)
-                .slackBusActivePowerMismatch(slackBusActivePowerMismatch)
-                .distributedActivePower(distributedActivePower)
+        return ComponentResultEntity.builder().connectedComponentNum(componentResult.getConnectedComponentNum())
+                .synchronousComponentNum(componentResult.getSynchronousComponentNum())
+                .status(componentResult.getStatus().name())
+                .iterationCount(componentResult.getIterationCount())
+                .slackBusId(componentResult.getSlackBusId())
+                .iterationCount(componentResult.getIterationCount())
+                .slackBusId(componentResult.getSlackBusId())
+                .slackBusActivePowerMismatch(componentResult.getSlackBusActivePowerMismatch())
+                .distributedActivePower(componentResult.getDistributedActivePower())
                 .build();
     }
 
@@ -101,11 +94,7 @@ public class LoadFlowResultRepository {
     public String findStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
         GlobalStatusEntity globalEntity = globalStatusRepository.findByResultUuid(resultUuid);
-        if (globalEntity != null) {
-            return globalEntity.getStatus();
-        } else {
-            return null;
-        }
+        return globalEntity != null ? globalEntity.getStatus() : null;
     }
 
 }

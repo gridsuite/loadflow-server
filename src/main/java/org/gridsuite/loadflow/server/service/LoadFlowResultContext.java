@@ -112,7 +112,7 @@ public class LoadFlowResultContext {
                 .setHeader(HEADER_PROVIDER, runContext.getProvider())
                 .setHeader(HEADER_USER_ID, runContext.getUserId())
                 .setHeader(REPORT_UUID_HEADER, runContext.getReportContext().getReportId() != null ? runContext.getReportContext().getReportId().toString() : null)
-                .setHeader(REPORTER_ID_HEADER, runContext.getReportContext().getReportId())
+                .setHeader(REPORTER_ID_HEADER, runContext.getReportContext().getReportName())
                 .build();
     }
 }
