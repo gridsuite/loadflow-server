@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server.dto;
 
+import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -28,7 +29,7 @@ public class ComponentResult {
 
     int synchronousComponentNum;
 
-    String status;
+    LoadFlowResult.ComponentResult.Status status;
 
     int iterationCount;
 

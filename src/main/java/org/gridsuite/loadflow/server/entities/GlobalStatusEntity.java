@@ -9,10 +9,9 @@ package org.gridsuite.loadflow.server.entities;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 
-import javax.persistence.Entity;
-import javax.persistence.Id;
-import javax.persistence.Table;
+import javax.persistence.*;
 import java.io.Serializable;
 import java.util.UUID;
 
@@ -29,5 +28,6 @@ public class GlobalStatusEntity implements Serializable {
     @Id
     private UUID resultUuid;
 
-    private String status;
+    @Enumerated(EnumType.STRING)
+    private LoadFlowStatus status;
 }

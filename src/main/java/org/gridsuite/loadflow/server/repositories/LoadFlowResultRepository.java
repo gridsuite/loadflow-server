@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.repositories;
 
 import com.powsybl.loadflow.LoadFlowResult;
+import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
@@ -42,7 +43,7 @@ public class LoadFlowResultRepository {
     private static ComponentResultEntity toComponentResultEntity(LoadFlowResult.ComponentResult componentResult) {
         return ComponentResultEntity.builder().connectedComponentNum(componentResult.getConnectedComponentNum())
                 .synchronousComponentNum(componentResult.getSynchronousComponentNum())
-                .status(componentResult.getStatus().name())
+                .status(componentResult.getStatus())
                 .iterationCount(componentResult.getIterationCount())
                 .slackBusId(componentResult.getSlackBusId())
                 .iterationCount(componentResult.getIterationCount())
@@ -52,12 +53,12 @@ public class LoadFlowResultRepository {
                 .build();
     }
 
-    private static GlobalStatusEntity toStatusEntity(UUID resultUuid, String status) {
+    private static GlobalStatusEntity toStatusEntity(UUID resultUuid, LoadFlowStatus status) {
         return new GlobalStatusEntity(resultUuid, status);
     }
 
     @Transactional
-    public void insertStatus(List<UUID> resultUuids, String status) {
+    public void insertStatus(List<UUID> resultUuids, LoadFlowStatus status) {
         Objects.requireNonNull(resultUuids);
         globalStatusRepository.saveAll(resultUuids.stream()
                 .map(uuid -> toStatusEntity(uuid, status)).collect(Collectors.toList()));
@@ -91,7 +92,7 @@ public class LoadFlowResultRepository {
     }
 
     @Transactional(readOnly = true)
-    public String findStatus(UUID resultUuid) {
+    public LoadFlowStatus findStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
         GlobalStatusEntity globalEntity = globalStatusRepository.findByResultUuid(resultUuid);
         return globalEntity != null ? globalEntity.getStatus() : null;

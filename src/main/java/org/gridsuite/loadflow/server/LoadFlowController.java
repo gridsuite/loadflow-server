@@ -111,15 +111,15 @@ public class LoadFlowController {
     @Operation(summary = "Get the loadflow status from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status")})
     public ResponseEntity<String> getStatus(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        String result = loadFlowService.getStatus(resultUuid);
-        return ResponseEntity.ok().body(result);
+        LoadFlowStatus status = loadFlowService.getStatus(resultUuid);
+        return ResponseEntity.ok().body(status != null ? status.name() : null);
     }
 
     @PutMapping(value = "/results/invalidate-status", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Invalidate the loadflow status from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status has been invalidated")})
     public ResponseEntity<Void> invalidateStatus(@Parameter(description = "Result uuids") @RequestParam(name = "resultUuid") List<UUID> resultUuids) {
-        loadFlowService.setStatus(resultUuids, LoadFlowStatus.NOT_DONE.name());
+        loadFlowService.setStatus(resultUuids, LoadFlowStatus.NOT_DONE);
         return ResponseEntity.ok().build();
     }
 

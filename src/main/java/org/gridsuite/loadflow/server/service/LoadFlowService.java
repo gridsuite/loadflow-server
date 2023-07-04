@@ -63,7 +63,7 @@ public class LoadFlowService {
         return defaultProvider;
     }
 
-    public void setStatus(List<UUID> resultUuids, String status) {
+    public void setStatus(List<UUID> resultUuids, LoadFlowStatus status) {
         resultRepository.insertStatus(resultUuids, status);
     }
 
@@ -83,7 +83,7 @@ public class LoadFlowService {
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status
-        setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING.name());
+        setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
         notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, runContext).toMessage(objectMapper));
         return resultUuid;
     }
@@ -132,7 +132,7 @@ public class LoadFlowService {
         resultRepository.deleteAll();
     }
 
-    public String getStatus(UUID resultUuid) {
+    public LoadFlowStatus getStatus(UUID resultUuid) {
         return resultRepository.findStatus(resultUuid);
     }
 

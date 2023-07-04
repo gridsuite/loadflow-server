@@ -126,7 +126,7 @@ public class LoadFlowControllerTest {
         for (int i = 0; i < componentResultsDto.size(); i++) {
             assertEquals(componentResultsDto.get(i).getConnectedComponentNum(), componentResults.get(i).getConnectedComponentNum());
             assertEquals(componentResultsDto.get(i).getSynchronousComponentNum(), componentResults.get(i).getSynchronousComponentNum());
-            assertEquals(componentResultsDto.get(i).getStatus(), componentResults.get(i).getStatus().name());
+            assertEquals(componentResultsDto.get(i).getStatus(), componentResults.get(i).getStatus());
             assertEquals(componentResultsDto.get(i).getIterationCount(), componentResults.get(i).getIterationCount());
             assertEquals(componentResultsDto.get(i).getSlackBusId(), componentResults.get(i).getSlackBusId());
             assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);

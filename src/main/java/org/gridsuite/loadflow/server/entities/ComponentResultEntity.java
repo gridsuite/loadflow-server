@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server.entities;
 
+import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -34,7 +35,8 @@ public class ComponentResultEntity {
     int synchronousComponentNum;
 
     @Column
-    String status;
+    @Enumerated(EnumType.STRING)
+    LoadFlowResult.ComponentResult.Status status;
 
     @Column
     int iterationCount;
