@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.repositories;
 
 import com.powsybl.loadflow.LoadFlowResult;
+import lombok.AllArgsConstructor;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
@@ -22,18 +23,13 @@ import java.util.stream.Collectors;
 /**
  * @author Anis Touri <anis.touri at rte-france.com
  */
+@AllArgsConstructor
 @Repository
 public class LoadFlowResultRepository {
 
     private GlobalStatusRepository globalStatusRepository;
 
     private ResultRepository resultRepository;
-
-    public LoadFlowResultRepository(GlobalStatusRepository globalStatusRepository,
-                                    ResultRepository resultRepository) {
-        this.globalStatusRepository = globalStatusRepository;
-        this.resultRepository = resultRepository;
-    }
 
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result) {
         Set<ComponentResultEntity> componentResults = result.getComponentResults().stream().map(LoadFlowResultRepository::toComponentResultEntity).collect(Collectors.toSet());

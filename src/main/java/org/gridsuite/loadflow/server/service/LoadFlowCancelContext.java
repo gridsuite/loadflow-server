@@ -30,18 +30,10 @@ public class LoadFlowCancelContext {
         this.receiver = Objects.requireNonNull(receiver);
     }
 
-    private static String getNonNullHeader(MessageHeaders headers, String name) {
-        String header = (String) headers.get(name);
-        if (header == null) {
-            throw new PowsyblException("Header '" + name + "' not found");
-        }
-        return header;
-    }
-
     public static LoadFlowCancelContext fromMessage(Message<String> message) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
-        UUID resultUuid = UUID.fromString(getNonNullHeader(headers, "resultUuid"));
+        UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, "resultUuid"));
         String receiver = (String) headers.get("receiver");
         return new LoadFlowCancelContext(resultUuid, receiver);
     }
