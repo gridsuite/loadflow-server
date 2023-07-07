@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server.service;
 
-import com.powsybl.commons.PowsyblException;
 import lombok.Getter;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;

@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.entities;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -19,6 +20,7 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
+@Builder
 @AllArgsConstructor
 @NoArgsConstructor
 @Entity
@@ -31,6 +33,6 @@ public class LoadFlowResultEntity {
     @Column
     private ZonedDateTime writeTimeStamp;
 
-    @OneToMany(cascade = CascadeType.ALL)
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult")
     private Set<ComponentResultEntity> componentResults;
 }

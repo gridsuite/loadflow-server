@@ -50,4 +50,8 @@ public class ComponentResultEntity {
     @Column
     double distributedActivePower;
 
+    @ManyToOne
+    @JoinColumn(name = "resultUuid")
+    private LoadFlowResultEntity loadFlowResult;
+
 }

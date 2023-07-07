@@ -32,11 +32,13 @@ public class LoadFlowResultRepository {
     private ResultRepository resultRepository;
 
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result) {
-        Set<ComponentResultEntity> componentResults = result.getComponentResults().stream().map(LoadFlowResultRepository::toComponentResultEntity).collect(Collectors.toSet());
+        Set<ComponentResultEntity> componentResults = result.getComponentResults().stream()
+                .map(componentResult -> LoadFlowResultRepository.toComponentResultEntity(resultUuid, componentResult))
+                .collect(Collectors.toSet());
         return new LoadFlowResultEntity(resultUuid, ZonedDateTime.now(ZoneOffset.UTC), componentResults);
     }
 
-    private static ComponentResultEntity toComponentResultEntity(LoadFlowResult.ComponentResult componentResult) {
+    private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {
         return ComponentResultEntity.builder().connectedComponentNum(componentResult.getConnectedComponentNum())
                 .synchronousComponentNum(componentResult.getSynchronousComponentNum())
                 .status(componentResult.getStatus())
@@ -46,6 +48,7 @@ public class LoadFlowResultRepository {
                 .slackBusId(componentResult.getSlackBusId())
                 .slackBusActivePowerMismatch(componentResult.getSlackBusActivePowerMismatch())
                 .distributedActivePower(componentResult.getDistributedActivePower())
+                .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
                 .build();
     }
 

@@ -64,11 +64,11 @@ public class LoadFlowWorkerService {
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
                                  LoadFlowResultRepository resultRepository, ObjectMapper objectMapper) {
-        this.networkStoreService = Objects.requireNonNull(networkStoreService);
-        this.notificationService = Objects.requireNonNull(notificationService);
-        this.reportService = Objects.requireNonNull(reportService);
-        this.resultRepository = Objects.requireNonNull(resultRepository);
-        this.objectMapper = Objects.requireNonNull(objectMapper);
+        this.networkStoreService = networkStoreService;
+        this.notificationService = notificationService;
+        this.reportService = reportService;
+        this.resultRepository = resultRepository;
+        this.objectMapper = objectMapper;
     }
 
     private Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();

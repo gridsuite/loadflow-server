@@ -34,16 +34,17 @@ public class ReportService {
     private static final String DELIMITER = "/";
     private String reportServerBaseUri;
 
-    @Autowired
     private RestTemplate restTemplate;
 
     private ObjectMapper objectMapper;
 
     @Autowired
     public ReportService(ObjectMapper objectMapper,
-                         @Value("${gridsuite.services.report-server.base-uri:http://report-server/}") String reportServerBaseUri) {
+                         @Value("${gridsuite.services.report-server.base-uri:http://report-server/}") String reportServerBaseUri,
+                         RestTemplate restTemplate) {
         this.reportServerBaseUri = reportServerBaseUri;
         this.objectMapper = objectMapper;
+        this.restTemplate = restTemplate;
         ReporterModelJsonModule reporterModelJsonModule = new ReporterModelJsonModule();
         objectMapper.registerModule(reporterModelJsonModule);
     }
