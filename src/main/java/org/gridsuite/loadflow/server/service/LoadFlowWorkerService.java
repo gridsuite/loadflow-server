@@ -142,6 +142,10 @@ public class LoadFlowWorkerService {
         CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), context.getProvider(), params, reporter, resultUuid);
 
         LoadFlowResult result = future == null ? null : future.get();
+        if (result.isOk()) {
+            // flush each network in the network store
+            networkStoreService.flush(network);
+        }
         if (context.getReportContext().getReportId() != null) {
             reportService.sendReport(context.getReportContext().getReportId(), rootReporter);
         }
