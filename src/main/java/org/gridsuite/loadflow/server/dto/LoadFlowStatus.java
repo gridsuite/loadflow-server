@@ -12,5 +12,6 @@ package org.gridsuite.loadflow.server.dto;
 public enum LoadFlowStatus {
     NOT_DONE,
     RUNNING,
-    COMPLETED
+    CONVERGED,
+    DIVERGED,
 }

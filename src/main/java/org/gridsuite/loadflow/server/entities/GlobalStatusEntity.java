@@ -30,4 +30,6 @@ public class GlobalStatusEntity implements Serializable {
 
     @Enumerated(EnumType.STRING)
     private LoadFlowStatus status;
+
+
 }

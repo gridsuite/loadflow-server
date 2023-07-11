@@ -1,6 +1,6 @@
 <?xml version="1.1" encoding="UTF-8" standalone="no"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-4.1.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.1.xsd">
-    <changeSet author="tourian1 (generated)" id="1688723554084-1">
+    <changeSet author="tourian1 (generated)" id="1689094731642-1">
         <createTable tableName="component_result_entity">
             <column name="component_result_uuid" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="component_result_entityPK"/>
@@ -15,7 +15,7 @@
             <column name="result_uuid" type="UUID"/>
         </createTable>
     </changeSet>
-    <changeSet author="tourian1 (generated)" id="1688723554084-2">
+    <changeSet author="tourian1 (generated)" id="1689094731642-2">
         <createTable tableName="global_status">
             <column name="result_uuid" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="global_statusPK"/>
@@ -23,7 +23,7 @@
             <column name="status" type="VARCHAR(255)"/>
         </createTable>
     </changeSet>
-    <changeSet author="tourian1 (generated)" id="1688723554084-3">
+    <changeSet author="tourian1 (generated)" id="1689094731642-3">
         <createTable tableName="loadflow_result">
             <column name="result_uuid" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="loadflow_resultPK"/>
@@ -31,7 +31,7 @@
             <column name="write_time_stamp" type="TIMESTAMP"/>
         </createTable>
     </changeSet>
-    <changeSet author="tourian1 (generated)" id="1688723554084-4">
+    <changeSet author="tourian1 (generated)" id="1689094731642-4">
         <addForeignKeyConstraint baseColumnNames="result_uuid" baseTableName="component_result_entity" constraintName="FKf9wobsq1yy1p74xp6m9dcib0d" deferrable="false" initiallyDeferred="false" referencedColumnNames="result_uuid" referencedTableName="loadflow_result" validate="true"/>
     </changeSet>
 </databaseChangeLog>
