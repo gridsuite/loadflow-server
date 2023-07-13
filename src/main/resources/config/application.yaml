@@ -2,13 +2,6 @@ spring:
   application:
     name: loadflow-server
 
-  jpa:
-    properties:
-      hibernate:
-        order_inserts: true
-        order_updates: true
-        jdbc:
-          batch_size: 100
 
   cloud:
     function:
@@ -36,8 +29,6 @@ spring:
 
 powsybl-ws:
   database:
-    queryBegin: '&'
-    customQuery: ${powsybl-ws.database.customQueryBegin}reWriteBatchedInserts=true
     name: loadflow
 
 # default values for loadflow providers "Hades2" or "OpenLoadFlow"
