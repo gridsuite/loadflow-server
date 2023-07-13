@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.utils;
 
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 
 import java.util.UUID;
@@ -15,6 +16,7 @@ import java.util.UUID;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Getter
+@Builder
 @AllArgsConstructor
 public class ReportContext {
 

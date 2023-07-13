@@ -1,0 +1,23 @@
+spring:
+  jpa:
+    database: H2
+    properties:
+      dialect: org.hibernate.dialect.H2Dialect
+      hibernate.format_sql: true
+      hibernate.generate_statistics: true
+    hibernate:
+      #to turn off schema validation that fails (because of clob types) and blocks tests even if the the schema is compatible
+      ddl-auto: none
+
+logging:
+  level:
+    org.springframework.orm.jpa: DEBUG
+    org.springframework.transaction: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+powsybl-ws:
+  database:
+    vendor: h2:mem
+    query: ;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
+    hostPort: ":"

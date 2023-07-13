@@ -1,6 +1,14 @@
 server:
   port: 5008
 
+spring:
+  rabbitmq:
+    addresses: localhost
+
+powsybl-ws:
+  database:
+    host: localhost
+
 powsybl:
   services:
     network-store-server:
