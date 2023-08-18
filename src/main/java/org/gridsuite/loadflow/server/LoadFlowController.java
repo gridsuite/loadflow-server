@@ -76,7 +76,7 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a loadflow result from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow result"),
-            @ApiResponse(responseCode = "404", description = "The loadflow result has not been found")})
+        @ApiResponse(responseCode = "404", description = "The loadflow result has not been found")})
     public ResponseEntity<LoadFlowResult> getResult(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         LoadFlowResult result = loadFlowService.getResult(resultUuid);
         return result != null ? ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result)

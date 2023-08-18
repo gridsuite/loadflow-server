@@ -13,7 +13,7 @@
     <parent>
         <groupId>com.powsybl</groupId>
         <artifactId>powsybl-parent-ws</artifactId>
-        <version>12</version>
+        <version>14</version>
         <relativePath/>
     </parent>
 
@@ -44,7 +44,9 @@
     <properties>
         <jib.from.image>gridsuite/java-simulator:2.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>25</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>26</gridsuite-dependencies.version>
+        <jaxb-runtime.version>2.4.0-b180830.0438</jaxb-runtime.version>
+        <jaxb-api.version>2.4.0-b180830.0359</jaxb-api.version>
     </properties>
 
     <build>
@@ -89,7 +91,16 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
-
+            <dependency>
+                <groupId>javax.xml.bind</groupId>
+                <artifactId>jaxb-api</artifactId>
+                <version>${jaxb-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.glassfish.jaxb</groupId>
+                <artifactId>jaxb-runtime</artifactId>
+                <version>${jaxb-runtime.version}</version>
+            </dependency>
             <!-- project specific dependencies -->
         </dependencies>
     </dependencyManagement>
@@ -225,10 +236,8 @@
         </dependency>
         <dependency>
             <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-stream</artifactId>
-            <type>test-jar</type>
+            <artifactId>spring-cloud-stream-test-binder</artifactId>
             <scope>test</scope>
-            <classifier>test-binder</classifier>
         </dependency>
         <dependency>
             <groupId>com.h2database</groupId>
