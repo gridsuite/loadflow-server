@@ -19,7 +19,6 @@ import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
 import static org.gridsuite.loadflow.server.service.NotificationService.*;
 
 /**
@@ -79,7 +78,7 @@ public class LoadFlowResultContext {
                         .otherNetworksUuids(otherNetworkUuids)
                         .receiver(receiver)
                         .provider(provider)
-                        .parameters(buildParameters(parameters, provider))
+                        .parameters(parameters)
                         .reportContext(ReportContext.builder().reportId(reportUuid).reportName(reporterId).build())
                         .userId(userId)
                         .build();

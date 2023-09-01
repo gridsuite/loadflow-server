@@ -28,7 +28,6 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
 import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
@@ -65,7 +64,7 @@ public class LoadFlowController {
                 .otherNetworksUuids(otherNetworksUuids)
                 .receiver(receiver)
                 .provider(providerToUse)
-                .parameters(buildParameters(loadflowParams, provider))
+                .parameters(loadflowParams)
                 .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).build())
                 .userId(userId)
                 .build();
@@ -76,7 +75,7 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a loadflow result from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow result"),
-            @ApiResponse(responseCode = "404", description = "The loadflow result has not been found")})
+        @ApiResponse(responseCode = "404", description = "The loadflow result has not been found")})
     public ResponseEntity<LoadFlowResult> getResult(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         LoadFlowResult result = loadFlowService.getResult(resultUuid);
         return result != null ? ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result)
