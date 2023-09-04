@@ -38,6 +38,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
+import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
 import static org.gridsuite.loadflow.server.service.NotificationService.FAIL_MESSAGE;
 
 /**
@@ -125,7 +126,7 @@ public class LoadFlowWorkerService {
     }
 
     public LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws ExecutionException, InterruptedException {
-        LoadFlowParameters params = context.getParameters();
+        LoadFlowParameters params = buildParameters(context.getParameters(), context.getProvider());
         LOGGER.info("Run loadFlow...");
         Network network = getNetwork(context.getNetworkUuid(), context.getOtherNetworksUuids(), context.getVariantId());
         String provider = context.getProvider();

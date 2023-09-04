@@ -35,7 +35,7 @@ public class LoadFlowRunContext {
 
     private final String provider;
 
-    private final LoadFlowParameters parameters;
+    private final LoadFlowParametersInfos parameters;
 
     private final ReportContext reportContext;
 
