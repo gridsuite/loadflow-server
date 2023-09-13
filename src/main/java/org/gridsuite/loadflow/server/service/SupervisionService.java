@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service;
 
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
+import org.gridsuite.loadflow.server.repositories.ResultRepository;
 import org.springframework.stereotype.Service;
 
 /**
@@ -14,13 +15,13 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class SupervisionService {
-    private final GlobalStatusRepository globalStatusRepository;
+    private final ResultRepository resultRepository;
 
-    public SupervisionService(GlobalStatusRepository globalStatusRepository) {
-        this.globalStatusRepository = globalStatusRepository;
+    public SupervisionService(ResultRepository resultRepository) {
+        this.resultRepository = resultRepository;
     }
 
     public Integer getResultsCount() {
-        return (int) globalStatusRepository.count();
+        return (int) resultRepository.count();
     }
 }
