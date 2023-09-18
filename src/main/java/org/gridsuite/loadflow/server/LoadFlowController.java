@@ -93,16 +93,8 @@ public class LoadFlowController {
     @DeleteMapping(value = "/results", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Delete loadflow results from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow results has been deleted")})
-    public ResponseEntity<Void> deleteResults(@Parameter(description = "Results UUID") @RequestParam("resultsUuids") List<UUID> resultsUuids) {
+    public ResponseEntity<Void> deleteResults(@Parameter(description = "Results UUID") @RequestParam(value = "resultsUuids", required = false) List<UUID> resultsUuids) {
         loadFlowService.deleteResults(resultsUuids);
-        return ResponseEntity.ok().build();
-    }
-
-    @DeleteMapping(value = "/results", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Delete all loadflow results from the database")
-    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "All loadflow results have been deleted")})
-    public ResponseEntity<Void> deleteResults() {
-        loadFlowService.deleteResults();
         return ResponseEntity.ok().build();
     }
 
