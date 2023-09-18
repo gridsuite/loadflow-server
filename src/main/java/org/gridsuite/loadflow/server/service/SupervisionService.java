@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server.service;
 
-import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.repositories.ResultRepository;
 import org.springframework.stereotype.Service;
 
