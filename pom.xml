@@ -46,7 +46,6 @@
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>26</gridsuite-dependencies.version>
         <jaxb-runtime.version>2.4.0-b180830.0438</jaxb-runtime.version>
-        <jaxb-api.version>2.4.0-b180830.0359</jaxb-api.version>
     </properties>
 
     <build>
@@ -90,16 +89,6 @@
                 <version>${gridsuite-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
-            </dependency>
-            <dependency>
-                <groupId>javax.xml.bind</groupId>
-                <artifactId>jaxb-api</artifactId>
-                <version>${jaxb-api.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>org.glassfish.jaxb</groupId>
-                <artifactId>jaxb-runtime</artifactId>
-                <version>${jaxb-runtime.version}</version>
             </dependency>
             <!-- project specific dependencies -->
         </dependencies>
@@ -176,6 +165,21 @@
             <groupId>com.rte-france.powsybl</groupId>
             <artifactId>powsybl-hades2-integration</artifactId>
             <scope>runtime</scope>
+            <exclusions>
+              <exclusion>
+                <!-- Use the "org.glassfish.jaxb:jaxb-runtime" coordinates for the new jakarta jaxb, and
+                    "com.sun.xml.bind" for old the javax jaxb needed by powsybl-hades2-integration
+                -->
+                <groupId>org.glassfish.jaxb</groupId>
+                <artifactId>jaxb-runtime</artifactId>
+              </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <!-- reimport the old javax jaxb because we excluded the new jakarta jaxb from powsybl-hades2-integration -->
+            <groupId>com.sun.xml.bind</groupId>
+            <artifactId>jaxb-impl</artifactId>
+            <version>${jaxb-runtime.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
