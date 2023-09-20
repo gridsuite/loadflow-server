@@ -186,8 +186,7 @@ public class LoadFlowWorkerService {
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
 
-                resultRepository.insert(resultContext.getResultUuid(), result);
-                resultRepository.insertStatus(List.of(resultContext.getResultUuid()), LoadFlowService.computeLoadFlowStatus(result));
+                resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result));
                 long finalNanoTime = System.nanoTime();
                 LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
 
