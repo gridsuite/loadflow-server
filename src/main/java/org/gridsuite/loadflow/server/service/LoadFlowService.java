@@ -125,8 +125,10 @@ public class LoadFlowService {
     }
 
     public void deleteResults(List<UUID> resultUuids) {
-        if (!resultUuids.isEmpty()) {
+        if (resultUuids != null && !resultUuids.isEmpty()) {
             resultUuids.forEach(resultRepository::delete);
+        } else {
+            deleteResults();
         }
     }
 
