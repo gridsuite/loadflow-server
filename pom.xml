@@ -47,6 +47,17 @@
         <jib.from.image>gridsuite/java-simulator:2.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>26</gridsuite-dependencies.version>
+        <!--
+        antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
+        [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
+        jakarta.servlet.ServletException: Handler dispatch failed: java.lang.ExceptionInInitializerError
+        Caused by: java.lang.ExceptionInInitializerError
+          at org.gridsuite.loadflow.server.service.SupervisionService.getResultsCount(SupervisionService.java:24)
+          at org.gridsuite.loadflow.server.SupervisionController.getResultsCount(SupervisionController.java:37)
+        Caused by: java.lang.UnsupportedOperationException: java.io.InvalidClassException: org.antlr.v4.runtime.atn.ATN; Could not deserialize ATN with version 4 (expected 3).
+        Caused by: java.io.InvalidClassException: org.antlr.v4.runtime.atn.ATN; Could not deserialize ATN with version 4 (expected 3).
+        -->
+        <antlr4.version>4.10.1</antlr4.version>
     </properties>
 
     <build>
@@ -82,6 +93,11 @@
     <dependencyManagement>
         <dependencies>
             <!-- overrides of imports -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4</artifactId>
+                <version>${antlr4.version}</version>
+            </dependency>
 
             <!-- imports -->
             <dependency>
