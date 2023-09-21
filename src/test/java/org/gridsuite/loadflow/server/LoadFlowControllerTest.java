@@ -179,7 +179,7 @@ public class LoadFlowControllerTest {
     @SneakyThrows
     @After
     public void tearDown() {
-        mockMvc.perform(delete("/" + VERSION + "/results/all"))
+        mockMvc.perform(delete("/" + VERSION + "/results"))
                 .andExpect(status().isOk());
     }
 
