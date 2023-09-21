@@ -68,8 +68,8 @@ public class LoadFlowResultRepository {
         Objects.requireNonNull(resultUuid);
         if (result != null) {
             resultRepository.save(toResultEntity(resultUuid, result));
-            globalStatusRepository.save(toStatusEntity(resultUuid, status));
         }
+        globalStatusRepository.save(toStatusEntity(resultUuid, status));
     }
 
     @Transactional
