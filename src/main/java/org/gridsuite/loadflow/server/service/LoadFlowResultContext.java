@@ -33,6 +33,8 @@ public class LoadFlowResultContext {
 
     public static final String REPORTER_ID_HEADER = "reporterId";
 
+    private static final String MESSAGE_ROOT_NAME = "parameters";
+
     private final UUID resultUuid;
 
     private final LoadFlowRunContext runContext;
@@ -65,7 +67,11 @@ public class LoadFlowResultContext {
 
         LoadFlowParametersInfos parameters;
         try {
-            parameters = objectMapper.readValue(message.getPayload(), LoadFlowParametersInfos.class);
+            // can't use the following line because jackson doesn't unwrap null in the rootname
+            // -> '{"parameters": null}' throws instead returning null
+            //     MismatchedInputException: Cannot deserialize value of type `LoadFlowParametersInfos` from Null value (token `JsonToken.VALUE_NULL`)
+            // parameters = objectMapper.reader().withRootName(MESSAGE_ROOT_NAME).readValue(message.getPayload(), LoadFlowParametersInfos.class);
+            parameters = objectMapper.treeToValue(objectMapper.readTree(message.getPayload()).get(MESSAGE_ROOT_NAME), LoadFlowParametersInfos.class);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
@@ -89,7 +95,10 @@ public class LoadFlowResultContext {
     public Message<String> toMessage(ObjectMapper objectMapper) {
         String parametersJson;
         try {
-            parametersJson = objectMapper.writeValueAsString(runContext.getParameters());
+            // can't use the following line because jackson doesn't wrap null in the rootname
+            // -> outputs 'null' instead of '{"parameters": null}'
+            // parametersJson = objectMapper.writer().withRootName(MESSAGE_ROOT_NAME).writeValueAsString(runContext.getParameters());
+            parametersJson = objectMapper.writeValueAsString(objectMapper.createObjectNode().putPOJO(MESSAGE_ROOT_NAME, runContext.getParameters()));
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
