@@ -64,11 +64,12 @@ public class LoadFlowResultRepository {
     }
 
     @Transactional
-    public void insert(UUID resultUuid, LoadFlowResult result) {
+    public void insert(UUID resultUuid, LoadFlowResult result, LoadFlowStatus status) {
         Objects.requireNonNull(resultUuid);
         if (result != null) {
             resultRepository.save(toResultEntity(resultUuid, result));
         }
+        globalStatusRepository.save(toStatusEntity(resultUuid, status));
     }
 
     @Transactional
