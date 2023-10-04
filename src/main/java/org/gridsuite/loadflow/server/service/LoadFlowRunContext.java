@@ -41,6 +41,8 @@ public class LoadFlowRunContext {
 
     private final String userId;
 
+    private final Float limitReduction;
+
     public static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
         LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();

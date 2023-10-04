@@ -42,6 +42,7 @@ public class NotificationService {
     public static final String HEADER_PROVIDER = "provider";
     public static final String HEADER_MESSAGE = "message";
     public static final String HEADER_USER_ID = "userId";
+    public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
 
     public static final String SENDING_MESSAGE = "Sending message : {}";
 
