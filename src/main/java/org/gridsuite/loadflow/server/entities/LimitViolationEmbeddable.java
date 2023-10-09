@@ -30,6 +30,7 @@ public class LimitViolationEmbeddable {
     @Column(name = "limit_")
     private Double limit;
 
+    @Column
     private String limitName;
 
     @Column
