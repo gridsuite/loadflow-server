@@ -1,0 +1,32 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="lecuyerfra (generated)" id="1696330718266-1">
+        <createTable tableName="limit_violation">
+            <column name="limit_violations_entity_result_uuid" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="acceptable_duration" type="INT"/>
+            <column name="limit_" type="FLOAT(53)"/>
+            <column name="limit_name" type="VARCHAR(255)"/>
+            <column name="limit_type" type="VARCHAR(255)"/>
+            <column name="side" type="VARCHAR(255)"/>
+            <column name="subject_id" type="VARCHAR(255)"/>
+            <column name="value_" type="FLOAT(53)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1696330718266-2">
+        <createTable tableName="limit_violations">
+            <column name="result_uuid" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="limit_violationsPK"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1696330718266-3">
+        <createIndex indexName="LimitViolationsEntity_limits_idx1" tableName="limit_violation">
+            <column name="limit_violations_entity_result_uuid"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1696330718266-4">
+        <addForeignKeyConstraint baseColumnNames="limit_violations_entity_result_uuid" baseTableName="limit_violation" constraintName="LimitViolationsEntity_limits_fk1" deferrable="false" initiallyDeferred="false" referencedColumnNames="result_uuid" referencedTableName="limit_violations" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

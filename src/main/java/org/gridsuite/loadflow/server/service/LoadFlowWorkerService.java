@@ -20,7 +20,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import com.powsybl.security.LimitViolation;
+import com.powsybl.security.Security;
 import org.apache.commons.lang3.StringUtils;
+import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -125,10 +128,9 @@ public class LoadFlowWorkerService {
         }
     }
 
-    public LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws ExecutionException, InterruptedException {
+    public LoadFlowResult run(Network network, LoadFlowRunContext context, UUID resultUuid) throws ExecutionException, InterruptedException {
         LoadFlowParameters params = buildParameters(context.getParameters(), context.getProvider());
         LOGGER.info("Run loadFlow...");
-        Network network = getNetwork(context.getNetworkUuid(), context.getOtherNetworksUuids(), context.getVariantId());
         String provider = context.getProvider();
 
         Reporter rootReporter = Reporter.NO_OP;
@@ -173,6 +175,29 @@ public class LoadFlowWorkerService {
         }
     }
 
+    public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
+        return LimitViolationInfos.builder()
+            .subjectId(violation.getSubjectId())
+            .acceptableDuration(violation.getAcceptableDuration())
+            .limit(violation.getLimit())
+            .limitName(violation.getLimitName())
+            .value(violation.getValue())
+            .side(violation.getSide() != null ? violation.getSide().name() : "")
+            .limitType(violation.getLimitType()).build();
+    }
+
+    private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {
+        List<LimitViolation> violations;
+        LoadFlowParameters lfCommonParams = buildParameters(loadFlowRunContext.getParameters(), loadFlowRunContext.getProvider());
+        if (lfCommonParams.isDc()) {
+            violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
+        } else {
+            violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());
+        }
+        return violations.stream()
+            .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
+    }
+
     @Bean
     public Consumer<Message<String>> consumeRun() {
         return message -> {
@@ -182,11 +207,15 @@ public class LoadFlowWorkerService {
                 AtomicReference<Long> startTime = new AtomicReference<>();
 
                 startTime.set(System.nanoTime());
-                LoadFlowResult result = run(resultContext.getRunContext(), resultContext.getResultUuid());
+                Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(),
+                    resultContext.getRunContext().getOtherNetworksUuids(), resultContext.getRunContext().getVariantId());
+
+                LoadFlowResult result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
 
-                resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result));
+                List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
+                resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result), limitViolationInfos);
                 long finalNanoTime = System.nanoTime();
                 LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
 
