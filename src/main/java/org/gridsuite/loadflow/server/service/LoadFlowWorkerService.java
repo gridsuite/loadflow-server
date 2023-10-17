@@ -189,14 +189,10 @@ public class LoadFlowWorkerService {
     private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {
         List<LimitViolation> violations;
         LoadFlowParameters lfCommonParams = buildParameters(loadFlowRunContext.getParameters(), loadFlowRunContext.getProvider());
-        Float limitReduction = loadFlowRunContext.getLimitReduction();
-        if (limitReduction == null) {
-            limitReduction = 0.001F;  // 0 is not allowed
-        }
         if (lfCommonParams.isDc()) {
-            violations = Security.checkLimitsDc(network, limitReduction, lfCommonParams.getDcPowerFactor());
+            violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
         } else {
-            violations = Security.checkLimits(network, limitReduction);
+            violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());
         }
         return violations.stream()
             .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
