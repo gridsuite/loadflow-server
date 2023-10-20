@@ -13,9 +13,12 @@ import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.ComponentResult;
+import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.LimitViolationsInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
+import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.slf4j.Logger;
@@ -157,5 +160,11 @@ public class LoadFlowService {
                 .filter(cr -> cr.getConnectedComponentNum() == 0 && cr.getSynchronousComponentNum() == 0
                         && cr.getStatus() == com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status.CONVERGED)
                 .collect(Collectors.toList()).isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
+    }
+
+    public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
+        Optional<LimitViolationsEntity> limitViolationsEntity = resultRepository.findLimitViolations(resultUuid);
+        LimitViolationsInfos limitViolations = limitViolationsEntity.map(LimitViolationsEntity::toLimitViolationsInfos).orElse(null);
+        return limitViolations != null ? limitViolations.getLimitViolations() : Collections.emptyList();
     }
 }

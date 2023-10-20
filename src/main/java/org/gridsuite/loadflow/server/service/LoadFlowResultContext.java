@@ -76,6 +76,8 @@ public class LoadFlowResultContext {
         }
         UUID reportUuid = headers.containsKey(REPORT_UUID_HEADER) ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
         String reporterId = headers.containsKey(REPORTER_ID_HEADER) ? (String) headers.get(REPORTER_ID_HEADER) : null;
+        Float limitReduction = headers.containsKey(HEADER_LIMIT_REDUCTION) ? Float.parseFloat((String) headers.get(HEADER_LIMIT_REDUCTION)) : null;
+
         LoadFlowRunContext runContext =
                 LoadFlowRunContext.builder()
                         .networkUuid(networkUuid)
@@ -85,6 +87,7 @@ public class LoadFlowResultContext {
                         .parameters(parameters)
                         .reportContext(ReportContext.builder().reportId(reportUuid).reportName(reporterId).build())
                         .userId(userId)
+                        .limitReduction(limitReduction)
                         .build();
 
         return new LoadFlowResultContext(resultUuid, runContext);
@@ -109,6 +112,7 @@ public class LoadFlowResultContext {
                 .setHeader(HEADER_USER_ID, runContext.getUserId())
                 .setHeader(REPORT_UUID_HEADER, runContext.getReportContext().getReportId() != null ? runContext.getReportContext().getReportId().toString() : null)
                 .setHeader(REPORTER_ID_HEADER, runContext.getReportContext().getReportName())
-                .build();
+                .setHeader(HEADER_LIMIT_REDUCTION, runContext.getLimitReduction() != null ? runContext.getLimitReduction().toString() : null)
+            .build();
     }
 }

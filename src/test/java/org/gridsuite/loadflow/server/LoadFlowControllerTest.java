@@ -10,6 +10,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
@@ -20,9 +21,14 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
+import com.powsybl.security.LimitViolation;
+import com.powsybl.security.LimitViolationType;
+import com.powsybl.security.Security;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.loadflow.server.dto.ComponentResult;
+import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.NotificationService;
 import org.gridsuite.loadflow.server.service.ReportService;
@@ -57,6 +63,8 @@ import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_M
 import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -89,6 +97,12 @@ public class LoadFlowControllerTest {
         static LoadFlowResult.ComponentResult componentResult2 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "slackBusId1", 4, 5);
         static List<LoadFlowResult.ComponentResult> componentResults = List.of(componentResult1, componentResult2);
         static final LoadFlowResult RESULT = new LoadFlowResultImpl(true, new HashMap<>(), null, componentResults);
+    }
+
+    private static final class LimitViolationsMock {
+        static List<LimitViolation> limitViolations = List.of(new LimitViolation("lineId1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 200, 0.7F, 150, Branch.Side.ONE),
+                                                              new LimitViolation("lineId2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 100, 0.7F, 80, Branch.Side.TWO),
+                                                              new LimitViolation("genId1", "genName1", LimitViolationType.HIGH_VOLTAGE, "limit3", 120, 500, 0.7F, 370, null));
     }
 
     @Autowired
@@ -128,6 +142,20 @@ public class LoadFlowControllerTest {
             assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);
             assertEquals(componentResultsDto.get(i).getDistributedActivePower(), componentResults.get(i).getDistributedActivePower(), 0.01);
 
+        }
+    }
+
+    private static void assertLimitViolationsEquals(List<LimitViolation> limitViolations, List<LimitViolationInfos> limitViolationsDto) {
+        assertEquals(limitViolations.size(), limitViolationsDto.size());
+
+        for (int i = 0; i < limitViolationsDto.size(); i++) {
+            assertEquals(limitViolationsDto.get(i).getSubjectId(), limitViolations.get(i).getSubjectId());
+            assertEquals(limitViolationsDto.get(i).getLimit(), limitViolations.get(i).getLimit(), 0.01);
+            assertEquals(limitViolationsDto.get(i).getLimitName(), limitViolations.get(i).getLimitName());
+            assertEquals(Optional.ofNullable(limitViolationsDto.get(i).getAcceptableDuration()), Optional.ofNullable(limitViolations.get(i).getAcceptableDuration()));
+            assertEquals(limitViolationsDto.get(i).getValue(), limitViolations.get(i).getValue(), 0.01);
+            assertEquals(limitViolationsDto.get(i).getSide(), limitViolations.get(i).getSide() != null ? limitViolations.get(i).getSide().name() : "");
+            assertEquals(limitViolationsDto.get(i).getLimitType(), limitViolations.get(i).getLimitType());
         }
     }
 
@@ -176,8 +204,11 @@ public class LoadFlowControllerTest {
     @Test
     public void runTest() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
-        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimits(any(), anyFloat())).thenReturn(LimitViolationsMock.limitViolations);
+
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
                             any(LoadFlowParameters.class), any(Reporter.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
@@ -212,6 +243,50 @@ public class LoadFlowControllerTest {
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Test
+    public void testGetLimitViolations() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+                    any(LoadFlowParameters.class), any(Reporter.class)))
+                .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+            loadFlowParameters.setDc(true);
+            LoadFlowParametersInfos loadFlowParametersInfos = LoadFlowParametersInfos.builder()
+                .commonParameters(loadFlowParameters)
+                .specificParameters(Collections.emptyMap())
+                .build();
+            String jsonLoadFlowParameters = mapper.writeValueAsString(loadFlowParametersInfos);
+
+            MvcResult result = mockMvc.perform(post(
+                    "/" + VERSION + "/networks/{networkUuid}/run-and-save?receiver=me&variantId=" + VARIANT_2_ID + "&limitReduction=0.7", NETWORK_UUID)
+                    .content(jsonLoadFlowParameters).contentType(MediaType.APPLICATION_JSON)
+                    .header(HEADER_USER_ID, "userId"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get loadflow limit violations
+            result = mockMvc.perform(get(
+                    "/" + VERSION + "/results/{resultUuid}/limit-violations", RESULT_UUID))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+            List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<LimitViolationInfos>>() { });
+            assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations);
         }
     }
 

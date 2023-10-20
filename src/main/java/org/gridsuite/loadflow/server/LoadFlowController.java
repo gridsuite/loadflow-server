@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
@@ -50,6 +51,7 @@ public class LoadFlowController {
                                     @Parameter(description = "Result receiver") @RequestParam(name = "receiver", required = false) String receiver,
                                     @Parameter(description = "reportUuid") @RequestParam(name = "reportUuid", required = false) UUID reportId,
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
+                                    @Parameter(description = "The limit reduction") @RequestParam(name = "limitReduction", required = false, defaultValue = "0.8F") Float limitReduction,
                                     @RequestHeader(HEADER_USER_ID) String userId,
                                     @RequestBody(required = false) LoadFlowParametersInfos loadflowParams
                                     ) {
@@ -62,6 +64,7 @@ public class LoadFlowController {
                 .parameters(loadflowParams)
                 .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).build())
                 .userId(userId)
+                .limitReduction(limitReduction)
                 .build();
         UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
@@ -140,5 +143,12 @@ public class LoadFlowController {
             @Parameter(description = "The model provider") @RequestParam(name = "provider", required = false) String provider) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
                 .body(LoadFlowService.getSpecificLoadFlowParameters(provider));
+    }
+
+    @GetMapping(value = "/results/{resultUuid}/limit-violations")
+    @Operation(summary = "Get limit violations")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The limit violations")})
+    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getLimitViolations(resultUuid));
     }
 }
