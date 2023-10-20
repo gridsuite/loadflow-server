@@ -15,7 +15,6 @@ import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -28,8 +27,6 @@ public class LoadFlowRunContext {
     private final UUID networkUuid;
 
     private final String variantId;
-
-    private final List<UUID> otherNetworksUuids;
 
     private final String receiver;
 

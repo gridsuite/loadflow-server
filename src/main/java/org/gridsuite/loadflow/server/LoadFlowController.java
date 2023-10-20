@@ -22,11 +22,9 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -48,7 +46,6 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
     public ResponseEntity<UUID> run(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                     @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
-                                    @Parameter(description = "Other networks UUID") @RequestParam(name = "networkUuid", required = false) List<String> otherNetworks,
                                     @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                     @Parameter(description = "Result receiver") @RequestParam(name = "receiver", required = false) String receiver,
                                     @Parameter(description = "reportUuid") @RequestParam(name = "reportUuid", required = false) UUID reportId,
@@ -57,11 +54,9 @@ public class LoadFlowController {
                                     @RequestBody(required = false) LoadFlowParametersInfos loadflowParams
                                     ) {
         String providerToUse = provider != null ? provider : loadFlowService.getDefaultProvider();
-        List<UUID> otherNetworksUuids = otherNetworks != null ? otherNetworks.stream().map(UUID::fromString).collect(Collectors.toList()) : Collections.emptyList();
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
                 .networkUuid(networkUuid)
                 .variantId(variantId)
-                .otherNetworksUuids(otherNetworksUuids)
                 .receiver(receiver)
                 .provider(providerToUse)
                 .parameters(loadflowParams)

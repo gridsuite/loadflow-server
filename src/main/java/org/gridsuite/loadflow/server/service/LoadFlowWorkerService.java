@@ -12,7 +12,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.mergingview.MergingView;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlow;
@@ -36,7 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
 import static org.gridsuite.loadflow.server.service.NotificationService.FAIL_MESSAGE;
@@ -87,21 +85,6 @@ public class LoadFlowWorkerService {
         return network;
     }
 
-    private Network getNetwork(UUID networkUuid, List<UUID> otherNetworkUuids, String variantId) {
-        Network network = getNetwork(networkUuid, variantId);
-        if (otherNetworkUuids.isEmpty()) {
-            return network;
-        } else {
-            List<Network> otherNetworks = otherNetworkUuids.stream().map(uuid -> getNetwork(uuid, variantId)).collect(Collectors.toList());
-            List<Network> networks = new ArrayList<>();
-            networks.add(network);
-            networks.addAll(otherNetworks);
-            MergingView mergingView = MergingView.create("merge", "iidm");
-            mergingView.merge(networks.toArray(new Network[0]));
-            return mergingView;
-        }
-    }
-
     private CompletableFuture<LoadFlowResult> runLoadFlowAsync(
             Network network,
             String variantId,
@@ -128,7 +111,7 @@ public class LoadFlowWorkerService {
     public LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws ExecutionException, InterruptedException {
         LoadFlowParameters params = buildParameters(context.getParameters(), context.getProvider());
         LOGGER.info("Run loadFlow...");
-        Network network = getNetwork(context.getNetworkUuid(), context.getOtherNetworksUuids(), context.getVariantId());
+        Network network = getNetwork(context.getNetworkUuid(), context.getVariantId());
         String provider = context.getProvider();
 
         Reporter rootReporter = Reporter.NO_OP;

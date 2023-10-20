@@ -63,7 +63,6 @@ public class LoadFlowResultContext {
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
         String userId = (String) headers.get(HEADER_USER_ID);
-        List<UUID> otherNetworkUuids = getHeaderList(headers, "otherNetworkUuids");
 
         LoadFlowParametersInfos parameters;
         try {
@@ -81,7 +80,6 @@ public class LoadFlowResultContext {
                 LoadFlowRunContext.builder()
                         .networkUuid(networkUuid)
                         .variantId(variantId)
-                        .otherNetworksUuids(otherNetworkUuids)
                         .receiver(receiver)
                         .provider(provider)
                         .parameters(parameters)
@@ -106,7 +104,6 @@ public class LoadFlowResultContext {
                 .setHeader("resultUuid", resultUuid.toString())
                 .setHeader("networkUuid", runContext.getNetworkUuid().toString())
                 .setHeader(VARIANT_ID_HEADER, runContext.getVariantId())
-                .setHeader("otherNetworkUuids", runContext.getOtherNetworksUuids().stream().map(UUID::toString).collect(Collectors.joining(",")))
                 .setHeader(HEADER_RECEIVER, runContext.getReceiver())
                 .setHeader(HEADER_PROVIDER, runContext.getProvider())
                 .setHeader(HEADER_USER_ID, runContext.getUserId())
