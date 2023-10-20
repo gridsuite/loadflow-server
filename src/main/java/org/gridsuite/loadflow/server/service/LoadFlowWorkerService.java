@@ -115,8 +115,6 @@ public class LoadFlowWorkerService {
         LoadFlowParameters params = buildParameters(context.getParameters(), context.getProvider());
         LOGGER.info("Run loadFlow...");
 
-        Network network = getNetwork(context.getNetworkUuid(), context.getVariantId());
-
         String provider = context.getProvider();
 
         Reporter rootReporter = Reporter.NO_OP;
@@ -193,8 +191,7 @@ public class LoadFlowWorkerService {
                 AtomicReference<Long> startTime = new AtomicReference<>();
 
                 startTime.set(System.nanoTime());
-                Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(),
-                    resultContext.getRunContext().getOtherNetworksUuids(), resultContext.getRunContext().getVariantId());
+                Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId());
 
                 LoadFlowResult result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
                 long nanoTime = System.nanoTime();
