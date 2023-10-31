@@ -84,8 +84,6 @@ public class LoadFlowControllerTest {
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5d");
     private static final UUID OTHER_RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5a");
-    private static final UUID NETWORK_FOR_MERGING_VIEW_UUID = UUID.fromString("11111111-7977-4592-ba19-88027e4254e4");
-    private static final UUID OTHER_NETWORK_FOR_MERGING_VIEW_UUID = UUID.fromString("22222222-7977-4592-ba19-88027e4254e4");
     private static final UUID REPORT_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120002");
 
     private static final String VARIANT_1_ID = "variant_1";
@@ -129,8 +127,6 @@ public class LoadFlowControllerTest {
     private ObjectMapper mapper;
     private Network network;
     private Network network1;
-    private Network networkForMergingView;
-    private Network otherNetworkForMergingView;
 
     private static void assertResultsEquals(LoadFlowResult result, org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto) {
         assertEquals(result.getComponentResults().size(), resultDto.getComponentResults().size());
@@ -174,12 +170,6 @@ public class LoadFlowControllerTest {
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
 
         given(networkStoreService.getNetwork(NETWORK_UUID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(network);
-
-        networkForMergingView = new NetworkFactoryImpl().createNetwork("mergingView", "test");
-        given(networkStoreService.getNetwork(NETWORK_FOR_MERGING_VIEW_UUID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(networkForMergingView);
-
-        otherNetworkForMergingView = new NetworkFactoryImpl().createNetwork("other", "test 2");
-        given(networkStoreService.getNetwork(OTHER_NETWORK_FOR_MERGING_VIEW_UUID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(otherNetworkForMergingView);
 
         network1 = EurostagTutorialExample1Factory.createWithMoreGenerators(new NetworkFactoryImpl());
         network1.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
@@ -365,27 +355,6 @@ public class LoadFlowControllerTest {
             assertEquals(RESULT_UUID.toString(), message.getHeaders().get("resultUuid"));
             assertEquals("me", message.getHeaders().get("receiver"));
             assertEquals(CANCEL_MESSAGE, message.getHeaders().get("message"));
-        }
-    }
-
-    @SneakyThrows
-    @Test
-    public void mergingViewTest() {
-        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
-        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
-            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
-                            any(LoadFlowParameters.class), any(Reporter.class)))
-                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
-
-            MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?receiver=me&networkUuid=" + NETWORK_FOR_MERGING_VIEW_UUID, OTHER_NETWORK_FOR_MERGING_VIEW_UUID)
-                            .header(HEADER_USER_ID, "userId"))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andReturn();
-
-            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
         }
     }
 

@@ -17,7 +17,6 @@ import org.springframework.messaging.support.MessageBuilder;
 
 import java.io.UncheckedIOException;
 import java.util.*;
-import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.service.NotificationService.*;
 
@@ -44,16 +43,6 @@ public class LoadFlowResultContext {
         this.runContext = Objects.requireNonNull(runContext);
     }
 
-    private static List<UUID> getHeaderList(MessageHeaders headers, String name) {
-        String header = (String) headers.get(name);
-        if (header == null || header.isEmpty()) {
-            return Collections.emptyList();
-        }
-        return Arrays.asList(header.split(",")).stream()
-                .map(UUID::fromString)
-                .collect(Collectors.toList());
-    }
-
     public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
@@ -63,8 +52,6 @@ public class LoadFlowResultContext {
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
         String userId = (String) headers.get(HEADER_USER_ID);
-
-        List<UUID> otherNetworkUuids = getHeaderList(headers, "otherNetworkUuids");
 
         LoadFlowParametersInfos parameters;
         try {
@@ -84,7 +71,6 @@ public class LoadFlowResultContext {
                 LoadFlowRunContext.builder()
                         .networkUuid(networkUuid)
                         .variantId(variantId)
-                        .otherNetworksUuids(otherNetworkUuids)
                         .receiver(receiver)
                         .provider(provider)
                         .parameters(parameters)
@@ -110,7 +96,6 @@ public class LoadFlowResultContext {
                 .setHeader("resultUuid", resultUuid.toString())
                 .setHeader("networkUuid", runContext.getNetworkUuid().toString())
                 .setHeader(VARIANT_ID_HEADER, runContext.getVariantId())
-                .setHeader("otherNetworkUuids", runContext.getOtherNetworksUuids().stream().map(UUID::toString).collect(Collectors.joining(",")))
                 .setHeader(HEADER_RECEIVER, runContext.getReceiver())
                 .setHeader(HEADER_PROVIDER, runContext.getProvider())
                 .setHeader(HEADER_USER_ID, runContext.getUserId())
