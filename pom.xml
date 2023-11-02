@@ -44,7 +44,7 @@
     <properties>
         <jaxb-api.version>2.4.0-b180830.0359</jaxb-api.version>
         <jaxb-runtime.version>2.4.0-b180830.0438</jaxb-runtime.version>
-        <jib.from.image>gridsuite/java-simulator:2.0.0</jib.from.image>
+        <jib.from.image>gridsuite/java-simulator:2.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>27</gridsuite-dependencies.version>
         <!--
