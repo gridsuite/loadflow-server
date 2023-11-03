@@ -32,6 +32,7 @@ public class ReportService {
 
     static final String REPORT_API_VERSION = "v1";
     private static final String DELIMITER = "/";
+    private static final String QUERY_PARAM_REPORT_TASKKEY_TYPE_FILTER = "taskKeyTypeFilter";
     private String reportServerBaseUri;
 
     private RestTemplate restTemplate;
@@ -71,5 +72,17 @@ public class ReportService {
         } catch (JsonProcessingException error) {
             throw new PowsyblException("Error sending report", error);
         }
+    }
+
+    public void deleteReport(UUID reportUuid, String taskKeyTypeFilter) {
+        Objects.requireNonNull(reportUuid);
+
+        var path = UriComponentsBuilder.fromPath("{reportUuid}")
+                .queryParam(QUERY_PARAM_REPORT_TASKKEY_TYPE_FILTER, taskKeyTypeFilter)
+                .buildAndExpand(reportUuid)
+                .toUriString();
+        var headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        restTemplate.exchange(getReportServerURI() + path, HttpMethod.DELETE, new HttpEntity<>(headers), Void.class);
     }
 }

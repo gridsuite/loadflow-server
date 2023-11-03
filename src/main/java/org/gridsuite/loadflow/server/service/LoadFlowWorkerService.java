@@ -123,12 +123,14 @@ public class LoadFlowWorkerService {
             String rootReporterId = context.getReportContext().getReportName() == null ? LOAD_FLOW_TYPE_REPORT : context.getReportContext().getReportName() + "@" + LOAD_FLOW_TYPE_REPORT;
             rootReporter = new ReporterModel(rootReporterId, rootReporterId);
             reporter = rootReporter.createSubReporter(LOAD_FLOW_TYPE_REPORT, String.format(LOAD_FLOW_TYPE_REPORT + " (%s)", provider), "providerToUse", provider);
+            // Delete any previous LF computation logs
+            reportService.deleteReport(context.getReportContext().getReportId(), LOAD_FLOW_TYPE_REPORT);
         }
 
         CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), context.getProvider(), params, reporter, resultUuid);
 
         LoadFlowResult result = future == null ? null : future.get();
-        if (result.isOk()) {
+        if (result != null && result.isOk()) {
             // flush each network in the network store
             networkStoreService.flush(network);
         }
