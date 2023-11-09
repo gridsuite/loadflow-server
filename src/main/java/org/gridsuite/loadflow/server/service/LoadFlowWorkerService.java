@@ -49,7 +49,6 @@ import static org.gridsuite.loadflow.server.service.NotificationService.FAIL_MES
 public class LoadFlowWorkerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowWorkerService.class);
-    private static final String LOAD_FLOW_TYPE_REPORT = "LoadFlow";
 
     private Lock lockRunAndCancelLF = new ReentrantLock();
 
@@ -120,11 +119,12 @@ public class LoadFlowWorkerService {
         Reporter rootReporter = Reporter.NO_OP;
         Reporter reporter = Reporter.NO_OP;
         if (context.getReportContext() != null) {
-            String rootReporterId = context.getReportContext().getReportName() == null ? LOAD_FLOW_TYPE_REPORT : context.getReportContext().getReportName() + "@" + LOAD_FLOW_TYPE_REPORT;
+            final String reportType = context.getReportContext().getReportType();
+            String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
             rootReporter = new ReporterModel(rootReporterId, rootReporterId);
-            reporter = rootReporter.createSubReporter(LOAD_FLOW_TYPE_REPORT, String.format(LOAD_FLOW_TYPE_REPORT + " (%s)", provider), "providerToUse", provider);
+            reporter = rootReporter.createSubReporter(reportType, String.format(reportType + " (%s)", provider), "providerToUse", provider);
             // Delete any previous LF computation logs
-            reportService.deleteReport(context.getReportContext().getReportId(), LOAD_FLOW_TYPE_REPORT);
+            reportService.deleteReport(context.getReportContext().getReportId(), reportType);
         }
 
         CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), context.getProvider(), params, reporter, resultUuid);

@@ -32,6 +32,8 @@ public class LoadFlowResultContext {
 
     public static final String REPORTER_ID_HEADER = "reporterId";
 
+    public static final String REPORT_TYPE_HEADER = "reportType";
+
     private static final String MESSAGE_ROOT_NAME = "parameters";
 
     private final UUID resultUuid;
@@ -65,6 +67,7 @@ public class LoadFlowResultContext {
         }
         UUID reportUuid = headers.containsKey(REPORT_UUID_HEADER) ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
         String reporterId = headers.containsKey(REPORTER_ID_HEADER) ? (String) headers.get(REPORTER_ID_HEADER) : null;
+        String reportType = headers.containsKey(REPORT_TYPE_HEADER) ? (String) headers.get(REPORT_TYPE_HEADER) : null;
         Float limitReduction = headers.containsKey(HEADER_LIMIT_REDUCTION) ? Float.parseFloat((String) headers.get(HEADER_LIMIT_REDUCTION)) : null;
 
         LoadFlowRunContext runContext =
@@ -74,7 +77,7 @@ public class LoadFlowResultContext {
                         .receiver(receiver)
                         .provider(provider)
                         .parameters(parameters)
-                        .reportContext(ReportContext.builder().reportId(reportUuid).reportName(reporterId).build())
+                        .reportContext(ReportContext.builder().reportId(reportUuid).reportName(reporterId).reportType(reportType).build())
                         .userId(userId)
                         .limitReduction(limitReduction)
                         .build();
@@ -101,6 +104,7 @@ public class LoadFlowResultContext {
                 .setHeader(HEADER_USER_ID, runContext.getUserId())
                 .setHeader(REPORT_UUID_HEADER, runContext.getReportContext().getReportId() != null ? runContext.getReportContext().getReportId().toString() : null)
                 .setHeader(REPORTER_ID_HEADER, runContext.getReportContext().getReportName())
+                .setHeader(REPORT_TYPE_HEADER, runContext.getReportContext().getReportType())
                 .setHeader(HEADER_LIMIT_REDUCTION, runContext.getLimitReduction() != null ? runContext.getLimitReduction().toString() : null)
             .build();
     }
