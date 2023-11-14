@@ -122,7 +122,7 @@ public class LoadFlowWorkerService {
             final String reportType = context.getReportContext().getReportType();
             String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
             rootReporter = new ReporterModel(rootReporterId, rootReporterId);
-            reporter = rootReporter.createSubReporter(reportType, String.format(reportType + " (%s)", provider), "providerToUse", provider);
+            reporter = rootReporter.createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
             // Delete any previous LF computation logs
             reportService.deleteReport(context.getReportContext().getReportId(), reportType);
         }
