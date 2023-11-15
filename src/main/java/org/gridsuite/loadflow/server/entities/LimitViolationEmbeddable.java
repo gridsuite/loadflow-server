@@ -45,4 +45,10 @@ public class LimitViolationEmbeddable {
     @Column
     @Enumerated(EnumType.STRING)
     private LimitViolationType limitType;
+
+    @Column
+    private Integer actualOverload;
+
+    @Column
+    private Integer upComingOverload;
 }
