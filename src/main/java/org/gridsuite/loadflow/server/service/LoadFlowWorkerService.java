@@ -11,7 +11,6 @@ import com.google.common.collect.Sets;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.loadflow.LoadFlow;
@@ -51,30 +50,30 @@ public class LoadFlowWorkerService {
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowWorkerService.class);
     private static final String LOAD_FLOW_TYPE_REPORT = "LoadFlow";
 
-    private Lock lockRunAndCancelLF = new ReentrantLock();
+    private final Lock lockRunAndCancelLF = new ReentrantLock();
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
-    private Set<UUID> runRequests = Sets.newConcurrentHashSet();
-    private NetworkStoreService networkStoreService;
-    private ReportService reportService;
-
-    NotificationService notificationService;
-
-    private LoadFlowResultRepository resultRepository;
+    private final Set<UUID> runRequests = Sets.newConcurrentHashSet();
+    private final NetworkStoreService networkStoreService;
+    private final ReportService reportService;
+    private final LoadFlowExecutionService loadFlowExecutionService;
+    private final NotificationService notificationService;
+    private final LoadFlowResultRepository resultRepository;
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
-                                 LoadFlowResultRepository resultRepository, ObjectMapper objectMapper) {
+                                 LoadFlowResultRepository resultRepository, LoadFlowExecutionService loadFlowExecutionService, ObjectMapper objectMapper) {
         this.networkStoreService = networkStoreService;
         this.notificationService = notificationService;
         this.reportService = reportService;
         this.resultRepository = resultRepository;
+        this.loadFlowExecutionService = loadFlowExecutionService;
         this.objectMapper = objectMapper;
     }
 
-    private Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();
 
-    private Map<UUID, LoadFlowCancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
+    private final Map<UUID, LoadFlowCancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
 
     private Network getNetwork(UUID networkUuid, String variantId) {
         Network network;
@@ -101,7 +100,12 @@ public class LoadFlowWorkerService {
                 return null;
             }
             LoadFlow.Runner runner = LoadFlow.find(provider);
-            CompletableFuture<LoadFlowResult> future = runner.runAsync(network, variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID, LocalComputationManager.getDefault(), params, reporter);
+            CompletableFuture<LoadFlowResult> future = runner.runAsync(
+                    network,
+                    variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID,
+                    loadFlowExecutionService.getComputationManager(),
+                    params,
+                    reporter);
             if (resultUuid != null) {
                 futures.put(resultUuid, future);
             }
@@ -128,7 +132,7 @@ public class LoadFlowWorkerService {
         CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), context.getProvider(), params, reporter, resultUuid);
 
         LoadFlowResult result = future == null ? null : future.get();
-        if (result.isOk()) {
+        if (result != null && result.isOk()) {
             // flush each network in the network store
             networkStoreService.flush(network);
         }
