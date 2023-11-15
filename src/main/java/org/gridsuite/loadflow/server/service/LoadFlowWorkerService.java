@@ -144,7 +144,7 @@ public class LoadFlowWorkerService {
         notificationService.publishStop(resultUuid, receiver);
     }
 
-    private LoadingLimits.TemporaryLimit handleEquipmentLimitViolation(Branch branch, LimitViolationInfos violationInfo, Network network) {
+    private LoadingLimits.TemporaryLimit handleEquipmentLimitViolation(Branch branch, LimitViolationInfos violationInfo) {
 
         Optional<com.powsybl.iidm.network.CurrentLimits> currentLimits = violationInfo.getSide().equals("ONE") ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
         Double permanantLimit = currentLimits.get().getPermanentLimit();
@@ -156,8 +156,7 @@ public class LoadFlowWorkerService {
                     .filter(tl -> violationInfo.getValue() < tl.getValue())
                     .findFirst();
             if (nextTemporaryLimit.isPresent()) {
-                LoadingLimits.TemporaryLimit nextLimit = nextTemporaryLimit.get();
-                return nextLimit;
+                return nextTemporaryLimit.get();
             }
         }
         return null;
@@ -180,9 +179,9 @@ public class LoadFlowWorkerService {
             LoadingLimits.TemporaryLimit tempLimit = null;
 
             if (line != null) {
-                tempLimit = handleEquipmentLimitViolation(line, limitViolationInfo, network);
+                tempLimit = handleEquipmentLimitViolation(line, limitViolationInfo);
             } else if (twoWindingsTransformer != null) {
-                tempLimit = handleEquipmentLimitViolation(twoWindingsTransformer, limitViolationInfo, network);
+                tempLimit = handleEquipmentLimitViolation(twoWindingsTransformer, limitViolationInfo);
             }
             return (tempLimit != null) ? tempLimit.getAcceptableDuration() : null;
 
