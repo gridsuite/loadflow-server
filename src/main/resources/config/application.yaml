@@ -12,7 +12,7 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
           group: loadflowGroup
           consumer:
-            concurrency: 2
+            concurrency: 4
         publishRun-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
         publishResult-out-0:
