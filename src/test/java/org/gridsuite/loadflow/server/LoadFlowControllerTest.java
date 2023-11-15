@@ -399,6 +399,25 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
+    public void runWithDefaultVariant() {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID, NETWORK_UUID)
+                            .header(HEADER_USER_ID, "user"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+        }
+    }
+
+    @SneakyThrows
+    @Test
     public void getProvidersTest() {
 
         String result = mockMvc.perform(get("/" + VERSION + "/providers")
