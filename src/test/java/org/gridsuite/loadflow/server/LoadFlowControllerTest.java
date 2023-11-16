@@ -147,13 +147,6 @@ public class LoadFlowControllerTest {
         }
     }
 
-    private static void assertLimitViolationsCalculatedOverloadEquals(List<LimitViolationInfos> limitViolationsDto) {
-        assertEquals(60, limitViolationsDto.get(0).getActualOverload(), 0.01);
-        assertNull(limitViolationsDto.get(0).getUpComingOverload());
-        assertNull(limitViolationsDto.get(1).getActualOverload());
-        assertEquals(300, limitViolationsDto.get(1).getUpComingOverload(), 0.01);
-    }
-
     private static void assertLimitViolationsEquals(List<LimitViolation> limitViolations, List<LimitViolationInfos> limitViolationsDto, Network network) {
         assertEquals(limitViolations.size(), limitViolationsDto.size());
 
@@ -298,7 +291,6 @@ public class LoadFlowControllerTest {
                 .andReturn();
             List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<LimitViolationInfos>>() { });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations, network);
-            //assertLimitViolationsCalculatedOverloadEquals(limitViolations);
         }
     }
 

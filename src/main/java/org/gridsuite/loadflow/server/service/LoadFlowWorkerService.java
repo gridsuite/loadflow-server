@@ -147,8 +147,7 @@ public class LoadFlowWorkerService {
     private static LoadingLimits.TemporaryLimit handleEquipmentLimitViolation(Branch<?> branch, LimitViolationInfos violationInfo) {
 
         Optional<com.powsybl.iidm.network.CurrentLimits> currentLimits = violationInfo.getSide().equals("ONE") ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
-        Double permanantLimit = currentLimits.get().getPermanentLimit();
-        if (violationInfo.getValue() < permanantLimit) {
+        if (violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
             return null;
         } else {
             List<LoadingLimits.TemporaryLimit> temporaryLimits = currentLimits.get().getTemporaryLimits().stream().collect(Collectors.toList());
