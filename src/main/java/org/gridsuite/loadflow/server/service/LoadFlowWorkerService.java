@@ -144,7 +144,7 @@ public class LoadFlowWorkerService {
         notificationService.publishStop(resultUuid, receiver);
     }
 
-    private LoadingLimits.TemporaryLimit handleEquipmentLimitViolation(Branch branch, LimitViolationInfos violationInfo) {
+    private static LoadingLimits.TemporaryLimit handleEquipmentLimitViolation(Branch<?> branch, LimitViolationInfos violationInfo) {
 
         Optional<com.powsybl.iidm.network.CurrentLimits> currentLimits = violationInfo.getSide().equals("ONE") ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
         Double permanantLimit = currentLimits.get().getPermanentLimit();
@@ -162,14 +162,14 @@ public class LoadFlowWorkerService {
         return null;
     }
 
-    private Integer calculateUpcomingOverload(LimitViolationInfos limitViolationInfo) {
+    public static Integer calculateUpcomingOverload(LimitViolationInfos limitViolationInfo) {
         if (limitViolationInfo.getValue() < limitViolationInfo.getLimit()) {
             return limitViolationInfo.getAcceptableDuration();
         }
         return null;
     }
 
-    private Integer calculateActualOverload(LimitViolationInfos limitViolationInfo, Network network) {
+    public static Integer calculateActualOverload(LimitViolationInfos limitViolationInfo, Network network) {
         if (limitViolationInfo.getValue() > limitViolationInfo.getLimit()) {
             return limitViolationInfo.getAcceptableDuration();
         } else {

@@ -100,9 +100,8 @@ public class LoadFlowControllerTest {
     }
 
     private static final class LimitViolationsMock {
-        static List<LimitViolation> limitViolations = List.of(new LimitViolation("lineId1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 200, 0.7F, 150, Branch.Side.ONE),
-                                                              new LimitViolation("lineId2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 100, 0.7F, 80, Branch.Side.TWO),
-                                                              new LimitViolation("genId1", "genName1", LimitViolationType.HIGH_VOLTAGE, "limit3", 120, 500, 0.7F, 370, null));
+        static List<LimitViolation> limitViolations = List.of(new LimitViolation("NHV1_NHV2_2", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 90, 0.7F, 150, Branch.Side.ONE),
+                                                              new LimitViolation("NHV1_NHV2_1", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 100, 0.7F, 80, Branch.Side.TWO));
     }
 
     @Autowired
@@ -141,8 +140,14 @@ public class LoadFlowControllerTest {
             assertEquals(componentResultsDto.get(i).getSlackBusId(), componentResults.get(i).getSlackBusId());
             assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);
             assertEquals(componentResultsDto.get(i).getDistributedActivePower(), componentResults.get(i).getDistributedActivePower(), 0.01);
-
         }
+    }
+
+    private static void assertLimitViolationsCalculatedOverloadEquals(List<LimitViolationInfos> limitViolationsDto) {
+        assertEquals(60, limitViolationsDto.get(0).getActualOverload(), 0.01);
+        assertNull(limitViolationsDto.get(0).getUpComingOverload());
+        assertNull(limitViolationsDto.get(1).getActualOverload());
+        assertEquals(300, limitViolationsDto.get(1).getUpComingOverload(), 0.01);
     }
 
     private static void assertLimitViolationsEquals(List<LimitViolation> limitViolations, List<LimitViolationInfos> limitViolationsDto) {
@@ -164,7 +169,7 @@ public class LoadFlowControllerTest {
         MockitoAnnotations.initMocks(this);
 
         // network store service mocking
-        network = EurostagTutorialExample1Factory.createWithMoreGenerators(new NetworkFactoryImpl());
+        network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits(new NetworkFactoryImpl());
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
@@ -287,6 +292,7 @@ public class LoadFlowControllerTest {
                 .andReturn();
             List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<LimitViolationInfos>>() { });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations);
+            assertLimitViolationsCalculatedOverloadEquals(limitViolations);
         }
     }
 
