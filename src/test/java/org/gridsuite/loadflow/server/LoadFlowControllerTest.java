@@ -101,12 +101,11 @@ public class LoadFlowControllerTest {
     }
 
     private static final class LimitViolationsMock {
-        static List<LimitViolation> limitViolations = List.of(new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 400, 0.7F, 350, Branch.Side.ONE),
-                                                              new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1100, 0.7F, 1250, Branch.Side.TWO),
-                                                              new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 100, 0.7F, 80, Branch.Side.ONE),
-                                                              new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 100, 0.7F, 80, Branch.Side.TWO),
-                                                              new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1100, 0.7F, 1250, Branch.Side.TWO),
-                                                              new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1000, 0.7F, 800, Branch.Side.TWO));
+        static List<LimitViolation> limitViolations = List.of(
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, Branch.Side.TWO),
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, Branch.Side.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, Branch.Side.ONE),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, Branch.Side.TWO));
     }
 
     @Autowired
