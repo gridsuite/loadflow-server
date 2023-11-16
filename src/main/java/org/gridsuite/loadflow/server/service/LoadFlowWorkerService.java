@@ -163,27 +163,28 @@ public class LoadFlowWorkerService {
 
     public static Integer calculateUpcomingOverload(LimitViolationInfos limitViolationInfo) {
         if (limitViolationInfo.getValue() < limitViolationInfo.getLimit()) {
-            return limitViolationInfo.getAcceptableDuration();
+            return limitViolationInfo.getUpComingOverload();
         }
         return null;
     }
 
     public static Integer calculateActualOverload(LimitViolationInfos limitViolationInfo, Network network) {
         if (limitViolationInfo.getValue() > limitViolationInfo.getLimit()) {
-            return limitViolationInfo.getAcceptableDuration();
+            return limitViolationInfo.getActualOverload();
         } else {
             String equipmentId = limitViolationInfo.getSubjectId();
-            Line line = network.getLine(equipmentId);
-            TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(equipmentId);
             LoadingLimits.TemporaryLimit tempLimit = null;
 
+            Line line = network.getLine(equipmentId);
             if (line != null) {
                 tempLimit = handleEquipmentLimitViolation(line, limitViolationInfo);
-            } else if (twoWindingsTransformer != null) {
-                tempLimit = handleEquipmentLimitViolation(twoWindingsTransformer, limitViolationInfo);
+            } else {
+                TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(equipmentId);
+                if (twoWindingsTransformer != null) {
+                    tempLimit = handleEquipmentLimitViolation(twoWindingsTransformer, limitViolationInfo);
+                }
             }
             return (tempLimit != null) ? tempLimit.getAcceptableDuration() : null;
-
         }
     }
 
@@ -216,7 +217,8 @@ public class LoadFlowWorkerService {
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
         return LimitViolationInfos.builder()
             .subjectId(violation.getSubjectId())
-            .acceptableDuration(violation.getAcceptableDuration())
+            .actualOverload(violation.getAcceptableDuration())
+            .upComingOverload(violation.getAcceptableDuration())
             .limit(violation.getLimit())
             .limitName(violation.getLimitName())
             .value(violation.getValue())

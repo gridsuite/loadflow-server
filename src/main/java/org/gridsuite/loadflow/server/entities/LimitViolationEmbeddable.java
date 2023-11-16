@@ -34,7 +34,10 @@ public class LimitViolationEmbeddable {
     private String limitName;
 
     @Column
-    private Integer acceptableDuration;
+    private Integer actualOverload;
+
+    @Column
+    private Integer upComingOverload;
 
     @Column(name = "value_")
     private Double value;
@@ -46,9 +49,4 @@ public class LimitViolationEmbeddable {
     @Enumerated(EnumType.STRING)
     private LimitViolationType limitType;
 
-    @Column
-    private Integer actualOverload;
-
-    @Column
-    private Integer upComingOverload;
 }
