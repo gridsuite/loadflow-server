@@ -19,6 +19,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
+import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -37,7 +38,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-import java.util.stream.Collectors;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
 import static org.gridsuite.loadflow.server.service.NotificationService.FAIL_MESSAGE;
@@ -50,8 +50,6 @@ public class LoadFlowWorkerService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowWorkerService.class);
     private static final String LOAD_FLOW_TYPE_REPORT = "LoadFlow";
-    private static final String CURRENT = "CURRENT";
-
     private Lock lockRunAndCancelLF = new ReentrantLock();
 
     private ObjectMapper objectMapper;
@@ -144,16 +142,15 @@ public class LoadFlowWorkerService {
         notificationService.publishStop(resultUuid, receiver);
     }
 
-    private static LoadingLimits.TemporaryLimit handleEquipmentLimitViolation(Branch<?> branch, LimitViolationInfos violationInfo) {
-
-        Optional<com.powsybl.iidm.network.CurrentLimits> currentLimits = violationInfo.getSide().equals("ONE") ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
-        if (violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
+    private static LoadingLimits.TemporaryLimit getBranchLowerLimitViolation(Branch<?> branch, LimitViolationInfos violationInfo) {
+        // limits are returned from the store by DESC duration / ASC value
+        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(Branch.Side.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        if (!currentLimits.isPresent() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
             return null;
         } else {
-            List<LoadingLimits.TemporaryLimit> temporaryLimits = currentLimits.get().getTemporaryLimits().stream().collect(Collectors.toList());
-            Optional<LoadingLimits.TemporaryLimit> nextTemporaryLimit = temporaryLimits.stream()
-                    .filter(tl -> violationInfo.getValue() < tl.getValue())
-                    .findFirst();
+            Optional<LoadingLimits.TemporaryLimit> nextTemporaryLimit = currentLimits.get().getTemporaryLimits().stream()
+                          .filter(tl -> violationInfo.getValue() < tl.getValue())
+                            .findFirst();
             if (nextTemporaryLimit.isPresent()) {
                 return nextTemporaryLimit.get();
             }
@@ -161,27 +158,27 @@ public class LoadFlowWorkerService {
         return null;
     }
 
-    public static Integer calculateUpcomingOverload(LimitViolationInfos limitViolationInfo) {
+    public static Integer calculateUpcomingOverloadDuration(LimitViolationInfos limitViolationInfo) {
         if (limitViolationInfo.getValue() < limitViolationInfo.getLimit()) {
-            return limitViolationInfo.getUpComingOverload();
+            return limitViolationInfo.getUpComingOverloadDuration();
         }
         return null;
     }
 
-    public static Integer calculateActualOverload(LimitViolationInfos limitViolationInfo, Network network) {
+    public static Integer calculateActualOverloadDuration(LimitViolationInfos limitViolationInfo, Network network) {
         if (limitViolationInfo.getValue() > limitViolationInfo.getLimit()) {
-            return limitViolationInfo.getActualOverload();
+            return limitViolationInfo.getActualOverloadDuration();
         } else {
             String equipmentId = limitViolationInfo.getSubjectId();
             LoadingLimits.TemporaryLimit tempLimit = null;
 
             Line line = network.getLine(equipmentId);
             if (line != null) {
-                tempLimit = handleEquipmentLimitViolation(line, limitViolationInfo);
+                tempLimit = getBranchLowerLimitViolation(line, limitViolationInfo);
             } else {
                 TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(equipmentId);
                 if (twoWindingsTransformer != null) {
-                    tempLimit = handleEquipmentLimitViolation(twoWindingsTransformer, limitViolationInfo);
+                    tempLimit = getBranchLowerLimitViolation(twoWindingsTransformer, limitViolationInfo);
                 }
             }
             return (tempLimit != null) ? tempLimit.getAcceptableDuration() : null;
@@ -190,9 +187,9 @@ public class LoadFlowWorkerService {
 
     private List<LimitViolationInfos> calculateOverloadLimitViolations(List<LimitViolationInfos> limitViolationInfos, Network network) {
         for (LimitViolationInfos violationInfo : limitViolationInfos) {
-            if (violationInfo.getLimitName() != null && violationInfo.getLimitType().name().equals(CURRENT)) {
-                violationInfo.setActualOverload(calculateActualOverload(violationInfo, network));
-                violationInfo.setUpComingOverload(calculateUpcomingOverload(violationInfo));
+            if (violationInfo.getLimitName() != null && violationInfo.getLimitType() == LimitViolationType.CURRENT) {
+                violationInfo.setActualOverloadDuration(calculateActualOverloadDuration(violationInfo, network));
+                violationInfo.setUpComingOverloadDuration(calculateUpcomingOverloadDuration(violationInfo));
             }
         }
         return limitViolationInfos;
@@ -217,8 +214,8 @@ public class LoadFlowWorkerService {
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
         return LimitViolationInfos.builder()
             .subjectId(violation.getSubjectId())
-            .actualOverload(violation.getAcceptableDuration())
-            .upComingOverload(violation.getAcceptableDuration())
+            .actualOverloadDuration(violation.getAcceptableDuration())
+            .upComingOverloadDuration(violation.getAcceptableDuration())
             .limit(violation.getLimit())
             .limitName(violation.getLimitName())
             .value(violation.getValue())

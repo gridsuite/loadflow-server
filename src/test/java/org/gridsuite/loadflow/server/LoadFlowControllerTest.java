@@ -157,8 +157,8 @@ public class LoadFlowControllerTest {
             assertEquals(limitViolationsDto.get(i).getValue(), limitViolations.get(i).getValue(), 0.01);
             assertEquals(limitViolationsDto.get(i).getSide(), limitViolations.get(i).getSide() != null ? limitViolations.get(i).getSide().name() : "");
             assertEquals(limitViolationsDto.get(i).getLimitType(), limitViolations.get(i).getLimitType());
-            assertEquals(limitViolationsDto.get(i).getActualOverload(), LoadFlowWorkerService.calculateActualOverload(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i)), network));
-            assertEquals(limitViolationsDto.get(i).getUpComingOverload(), LoadFlowWorkerService.calculateUpcomingOverload(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i))));
+            assertEquals(limitViolationsDto.get(i).getActualOverloadDuration(), LoadFlowWorkerService.calculateActualOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i)), network));
+            assertEquals(limitViolationsDto.get(i).getUpComingOverloadDuration(), LoadFlowWorkerService.calculateUpcomingOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i))));
         }
     }
 
