@@ -142,7 +142,7 @@ public class LoadFlowWorkerService {
         notificationService.publishStop(resultUuid, receiver);
     }
 
-    private static LoadingLimits.TemporaryLimit getBranchLowerLimitViolation(Branch<?> branch, LimitViolationInfos violationInfo) {
+    private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
         // limits are returned from the store by DESC duration / ASC value
         Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(Branch.Side.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
         if (!currentLimits.isPresent() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
@@ -174,11 +174,11 @@ public class LoadFlowWorkerService {
 
             Line line = network.getLine(equipmentId);
             if (line != null) {
-                tempLimit = getBranchLowerLimitViolation(line, limitViolationInfo);
+                tempLimit = getBranchLimitViolationAboveCurrentValue(line, limitViolationInfo);
             } else {
                 TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(equipmentId);
                 if (twoWindingsTransformer != null) {
-                    tempLimit = getBranchLowerLimitViolation(twoWindingsTransformer, limitViolationInfo);
+                    tempLimit = getBranchLimitViolationAboveCurrentValue(twoWindingsTransformer, limitViolationInfo);
                 }
             }
             return (tempLimit != null) ? tempLimit.getAcceptableDuration() : null;
