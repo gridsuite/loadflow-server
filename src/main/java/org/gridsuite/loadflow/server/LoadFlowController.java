@@ -51,7 +51,7 @@ public class LoadFlowController {
                                     @Parameter(description = "Result receiver") @RequestParam(name = "receiver", required = false) String receiver,
                                     @Parameter(description = "reportUuid") @RequestParam(name = "reportUuid", required = false) UUID reportId,
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
-                                    @Parameter(description = "The type of report for short-circuit") @RequestParam(name = "reportType") String reportType,
+                                    @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "The limit reduction") @RequestParam(name = "limitReduction", required = false, defaultValue = "0.8F") Float limitReduction,
                                     @RequestHeader(HEADER_USER_ID) String userId,
                                     @RequestBody(required = false) LoadFlowParametersInfos loadflowParams

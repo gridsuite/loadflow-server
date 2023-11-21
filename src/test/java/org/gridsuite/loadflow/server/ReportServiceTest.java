@@ -75,7 +75,7 @@ public class ReportServiceTest {
                 if (requestPath.equals(String.format("/v1/reports/%s", REPORT_UUID))) {
                     assertEquals(REPORT_JSON, request.getBody().readUtf8());
                     return new MockResponse().setResponseCode(HttpStatus.OK.value());
-                } else if (requestPath.equals(String.format("/v1/reports/%s?taskKeyTypeFilter=LoadFlow&errorOnReportNotFound=false", REPORT_UUID))) {
+                } else if (requestPath.equals(String.format("/v1/reports/%s?reportTypeFilter=LoadFlow&errorOnReportNotFound=false", REPORT_UUID))) {
                     assertEquals("", request.getBody().readUtf8());
                     return new MockResponse().setResponseCode(HttpStatus.OK.value());
                 } else if (requestPath.equals(String.format("/v1/reports/%s", REPORT_ERROR_UUID))) {
