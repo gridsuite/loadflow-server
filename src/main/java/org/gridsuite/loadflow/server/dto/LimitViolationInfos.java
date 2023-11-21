@@ -29,7 +29,9 @@ public class LimitViolationInfos {
 
     private String limitName;
 
-    private Integer acceptableDuration;
+    private Integer actualOverloadDuration;
+
+    private Integer upComingOverloadDuration;
 
     private Double value;
 
@@ -38,7 +40,7 @@ public class LimitViolationInfos {
     private LimitViolationType limitType;
 
     public LimitViolationEmbeddable toEmbeddable() {
-        return new LimitViolationEmbeddable(subjectId, limit, limitName, acceptableDuration, value, side, limitType);
+        return new LimitViolationEmbeddable(subjectId, limit, limitName, actualOverloadDuration, upComingOverloadDuration, value, side, limitType);
     }
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolationEmbeddable limitViolationEmbeddable) {
@@ -46,7 +48,8 @@ public class LimitViolationInfos {
             .subjectId(limitViolationEmbeddable.getSubjectId())
             .limit(limitViolationEmbeddable.getLimit())
             .limitName(limitViolationEmbeddable.getLimitName())
-            .acceptableDuration(limitViolationEmbeddable.getAcceptableDuration())
+            .actualOverloadDuration(limitViolationEmbeddable.getActualOverload())
+            .upComingOverloadDuration(limitViolationEmbeddable.getUpComingOverload())
             .value(limitViolationEmbeddable.getValue())
             .side(limitViolationEmbeddable.getSide())
             .limitType(limitViolationEmbeddable.getLimitType())

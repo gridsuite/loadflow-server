@@ -12,14 +12,14 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
+import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -145,6 +145,59 @@ public class LoadFlowWorkerService {
         notificationService.publishStop(resultUuid, receiver);
     }
 
+    private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
+        // limits are returned from the store by DESC duration / ASC value
+        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(Branch.Side.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        if (!currentLimits.isPresent() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
+            return null;
+        } else {
+            Optional<LoadingLimits.TemporaryLimit> nextTemporaryLimit = currentLimits.get().getTemporaryLimits().stream()
+                          .filter(tl -> violationInfo.getValue() < tl.getValue())
+                            .findFirst();
+            if (nextTemporaryLimit.isPresent()) {
+                return nextTemporaryLimit.get();
+            }
+        }
+        return null;
+    }
+
+    public static Integer calculateUpcomingOverloadDuration(LimitViolationInfos limitViolationInfo) {
+        if (limitViolationInfo.getValue() < limitViolationInfo.getLimit()) {
+            return limitViolationInfo.getUpComingOverloadDuration();
+        }
+        return null;
+    }
+
+    public static Integer calculateActualOverloadDuration(LimitViolationInfos limitViolationInfo, Network network) {
+        if (limitViolationInfo.getValue() > limitViolationInfo.getLimit()) {
+            return limitViolationInfo.getActualOverloadDuration();
+        } else {
+            String equipmentId = limitViolationInfo.getSubjectId();
+            LoadingLimits.TemporaryLimit tempLimit = null;
+
+            Line line = network.getLine(equipmentId);
+            if (line != null) {
+                tempLimit = getBranchLimitViolationAboveCurrentValue(line, limitViolationInfo);
+            } else {
+                TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(equipmentId);
+                if (twoWindingsTransformer != null) {
+                    tempLimit = getBranchLimitViolationAboveCurrentValue(twoWindingsTransformer, limitViolationInfo);
+                }
+            }
+            return (tempLimit != null) ? tempLimit.getAcceptableDuration() : null;
+        }
+    }
+
+    private List<LimitViolationInfos> calculateOverloadLimitViolations(List<LimitViolationInfos> limitViolationInfos, Network network) {
+        for (LimitViolationInfos violationInfo : limitViolationInfos) {
+            if (violationInfo.getLimitName() != null && violationInfo.getLimitType() == LimitViolationType.CURRENT) {
+                violationInfo.setActualOverloadDuration(calculateActualOverloadDuration(violationInfo, network));
+                violationInfo.setUpComingOverloadDuration(calculateUpcomingOverloadDuration(violationInfo));
+            }
+        }
+        return limitViolationInfos;
+    }
+
     private void cancelLoadFlowAsync(LoadFlowCancelContext cancelContext) {
         lockRunAndCancelLF.lock();
         try {
@@ -164,7 +217,8 @@ public class LoadFlowWorkerService {
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
         return LimitViolationInfos.builder()
             .subjectId(violation.getSubjectId())
-            .acceptableDuration(violation.getAcceptableDuration())
+            .actualOverloadDuration(violation.getAcceptableDuration())
+            .upComingOverloadDuration(violation.getAcceptableDuration())
             .limit(violation.getLimit())
             .limitName(violation.getLimitName())
             .value(violation.getValue())
@@ -200,7 +254,8 @@ public class LoadFlowWorkerService {
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
 
                 List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
-                resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result), limitViolationInfos);
+                List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
+                resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
                 long finalNanoTime = System.nanoTime();
                 LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
 
