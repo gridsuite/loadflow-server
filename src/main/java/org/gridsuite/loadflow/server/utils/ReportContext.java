@@ -23,4 +23,6 @@ public class ReportContext {
     private UUID reportId;
 
     private String reportName;
+
+    private final String reportType;
 }

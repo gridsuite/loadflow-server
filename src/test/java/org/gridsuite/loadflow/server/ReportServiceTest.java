@@ -75,6 +75,9 @@ public class ReportServiceTest {
                 if (requestPath.equals(String.format("/v1/reports/%s", REPORT_UUID))) {
                     assertEquals(REPORT_JSON, request.getBody().readUtf8());
                     return new MockResponse().setResponseCode(HttpStatus.OK.value());
+                } else if (requestPath.equals(String.format("/v1/reports/%s?reportTypeFilter=LoadFlow&errorOnReportNotFound=false", REPORT_UUID))) {
+                    assertEquals("", request.getBody().readUtf8());
+                    return new MockResponse().setResponseCode(HttpStatus.OK.value());
                 } else if (requestPath.equals(String.format("/v1/reports/%s", REPORT_ERROR_UUID))) {
                     return new MockResponse().setResponseCode(HttpStatus.INTERNAL_SERVER_ERROR.value());
                 } else {
@@ -91,9 +94,15 @@ public class ReportServiceTest {
     }
 
     @Test
-    public void test() {
+    public void testSendReport() {
         Reporter reporter = new ReporterModel("test", "a test");
         reportService.sendReport(REPORT_UUID, reporter);
         assertThrows(RestClientException.class, () -> reportService.sendReport(REPORT_ERROR_UUID, reporter));
+    }
+
+    @Test
+    public void testDeleteReport() {
+        reportService.deleteReport(REPORT_UUID, "LoadFlow");
+        assertThrows(RestClientException.class, () -> reportService.deleteReport(REPORT_ERROR_UUID, "LoadFlow"));
     }
 }
