@@ -31,7 +31,6 @@ import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
-import org.gridsuite.loadflow.server.service.NotificationService;
 import org.gridsuite.loadflow.server.service.LoadFlowExecutionService;
 import org.gridsuite.loadflow.server.service.ReportService;
 import org.gridsuite.loadflow.server.service.UuidGeneratorService;
@@ -164,7 +163,7 @@ public class LoadFlowControllerTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         MockitoAnnotations.initMocks(this);
 
         // network store service mocking
@@ -289,7 +288,8 @@ public class LoadFlowControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-            List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<LimitViolationInfos>>() { });
+            List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations, network);
         }
     }
@@ -461,7 +461,7 @@ public class LoadFlowControllerTest {
         });
         assertNotNull(lfParams);
         assertEquals(Set.of("Hades2"), lfParams.keySet());
-        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+        assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
         // all providers
         result = mockMvc.perform(get("/" + VERSION + "/specific-parameters"))
@@ -473,7 +473,7 @@ public class LoadFlowControllerTest {
         });
         assertNotNull(lfParams);
         assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());
-        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+        assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
     }
 }
