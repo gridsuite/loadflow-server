@@ -21,6 +21,9 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
+import io.micrometer.common.KeyValue;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.ObservationRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
@@ -34,7 +37,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.concurrent.*;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -62,13 +64,16 @@ public class LoadFlowWorkerService {
 
     private LoadFlowResultRepository resultRepository;
 
+    private final ObservationRegistry observationRegistry;
+
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
-                                 LoadFlowResultRepository resultRepository, ObjectMapper objectMapper) {
+                                 LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, ObservationRegistry observationRegistry) {
         this.networkStoreService = networkStoreService;
         this.notificationService = notificationService;
         this.reportService = reportService;
         this.resultRepository = resultRepository;
         this.objectMapper = objectMapper;
+        this.observationRegistry = observationRegistry;
     }
 
     private Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();
@@ -138,6 +143,12 @@ public class LoadFlowWorkerService {
             reportService.sendReport(context.getReportContext().getReportId(), rootReporter);
         }
         return result;
+    }
+
+    private void saveLoadflowResult(Network network, LoadFlowResultContext resultContext, LoadFlowResult result) {
+        List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
+        List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
+        resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
     }
 
     private void cleanLoadFlowResultsAndPublishCancel(UUID resultUuid, String receiver) {
@@ -242,22 +253,23 @@ public class LoadFlowWorkerService {
     public Consumer<Message<String>> consumeRun() {
         return message -> {
             LoadFlowResultContext resultContext = LoadFlowResultContext.fromMessage(message, objectMapper);
+            Observation.Context loadflowContext = new Observation.Context()
+                .addLowCardinalityKeyValue(KeyValue.of("provider", resultContext.getRunContext().getProvider()))
+                .addLowCardinalityKeyValue(KeyValue.of("userId", resultContext.getRunContext().getUserId()));
             try {
                 runRequests.add(resultContext.getResultUuid());
-                AtomicReference<Long> startTime = new AtomicReference<>();
 
-                startTime.set(System.nanoTime());
-                Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId());
+                Network network = Observation.createNotStarted("loadflow.load.network", () -> loadflowContext, observationRegistry)
+                    .contextualName("loadflow-load-network")
+                    .observeChecked(() -> getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId()));
 
-                LoadFlowResult result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
-                long nanoTime = System.nanoTime();
-                LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
+                LoadFlowResult result = Observation.createNotStarted("loadflow.run", () -> loadflowContext, observationRegistry)
+                    .contextualName("loadflow-run")
+                    .observeChecked(() -> run(network, resultContext.getRunContext(), resultContext.getResultUuid()));
 
-                List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
-                List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-                resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
-                long finalNanoTime = System.nanoTime();
-                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
+                Observation.createNotStarted("loadflow.save", () -> loadflowContext, observationRegistry)
+                    .contextualName("loadflow-save")
+                    .observe(() -> saveLoadflowResult(network, resultContext, result));
 
                 if (result != null) {  // result available
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
