@@ -259,16 +259,13 @@ public class LoadFlowWorkerService {
             try {
                 runRequests.add(resultContext.getResultUuid());
 
-                Network network = Observation.createNotStarted("loadflow.load.network", () -> loadflowContext, observationRegistry)
-                    .contextualName("loadflow-load-network")
+                Network network = Observation.createNotStarted("loadflow.load", () -> loadflowContext, observationRegistry)
                     .observeChecked(() -> getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId()));
 
                 LoadFlowResult result = Observation.createNotStarted("loadflow.run", () -> loadflowContext, observationRegistry)
-                    .contextualName("loadflow-run")
                     .observeChecked(() -> run(network, resultContext.getRunContext(), resultContext.getResultUuid()));
 
                 Observation.createNotStarted("loadflow.save", () -> loadflowContext, observationRegistry)
-                    .contextualName("loadflow-save")
                     .observe(() -> saveLoadflowResult(network, resultContext, result));
 
                 if (result != null) {  // result available
