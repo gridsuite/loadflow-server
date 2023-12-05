@@ -21,7 +21,6 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
-import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import org.apache.commons.lang3.StringUtils;
@@ -249,24 +248,26 @@ public class LoadFlowWorkerService {
             .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
     }
 
+    private Observation createLoadflowObservation(String name, LoadFlowResultContext resultContext) {
+        return Observation.createNotStarted("loadflow." + name, observationRegistry)
+            .lowCardinalityKeyValue("userId", resultContext.getRunContext().getUserId())
+            .lowCardinalityKeyValue("loadflow-provider", resultContext.getRunContext().getProvider());
+    }
+
     @Bean
     public Consumer<Message<String>> consumeRun() {
         return message -> {
             LoadFlowResultContext resultContext = LoadFlowResultContext.fromMessage(message, objectMapper);
-            Observation.Context loadflowContext = new Observation.Context()
-                .addLowCardinalityKeyValue(KeyValue.of("provider", resultContext.getRunContext().getProvider()))
-                .addLowCardinalityKeyValue(KeyValue.of("userId", resultContext.getRunContext().getUserId()));
             try {
                 runRequests.add(resultContext.getResultUuid());
 
-                Network network = Observation.createNotStarted("loadflow.load", () -> loadflowContext, observationRegistry)
+                Network network = createLoadflowObservation("load", resultContext)
                     .observeChecked(() -> getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId()));
 
-                LoadFlowResult result = Observation.createNotStarted("loadflow.run", () -> loadflowContext, observationRegistry)
+                LoadFlowResult result = createLoadflowObservation("run", resultContext)
                     .observeChecked(() -> run(network, resultContext.getRunContext(), resultContext.getResultUuid()));
 
-                Observation.createNotStarted("loadflow.save", () -> loadflowContext, observationRegistry)
-                    .observe(() -> saveLoadflowResult(network, resultContext, result));
+                createLoadflowObservation("save", resultContext).observe(() -> saveLoadflowResult(network, resultContext, result));
 
                 if (result != null) {  // result available
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
