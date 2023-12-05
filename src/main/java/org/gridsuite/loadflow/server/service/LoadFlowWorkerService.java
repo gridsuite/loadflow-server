@@ -36,6 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.concurrent.*;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
@@ -260,6 +261,8 @@ public class LoadFlowWorkerService {
             LoadFlowResultContext resultContext = LoadFlowResultContext.fromMessage(message, objectMapper);
             try {
                 runRequests.add(resultContext.getResultUuid());
+                AtomicReference<Long> startTime = new AtomicReference<>();
+                startTime.set(System.nanoTime());
 
                 Network network = createLoadflowObservation("load", resultContext)
                     .observeChecked(() -> getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId()));
@@ -267,7 +270,13 @@ public class LoadFlowWorkerService {
                 LoadFlowResult result = createLoadflowObservation("run", resultContext)
                     .observeChecked(() -> run(network, resultContext.getRunContext(), resultContext.getResultUuid()));
 
+                long nanoTime = System.nanoTime();
+                LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
+
                 createLoadflowObservation("save", resultContext).observe(() -> saveLoadflowResult(network, resultContext, result));
+
+                long finalNanoTime = System.nanoTime();
+                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
 
                 if (result != null) {  // result available
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
