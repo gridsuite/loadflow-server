@@ -20,7 +20,6 @@ public class LoadflowObserver {
     private final ObservationRegistry observationRegistry;
 
     private static final String OBSERVATION_PREFIX = "app.loadflow.";
-    private static final String USER_TAG_NAME = "user";
     private static final String PROVIDER_TAG_NAME = "provider";
 
     public LoadflowObserver(@NonNull ObservationRegistry observationRegistry) {
@@ -37,7 +36,6 @@ public class LoadflowObserver {
 
     private Observation createLoadflowObservation(String name, LoadFlowRunContext runContext) {
         return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
-                .lowCardinalityKeyValue(USER_TAG_NAME, runContext.getUserId())
                 .lowCardinalityKeyValue(PROVIDER_TAG_NAME, runContext.getProvider());
     }
 }
