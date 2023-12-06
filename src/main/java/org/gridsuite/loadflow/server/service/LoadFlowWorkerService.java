@@ -40,6 +40,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
+import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_MESSAGE;
 import static org.gridsuite.loadflow.server.service.NotificationService.FAIL_MESSAGE;
 
 /**
@@ -153,6 +154,7 @@ public class LoadFlowWorkerService {
     private void cleanLoadFlowResultsAndPublishCancel(UUID resultUuid, String receiver) {
         resultRepository.delete(resultUuid);
         notificationService.publishStop(resultUuid, receiver);
+        LOGGER.info(CANCEL_MESSAGE + " (resultUuid='{}')", resultUuid);
     }
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
@@ -280,8 +282,8 @@ public class LoadFlowWorkerService {
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
-                LOGGER.error(FAIL_MESSAGE, e);
                 if (!(e instanceof CancellationException)) {
+                    LOGGER.error(FAIL_MESSAGE, e);
                     notificationService.publishFail(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(), e.getMessage(), resultContext.getRunContext().getUserId());
                     resultRepository.delete(resultContext.getResultUuid());
                 }
