@@ -21,8 +21,6 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
-import io.micrometer.observation.Observation;
-import io.micrometer.observation.ObservationRegistry;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
@@ -64,25 +62,27 @@ public class LoadFlowWorkerService {
 
     private LoadFlowResultRepository resultRepository;
 
-    private final ObservationRegistry observationRegistry;
+    private final LoadflowObserver loadflowObserver;
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
-                                 LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, ObservationRegistry observationRegistry) {
+                                 LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, LoadflowObserver loadflowObserver) {
         this.networkStoreService = networkStoreService;
         this.notificationService = notificationService;
         this.reportService = reportService;
         this.resultRepository = resultRepository;
+        this.loadflowObserver = loadflowObserver;
         this.objectMapper = objectMapper;
-        this.observationRegistry = observationRegistry;
     }
 
     private Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();
 
     private Map<UUID, LoadFlowCancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
 
-    private Network getNetwork(UUID networkUuid, String variantId) {
+    private Network getNetwork(LoadFlowRunContext runContext) {
         Network network;
         try {
+            UUID networkUuid = runContext.getNetworkUuid();
+            String variantId = runContext.getVariantId();
             network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW);
             String variant = StringUtils.isBlank(variantId) ? VariantManagerConstants.INITIAL_VARIANT_ID : variantId;
             network.getVariantManager().setWorkingVariant(variant);
@@ -115,32 +115,31 @@ public class LoadFlowWorkerService {
         }
     }
 
-    public LoadFlowResult run(Network network, LoadFlowRunContext context, UUID resultUuid) throws ExecutionException, InterruptedException {
+    private LoadFlowResult run(Network network, LoadFlowRunContext context, UUID resultUuid) throws Exception {
         LoadFlowParameters params = buildParameters(context.getParameters(), context.getProvider());
         LOGGER.info("Run loadFlow...");
 
         String provider = context.getProvider();
-
-        Reporter rootReporter = Reporter.NO_OP;
+        AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
         Reporter reporter = Reporter.NO_OP;
         if (context.getReportContext() != null) {
             final String reportType = context.getReportContext().getReportType();
             String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
-            rootReporter = new ReporterModel(rootReporterId, rootReporterId);
-            reporter = rootReporter.createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
+            rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
+            reporter = rootReporter.get().createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
             // Delete any previous LF computation logs
-            reportService.deleteReport(context.getReportContext().getReportId(), reportType);
+            loadflowObserver.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
         }
 
-        CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), context.getProvider(), params, reporter, resultUuid);
+        CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), provider, params, reporter, resultUuid);
 
-        LoadFlowResult result = future == null ? null : future.get();
+        LoadFlowResult result = future == null ? null : loadflowObserver.observe("run", context, () -> future.get());
         if (result != null && result.isOk()) {
             // flush each network in the network store
-            networkStoreService.flush(network);
+            loadflowObserver.observe("network.save", context, () -> networkStoreService.flush(network));
         }
         if (context.getReportContext().getReportId() != null) {
-            reportService.sendReport(context.getReportContext().getReportId(), rootReporter);
+            loadflowObserver.observe("report.send", context, () -> reportService.sendReport(context.getReportContext().getReportId(), rootReporter.get()));
         }
         return result;
     }
@@ -249,12 +248,6 @@ public class LoadFlowWorkerService {
             .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
     }
 
-    private Observation createLoadflowObservation(String name, LoadFlowResultContext resultContext) {
-        return Observation.createNotStarted("loadflow." + name, observationRegistry)
-            .lowCardinalityKeyValue("userId", resultContext.getRunContext().getUserId())
-            .lowCardinalityKeyValue("loadflow-provider", resultContext.getRunContext().getProvider());
-    }
-
     @Bean
     public Consumer<Message<String>> consumeRun() {
         return message -> {
@@ -264,16 +257,14 @@ public class LoadFlowWorkerService {
                 AtomicReference<Long> startTime = new AtomicReference<>();
                 startTime.set(System.nanoTime());
 
-                Network network = createLoadflowObservation("load", resultContext)
-                    .observeChecked(() -> getNetwork(resultContext.getRunContext().getNetworkUuid(), resultContext.getRunContext().getVariantId()));
+                Network network = loadflowObserver.observe("network.load", resultContext.getRunContext(), () -> getNetwork(resultContext.getRunContext()));
 
-                LoadFlowResult result = createLoadflowObservation("run", resultContext)
-                    .observeChecked(() -> run(network, resultContext.getRunContext(), resultContext.getResultUuid()));
+                LoadFlowResult result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
 
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
 
-                createLoadflowObservation("save", resultContext).observe(() -> saveLoadflowResult(network, resultContext, result));
+                loadflowObserver.observe("results.save", resultContext.getRunContext(), () -> saveLoadflowResult(network, resultContext, result));
 
                 long finalNanoTime = System.nanoTime();
                 LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
