@@ -31,7 +31,7 @@ import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
-import org.gridsuite.loadflow.server.service.NotificationService;
+import org.gridsuite.loadflow.server.service.LoadFlowExecutionService;
 import org.gridsuite.loadflow.server.service.ReportService;
 import org.gridsuite.loadflow.server.service.UuidGeneratorService;
 import org.junit.After;
@@ -121,7 +121,7 @@ public class LoadFlowControllerTest {
     private ReportService reportService;
 
     @Autowired
-    private NotificationService notificationService;
+    private LoadFlowExecutionService loadFlowExecutionService;
 
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
@@ -163,7 +163,7 @@ public class LoadFlowControllerTest {
     }
 
     @Before
-    public void setUp() throws Exception {
+    public void setUp() {
         MockitoAnnotations.initMocks(this);
 
         // network store service mocking
@@ -212,7 +212,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimits(any(), anyFloat())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(loadFlowExecutionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(Reporter.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
@@ -257,7 +257,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(loadFlowExecutionService.getComputationManager()),
                     any(LoadFlowParameters.class), any(Reporter.class)))
                 .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
@@ -288,7 +288,8 @@ public class LoadFlowControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-            List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<List<LimitViolationInfos>>() { });
+            List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations, network);
         }
     }
@@ -298,7 +299,7 @@ public class LoadFlowControllerTest {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(loadFlowExecutionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(Reporter.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
@@ -402,6 +403,25 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
+    public void runWithDefaultVariant() {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID, NETWORK_UUID)
+                            .header(HEADER_USER_ID, "user"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+        }
+    }
+
+    @SneakyThrows
+    @Test
     public void getProvidersTest() {
 
         String result = mockMvc.perform(get("/" + VERSION + "/providers")
@@ -441,7 +461,7 @@ public class LoadFlowControllerTest {
         });
         assertNotNull(lfParams);
         assertEquals(Set.of("Hades2"), lfParams.keySet());
-        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+        assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
         // all providers
         result = mockMvc.perform(get("/" + VERSION + "/specific-parameters"))
@@ -453,7 +473,7 @@ public class LoadFlowControllerTest {
         });
         assertNotNull(lfParams);
         assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());
-        assertTrue(lfParams.values().stream().noneMatch(l -> CollectionUtils.isEmpty(l)));
+        assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
     }
 }
