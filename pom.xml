@@ -44,7 +44,7 @@
     <properties>
         <jaxb-api.version>2.4.0-b180830.0359</jaxb-api.version>
         <jaxb-runtime.version>2.4.0-b180830.0438</jaxb-runtime.version>
-        <jib.from.image>gridsuite/java-simulator:2.1.0</jib.from.image>
+        <jib.from.image>gridsuite/java-dynawo</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>28</gridsuite-dependencies.version>
         <!--
@@ -172,27 +172,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-network-store-iidm-impl</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>com.rte-france.powsybl</groupId>
-            <artifactId>powsybl-hades2-integration</artifactId>
-            <scope>runtime</scope>
-            <exclusions>
-              <exclusion>
-                <!-- Use the "org.glassfish.jaxb:jaxb-runtime" coordinates for the new jakarta jaxb, and
-                    "com.sun.xml.bind" for old the javax jaxb needed by powsybl-hades2-integration
-                -->
-                <groupId>org.glassfish.jaxb</groupId>
-                <artifactId>jaxb-runtime</artifactId>
-              </exclusion>
-            </exclusions>
-        </dependency>
-        <dependency>
-            <!-- reimport the old javax jaxb because we excluded the new jakarta jaxb from powsybl-hades2-integration -->
-            <groupId>com.sun.xml.bind</groupId>
-            <artifactId>jaxb-impl</artifactId>
-            <version>${jaxb-runtime.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
