@@ -42,8 +42,6 @@
     </developers>
 
     <properties>
-        <jaxb-api.version>2.4.0-b180830.0359</jaxb-api.version>
-        <jaxb-runtime.version>2.4.0-b180830.0438</jaxb-runtime.version>
         <jib.from.image>gridsuite/java-dynawo</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>28</gridsuite-dependencies.version>
@@ -177,12 +175,6 @@
         <dependency>
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-prometheus</artifactId>
-            <scope>runtime</scope>
-        </dependency>
-        <dependency>
-            <groupId>javax.xml.bind</groupId>
-            <artifactId>jaxb-api</artifactId>
-            <version>${jaxb-api.version}</version>
             <scope>runtime</scope>
         </dependency>
         <dependency>
