@@ -54,4 +54,11 @@ public class LoadFlowParametersService {
     public void deleteParameters(UUID parametersUuid) {
         loadFlowParametersRepository.deleteById(parametersUuid);
     }
+
+    @Transactional
+    public UUID duplicateParameters(UUID sourceParametersUuid) {
+        LoadFlowParametersEntity sourceParameters = loadFlowParametersRepository.findById(sourceParametersUuid).orElseThrow();
+        LoadFlowParametersEntity duplicatedParameters = sourceParameters.copy();
+        return loadFlowParametersRepository.save(duplicatedParameters).toLoadFlowParametersInfos().getUuid();
+    }
 }

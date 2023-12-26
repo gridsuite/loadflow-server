@@ -196,4 +196,8 @@ public class LoadFlowParametersEntity {
                                 LoadFlowSpecificParameterEntity::getValue)))
                 .build();
     }
+
+    public LoadFlowParametersEntity copy() {
+        return toLoadFlowParametersInfos().toEntity();
+    }
 }

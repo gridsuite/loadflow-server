@@ -33,13 +33,22 @@ public class LoadFlowParametersController {
     @Autowired
     private LoadFlowParametersService parametersService;
 
-    @PostMapping(value = "", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PostMapping(value = "", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create parameters")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "parameters were created")})
     public ResponseEntity<UUID> createParameters(
             @RequestBody LoadFlowParametersInfos parametersInfos) {
         return ResponseEntity.ok().body(parametersService.createParameters(parametersInfos));
+    }
+
+    @PostMapping(value = "")
+    @Operation(summary = "Duplicate parameters")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "parameters were duplicated")})
+    public ResponseEntity<UUID> createParameters(
+            @RequestParam("duplicateFrom") UUID sourceParametersUuid) {
+        return ResponseEntity.ok().body(parametersService.duplicateParameters(sourceParametersUuid));
     }
 
     @GetMapping(value = "/{uuid}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -61,7 +70,7 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok().body(parametersService.getAllParameters());
     }
 
-    @PutMapping(value = "/{uuid}", consumes = MediaType.APPLICATION_JSON_VALUE, produces = MediaType.APPLICATION_JSON_VALUE)
+    @PutMapping(value = "/{uuid}", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Update parameters")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "parameters were updated")})
     public ResponseEntity<Void> updateParameters(
@@ -71,7 +80,7 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok().build();
     }
 
-    @DeleteMapping(value = "/{uuid}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @DeleteMapping(value = "/{uuid}")
     @Operation(summary = "Delete parameters")
     @ApiResponse(responseCode = "200", description = "parameters were deleted")
     public ResponseEntity<Void> deleteParameters(

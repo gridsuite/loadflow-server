@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 import java.util.Map;
 
 /**
- * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
+ * @author David Braquart <david.braquart@rte-france.com>
  */
 @Getter
 @NoArgsConstructor
