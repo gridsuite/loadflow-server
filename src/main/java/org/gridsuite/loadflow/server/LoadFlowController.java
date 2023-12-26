@@ -12,11 +12,11 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
+import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -42,6 +42,9 @@ public class LoadFlowController {
     @Autowired
     private LoadFlowService loadFlowService;
 
+    @Autowired
+    private LoadFlowParametersService parametersService;
+
     @PostMapping(value = "/networks/{networkUuid}/run-and-save", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Run a load flow on a network")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
@@ -53,8 +56,8 @@ public class LoadFlowController {
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "The limit reduction") @RequestParam(name = "limitReduction", required = false, defaultValue = "0.8F") Float limitReduction,
-                                    @RequestHeader(HEADER_USER_ID) String userId,
-                                    @RequestBody(required = false) LoadFlowParametersInfos loadflowParams
+                                    @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
+                                    @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
         String providerToUse = provider != null ? provider : loadFlowService.getDefaultProvider();
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
@@ -62,7 +65,7 @@ public class LoadFlowController {
                 .variantId(variantId)
                 .receiver(receiver)
                 .provider(providerToUse)
-                .parameters(loadflowParams)
+                .parameters(parametersService.getParametersValues(parametersUuid, providerToUse))
                 .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).reportType(reportType).build())
                 .userId(userId)
                 .limitReduction(limitReduction)

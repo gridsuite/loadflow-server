@@ -28,8 +28,8 @@ import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.LoadFlowExecutionService;
 import org.gridsuite.loadflow.server.service.ReportService;
@@ -263,7 +263,7 @@ public class LoadFlowControllerTest {
 
             LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
             loadFlowParameters.setDc(true);
-            LoadFlowParametersInfos loadFlowParametersInfos = LoadFlowParametersInfos.builder()
+            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
                 .commonParameters(loadFlowParameters)
                 .specificParameters(Collections.emptyMap())
                 .build();

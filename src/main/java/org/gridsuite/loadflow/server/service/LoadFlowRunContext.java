@@ -12,7 +12,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
 import java.util.UUID;
@@ -32,7 +32,7 @@ public class LoadFlowRunContext {
 
     private final String provider;
 
-    private final LoadFlowParametersInfos parameters;
+    private final LoadFlowParametersValues parameters;
 
     private final ReportContext reportContext;
 
@@ -40,7 +40,7 @@ public class LoadFlowRunContext {
 
     private final Float limitReduction;
 
-    public static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
+    public static LoadFlowParameters buildParameters(LoadFlowParametersValues parameters, String provider) {
         LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();
         if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
