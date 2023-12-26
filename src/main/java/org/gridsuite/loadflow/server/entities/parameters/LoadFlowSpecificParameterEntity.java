@@ -7,11 +7,7 @@
 
 package org.gridsuite.loadflow.server.entities.parameters;
 
-import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
-
-import org.gridsuite.loadflow.server.dto.parameters.LoadFlowSpecificParameterInfos;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -44,21 +40,6 @@ public class LoadFlowSpecificParameterEntity {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "value_")
+    @Column(name = "value")
     private String value;
-
-    public static List<LoadFlowSpecificParameterEntity> toLoadFlowSpecificParameters(List<LoadFlowSpecificParameterInfos> params) {
-        return params == null ? null
-            : params.stream()
-            .map(p -> new LoadFlowSpecificParameterEntity(null, p.getProvider(), p.getName(), p.getValue()))
-            .collect(Collectors.toList());
-    }
-
-    public LoadFlowSpecificParameterInfos toLoadFlowSpecificParameterInfos() {
-        return LoadFlowSpecificParameterInfos.builder()
-            .provider(getProvider())
-            .name(getName())
-            .value(getValue())
-            .build();
-    }
 }

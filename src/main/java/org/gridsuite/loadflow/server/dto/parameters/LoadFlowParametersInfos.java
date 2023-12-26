@@ -31,7 +31,7 @@ public class LoadFlowParametersInfos {
 
     private LoadFlowParameters commonParameters;
 
-    private Map<String, Map<String, Object>> specificParametersPerProvider;
+    private Map<String, Map<String, String>> specificParametersPerProvider;
 
     public LoadFlowParametersEntity toEntity() {
         return new LoadFlowParametersEntity(this);

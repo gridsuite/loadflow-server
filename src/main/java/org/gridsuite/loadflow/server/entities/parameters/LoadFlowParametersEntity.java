@@ -15,14 +15,12 @@ import jakarta.persistence.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.dto.parameters.LoadFlowSpecificParameterInfos;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
@@ -110,7 +108,7 @@ public class LoadFlowParametersEntity {
 
     public void assignAttributes(LoadFlowParametersInfos loadFlowParametersInfos) {
         LoadFlowParameters allCommonValues;
-        List<LoadFlowSpecificParameterInfos> allSpecificValues = new ArrayList<>(List.of());
+        List<LoadFlowSpecificParameterEntity> allSpecificValuesEntities = new ArrayList<>(List.of());
         if (loadFlowParametersInfos == null) {
             allCommonValues = LoadFlowParameters.load();
         } else {
@@ -120,11 +118,11 @@ public class LoadFlowParametersEntity {
                     if (paramsMap != null) {
                         paramsMap.forEach((paramName, paramValue) -> {
                                 if (paramValue != null) {
-                                    allSpecificValues.add(LoadFlowSpecificParameterInfos.builder()
-                                            .provider(provider)
-                                            .value(Objects.toString(paramValue))
-                                            .name(paramName)
-                                            .build());
+                                    allSpecificValuesEntities.add(new LoadFlowSpecificParameterEntity(
+                                        null,
+                                        provider,
+                                        paramName,
+                                        paramValue));
                                 }
                             }
                         );
@@ -148,7 +146,6 @@ public class LoadFlowParametersEntity {
         connectedComponentMode = allCommonValues.getConnectedComponentMode();
         hvdcAcEmulation = allCommonValues.isHvdcAcEmulation();
         dcPowerFactor = allCommonValues.getDcPowerFactor();
-        List<LoadFlowSpecificParameterEntity> allSpecificValuesEntities = LoadFlowSpecificParameterEntity.toLoadFlowSpecificParameters(allSpecificValues);
         if (specificParameters == null) {
             specificParameters = allSpecificValuesEntities;
         } else {

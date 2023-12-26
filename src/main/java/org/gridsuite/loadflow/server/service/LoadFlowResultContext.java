@@ -9,7 +9,6 @@ package org.gridsuite.loadflow.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.messaging.Message;

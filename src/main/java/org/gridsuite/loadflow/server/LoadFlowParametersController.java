@@ -27,7 +27,7 @@ import java.util.UUID;
  */
 @RestController
 @RequestMapping(value = "/" + LoadFlowApi.API_VERSION + "/parameters")
-@Tag(name = "Voltage init parameters")
+@Tag(name = "LoadFlow parameters")
 public class LoadFlowParametersController {
 
     @Autowired
