@@ -144,6 +144,12 @@ public class LoadFlowParametersTest {
     }
 
     @Test
+    public void testGetWithInvalidId() throws Exception {
+        mockMvc.perform(get(URI_PARAMETERS_GET_PUT + UUID.randomUUID()))
+                .andExpect(status().isNotFound()).andReturn();
+    }
+
+    @Test
     public void testGetAll() throws Exception {
         LoadFlowParametersInfos parameters1 = buildParameters();
 
