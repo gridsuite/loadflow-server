@@ -14,6 +14,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.Index;
 import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -27,7 +28,9 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Getter
 @Entity
-@Table(name = "loadFlowSpecificParameters")
+@Table(name = "loadFlowSpecificParameters", indexes = {
+    @Index(name = "loadFlowParametersEntity_specificParameters_index", columnList = "load_flow_parameters_entity_id")
+})
 public class LoadFlowSpecificParameterEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)

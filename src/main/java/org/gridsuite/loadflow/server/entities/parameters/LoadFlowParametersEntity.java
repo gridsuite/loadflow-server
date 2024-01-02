@@ -94,8 +94,8 @@ public class LoadFlowParametersEntity {
     @Column(name = "dcPowerFactor", columnDefinition = "double default 1.0")
     private double dcPowerFactor;
 
-    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "load_flow_parameters_id")
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @JoinColumn(name = "load_flow_parameters_entity_id", foreignKey = @ForeignKey(name = "loadFlowParametersEntity_specificParameters_fk"))
     private List<LoadFlowSpecificParameterEntity> specificParameters;
 
     public LoadFlowParametersEntity(LoadFlowParametersInfos loadFlowParametersInfos) {

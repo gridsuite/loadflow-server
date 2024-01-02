@@ -30,7 +30,7 @@ public class LoadFlowParametersService {
     }
 
     public UUID createParameters(LoadFlowParametersInfos parametersInfos) {
-        return loadFlowParametersRepository.save(parametersInfos.toEntity()).toLoadFlowParametersInfos().getUuid();
+        return loadFlowParametersRepository.save(parametersInfos.toEntity()).getId();
     }
 
     public LoadFlowParametersInfos getParameters(UUID parametersUuid) {
@@ -59,6 +59,6 @@ public class LoadFlowParametersService {
     public UUID duplicateParameters(UUID sourceParametersUuid) {
         LoadFlowParametersEntity sourceParameters = loadFlowParametersRepository.findById(sourceParametersUuid).orElseThrow();
         LoadFlowParametersEntity duplicatedParameters = sourceParameters.copy();
-        return loadFlowParametersRepository.save(duplicatedParameters).toLoadFlowParametersInfos().getUuid();
+        return loadFlowParametersRepository.save(duplicatedParameters).getId();
     }
 }
