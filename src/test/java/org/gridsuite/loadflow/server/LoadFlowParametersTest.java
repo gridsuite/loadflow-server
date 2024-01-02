@@ -130,6 +130,20 @@ public class LoadFlowParametersTest {
     }
 
     @Test
+    public void testDuplicate() throws Exception {
+        LoadFlowParametersInfos parametersToDuplicate = buildParameters();
+
+        UUID parametersUuid = saveAndRetunId(parametersToDuplicate);
+
+        mockMvc.perform(post(URI_PARAMETERS_BASE + "?duplicateFrom=" + parametersUuid))
+                .andExpect(status().isOk()).andReturn();
+
+        List<LoadFlowParametersEntity> storedParameters = parametersRepository.findAll();
+
+        assertThat(storedParameters).hasSize(2);
+    }
+
+    @Test
     public void testGetAll() throws Exception {
         LoadFlowParametersInfos parameters1 = buildParameters();
 
