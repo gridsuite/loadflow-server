@@ -138,7 +138,7 @@ public class LoadFlowWorkerService {
 
         CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), provider, params, reporter, resultUuid);
 
-        LoadFlowResult result = future == null ? null : loadflowObserver.observe("run", context, () -> future.get());
+        LoadFlowResult result = future == null ? null : loadflowObserver.observeRun("run", context, future::get);
         if (result != null && result.isOk()) {
             // flush each network in the network store
             loadflowObserver.observe("network.save", context, () -> networkStoreService.flush(network));
