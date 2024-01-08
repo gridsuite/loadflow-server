@@ -7,6 +7,8 @@
 package org.gridsuite.loadflow.server.service.parameters;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -15,6 +17,8 @@ import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntit
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import com.powsybl.loadflow.LoadFlowParameters;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
@@ -38,8 +42,11 @@ public class LoadFlowParametersService {
     }
 
     public LoadFlowParametersValues getParametersValues(UUID parametersUuid, String provider) {
-        LoadFlowParametersEntity parametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElse(null);
-        return parametersEntity != null ? parametersEntity.toLoadFlowParametersValues(provider) : null;
+        Optional<LoadFlowParametersEntity> parametersEntity = Optional.empty();
+        if (parametersUuid != null) {
+            parametersEntity = loadFlowParametersRepository.findById(parametersUuid);
+        }
+        return parametersEntity.map(parameters -> parameters.toLoadFlowParametersValues(provider)).orElse(getDefaultLoadFlowParameters());
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
@@ -60,5 +67,12 @@ public class LoadFlowParametersService {
         LoadFlowParametersEntity sourceParameters = loadFlowParametersRepository.findById(sourceParametersUuid).orElseThrow();
         LoadFlowParametersEntity duplicatedParameters = sourceParameters.copy();
         return loadFlowParametersRepository.save(duplicatedParameters).getId();
+    }
+
+    private LoadFlowParametersValues getDefaultLoadFlowParameters() {
+        return LoadFlowParametersValues.builder()
+            .commonParameters(LoadFlowParameters.load())
+            .specificParameters(Map.of())
+            .build();
     }
 }
