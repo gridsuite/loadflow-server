@@ -81,6 +81,21 @@ public class LoadFlowParametersTest {
     }
 
     @Test
+    public void testCreateWithDefaultValues() throws Exception {
+        LoadFlowParametersInfos defaultParameters = LoadFlowParametersInfos.builder()
+            .commonParameters(LoadFlowParameters.load())
+            .specificParametersPerProvider(Map.of())
+            .build();
+
+        mockMvc.perform(post(URI_PARAMETERS_BASE + "/default"))
+                .andExpect(status().isOk()).andReturn();
+
+        LoadFlowParametersInfos createdParameters = parametersRepository.findAll().get(0).toLoadFlowParametersInfos();
+
+        assertThat(createdParameters).recursivelyEquals(defaultParameters);
+    }
+
+    @Test
     public void testRead() throws Exception {
 
         LoadFlowParametersInfos parametersToRead = buildParameters();

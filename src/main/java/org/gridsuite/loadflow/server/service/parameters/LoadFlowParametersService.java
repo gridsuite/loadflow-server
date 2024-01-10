@@ -8,7 +8,6 @@ package org.gridsuite.loadflow.server.service.parameters;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -42,11 +41,8 @@ public class LoadFlowParametersService {
     }
 
     public LoadFlowParametersValues getParametersValues(UUID parametersUuid, String provider) {
-        Optional<LoadFlowParametersEntity> parametersEntity = Optional.empty();
-        if (parametersUuid != null) {
-            parametersEntity = loadFlowParametersRepository.findById(parametersUuid);
-        }
-        return parametersEntity.map(parameters -> parameters.toLoadFlowParametersValues(provider)).orElse(getDefaultLoadFlowParameters());
+        LoadFlowParametersEntity parametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElse(null);
+        return parametersEntity != null ? parametersEntity.toLoadFlowParametersValues(provider) : null;
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
@@ -69,10 +65,12 @@ public class LoadFlowParametersService {
         return loadFlowParametersRepository.save(duplicatedParameters).getId();
     }
 
-    private LoadFlowParametersValues getDefaultLoadFlowParameters() {
-        return LoadFlowParametersValues.builder()
+    public UUID createDefaultParameters() {
+        //default parameters
+        LoadFlowParametersInfos defaultParametersInfos = LoadFlowParametersInfos.builder()
             .commonParameters(LoadFlowParameters.load())
-            .specificParameters(Map.of())
+            .specificParametersPerProvider(Map.of())
             .build();
+        return createParameters(defaultParametersInfos);
     }
 }

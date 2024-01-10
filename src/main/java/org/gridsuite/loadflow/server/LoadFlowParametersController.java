@@ -42,6 +42,14 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok().body(parametersService.createParameters(parametersInfos));
     }
 
+    @PostMapping(value = "/default")
+    @Operation(summary = "Create default parameters")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Default parameters were created")})
+    public ResponseEntity<UUID> createDefaultParameters() {
+        return ResponseEntity.ok().body(parametersService.createDefaultParameters());
+    }
+
     @PostMapping(value = "")
     @Operation(summary = "Duplicate parameters")
     @ApiResponses(value = {
