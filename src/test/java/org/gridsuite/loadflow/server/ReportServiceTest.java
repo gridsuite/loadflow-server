@@ -13,7 +13,7 @@ import okhttp3.mockwebserver.Dispatcher;
 import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
-import org.gridsuite.loadflow.server.service.ReportService;
+import org.gridsuite.loadflow.server.service.computation.ReportService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

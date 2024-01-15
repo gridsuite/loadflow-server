@@ -21,8 +21,10 @@ import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.gridsuite.loadflow.server.service.computation.AbstractComputationService;
+import org.gridsuite.loadflow.server.service.computation.ResultContext;
+import org.gridsuite.loadflow.server.service.computation.NotificationService;
+import org.gridsuite.loadflow.server.service.computation.UuidGeneratorService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
@@ -36,36 +38,21 @@ import java.util.stream.Collectors;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
-public class LoadFlowService {
+public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext, LoadFlowResultRepository> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
-
-    @Value("${loadflow.default-provider}")
-    private String defaultProvider;
-
-    private LoadFlowResultRepository resultRepository;
-
-    private ObjectMapper objectMapper;
-
-    NotificationService notificationService;
-
-    private UuidGeneratorService uuidGeneratorService;
-
-    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService) {
-        this.notificationService = Objects.requireNonNull(notificationService);
-        this.resultRepository = Objects.requireNonNull(resultRepository);
-        this.objectMapper = Objects.requireNonNull(objectMapper);
-        this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
+    public LoadFlowService(NotificationService notificationService,
+                           LoadFlowResultRepository resultRepository,
+                           ObjectMapper objectMapper,
+                           UuidGeneratorService uuidGeneratorService,
+                           @Value("${loadflow.default-provider}") String defaultProvider) {
+        super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
     }
 
-    public static List<String> getProviders() {
+    @Override
+    public List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
                 .map(LoadFlowProvider::getName)
-                .collect(Collectors.toList());
-    }
-
-    public String getDefaultProvider() {
-        return defaultProvider;
+                .toList();
     }
 
     public void setStatus(List<UUID> resultUuids, LoadFlowStatus status) {
@@ -78,18 +65,19 @@ public class LoadFlowService {
                 .map(provider -> {
                     List<Parameter> params = provider.getSpecificParameters().stream()
                             .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
-                            .collect(Collectors.toList());
+                            .toList();
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
+    @Override
     public UUID runAndSaveResult(LoadFlowRunContext runContext) {
         Objects.requireNonNull(runContext);
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
-        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, runContext).toMessage(objectMapper));
+        notificationService.sendRunMessage(new ResultContext(resultUuid, runContext).toMessage(objectMapper));
         return resultUuid;
     }
 
@@ -97,7 +85,7 @@ public class LoadFlowService {
         return LoadFlowResult.builder()
                 .resultUuid(resultEntity.getResultUuid())
                 .writeTimeStamp(resultEntity.getWriteTimeStamp())
-                .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).collect(Collectors.toList()))
+                .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).toList())
                 .build();
     }
 
@@ -123,28 +111,8 @@ public class LoadFlowService {
         return loadFlowResult;
     }
 
-    public void deleteResult(UUID resultUuid) {
-        resultRepository.delete(resultUuid);
-    }
-
-    public void deleteResults(List<UUID> resultUuids) {
-        if (resultUuids != null && !resultUuids.isEmpty()) {
-            resultUuids.forEach(resultRepository::delete);
-        } else {
-            deleteResults();
-        }
-    }
-
-    public void deleteResults() {
-        resultRepository.deleteAll();
-    }
-
     public LoadFlowStatus getStatus(UUID resultUuid) {
         return resultRepository.findStatus(resultUuid);
-    }
-
-    public void stop(UUID resultUuid, String receiver) {
-        notificationService.sendCancelMessage(new LoadFlowCancelContext(resultUuid, receiver).toMessage());
     }
 
     public static String getNonNullHeader(MessageHeaders headers, String name) {
@@ -159,7 +127,7 @@ public class LoadFlowService {
         return result.getComponentResults().stream()
                 .filter(cr -> cr.getConnectedComponentNum() == 0 && cr.getSynchronousComponentNum() == 0
                         && cr.getStatus() == com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status.CONVERGED)
-                .collect(Collectors.toList()).isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
+                .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
     public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {

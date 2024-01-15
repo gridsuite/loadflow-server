@@ -7,8 +7,6 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.*;
@@ -16,80 +14,42 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
-import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
-import org.springframework.http.HttpStatus;
-import org.springframework.messaging.Message;
+import org.gridsuite.loadflow.server.service.computation.AbstractWorkerService;
+import org.gridsuite.loadflow.server.service.computation.ResultContext;
+import org.gridsuite.loadflow.server.service.computation.ExecutionService;
+import org.gridsuite.loadflow.server.service.computation.NotificationService;
+import org.gridsuite.loadflow.server.service.computation.ReportService;
 import org.springframework.stereotype.Service;
-import org.springframework.web.server.ResponseStatusException;
 
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
-import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_MESSAGE;
-import static org.gridsuite.loadflow.server.service.NotificationService.FAIL_MESSAGE;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Service
-public class LoadFlowWorkerService {
+public class LoadFlowWorkerService extends AbstractWorkerService<
+        LoadFlowResult,
+        LoadFlowRunContext,
+        LoadFlowParametersInfos,
+        LoadFlowResultRepository> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowWorkerService.class);
+    public static final String COMPUTATION_LABEL = "LoadFlow";
 
-    private final Lock lockRunAndCancelLF = new ReentrantLock();
-
-    private final ObjectMapper objectMapper;
-
-    private final Set<UUID> runRequests = Sets.newConcurrentHashSet();
-    private final NetworkStoreService networkStoreService;
-    private final ReportService reportService;
-    private final LoadFlowExecutionService loadFlowExecutionService;
-    private final NotificationService notificationService;
-    private final LoadFlowResultRepository resultRepository;
-
-    private final LoadflowObserver loadflowObserver;
-
-    public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
-                                 LoadFlowResultRepository resultRepository, LoadFlowExecutionService loadFlowExecutionService, LoadflowObserver loadflowObserver, ObjectMapper objectMapper) {
-        this.networkStoreService = networkStoreService;
-        this.notificationService = notificationService;
-        this.reportService = reportService;
-        this.resultRepository = resultRepository;
-        this.loadFlowExecutionService = loadFlowExecutionService;
-        this.loadflowObserver = loadflowObserver;
-        this.objectMapper = objectMapper;
-    }
-
-    private final Map<UUID, CompletableFuture<LoadFlowResult>> futures = new ConcurrentHashMap<>();
-
-    private final Map<UUID, LoadFlowCancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
-
-    private Network getNetwork(LoadFlowRunContext runContext) {
-        Network network;
-        try {
-            UUID networkUuid = runContext.getNetworkUuid();
-            String variantId = runContext.getVariantId();
-            network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW);
-            String variant = StringUtils.isBlank(variantId) ? VariantManagerConstants.INITIAL_VARIANT_ID : variantId;
-            network.getVariantManager().setWorkingVariant(variant);
-        } catch (PowsyblException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
-        return network;
+    public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
+                                 ReportService reportService, LoadFlowResultRepository resultRepository,
+                                 ExecutionService executionService, LoadflowObserver loadflowObserver,
+                                 ObjectMapper objectMapper) {
+        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper, COMPUTATION_LABEL);
     }
 
     private CompletableFuture<LoadFlowResult> runLoadFlowAsync(
@@ -99,7 +59,7 @@ public class LoadFlowWorkerService {
             LoadFlowParameters params,
             Reporter reporter,
             UUID resultUuid) {
-        lockRunAndCancelLF.lock();
+        lockRunAndCancel.lock();
         try {
             if (resultUuid != null && cancelComputationRequests.get(resultUuid) != null) {
                 return null;
@@ -108,7 +68,7 @@ public class LoadFlowWorkerService {
             CompletableFuture<LoadFlowResult> future = runner.runAsync(
                     network,
                     variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID,
-                    loadFlowExecutionService.getComputationManager(),
+                    executionService.getComputationManager(),
                     params,
                     reporter);
             if (resultUuid != null) {
@@ -116,13 +76,15 @@ public class LoadFlowWorkerService {
             }
             return future;
         } finally {
-            lockRunAndCancelLF.unlock();
+            lockRunAndCancel.unlock();
         }
     }
 
-    private LoadFlowResult run(Network network, LoadFlowRunContext context, UUID resultUuid) throws Exception {
-        LoadFlowParameters params = buildParameters(context.getParameters(), context.getProvider());
+    @Override
+    protected LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws Exception {
+        LoadFlowParameters params = buildParameters(context);
         LOGGER.info("Run loadFlow...");
+        Network network = observer.observe("network.load", context, () -> getNetwork(context));
 
         String provider = context.getProvider();
         AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
@@ -133,32 +95,28 @@ public class LoadFlowWorkerService {
             rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
             reporter = rootReporter.get().createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
             // Delete any previous LF computation logs
-            loadflowObserver.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
+            observer.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
         }
 
         CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), provider, params, reporter, resultUuid);
 
-        LoadFlowResult result = future == null ? null : loadflowObserver.observeRun("run", context, future::get);
+        LoadFlowResult result = future == null ? null : observer.observeRun("run", context, future::get);
         if (result != null && result.isOk()) {
             // flush each network in the network store
-            loadflowObserver.observe("network.save", context, () -> networkStoreService.flush(network));
+            observer.observe("network.save", context, () -> networkStoreService.flush(network));
         }
         if (context.getReportContext().getReportId() != null) {
-            loadflowObserver.observe("report.send", context, () -> reportService.sendReport(context.getReportContext().getReportId(), rootReporter.get()));
+            observer.observe("report.send", context, () -> reportService.sendReport(context.getReportContext().getReportId(), rootReporter.get()));
         }
         return result;
     }
 
-    private void saveLoadflowResult(Network network, LoadFlowResultContext resultContext, LoadFlowResult result) {
+    @Override
+    protected void saveResult(Network network, ResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-        resultRepository.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
-    }
-
-    private void cleanLoadFlowResultsAndPublishCancel(UUID resultUuid, String receiver) {
-        resultRepository.delete(resultUuid);
-        notificationService.publishStop(resultUuid, receiver);
-        LOGGER.info(CANCEL_MESSAGE + " (resultUuid='{}')", resultUuid);
+        resultRepository.insert(resultContext.getResultUuid(), result,
+                LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
     }
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
@@ -168,8 +126,8 @@ public class LoadFlowWorkerService {
             return null;
         } else {
             Optional<LoadingLimits.TemporaryLimit> nextTemporaryLimit = currentLimits.get().getTemporaryLimits().stream()
-                          .filter(tl -> violationInfo.getValue() < tl.getValue())
-                            .findFirst();
+                    .filter(tl -> violationInfo.getValue() < tl.getValue())
+                    .findFirst();
             if (nextTemporaryLimit.isPresent()) {
                 return nextTemporaryLimit.get();
             }
@@ -204,7 +162,7 @@ public class LoadFlowWorkerService {
         }
     }
 
-    private List<LimitViolationInfos> calculateOverloadLimitViolations(List<LimitViolationInfos> limitViolationInfos, Network network) {
+    protected List<LimitViolationInfos> calculateOverloadLimitViolations(List<LimitViolationInfos> limitViolationInfos, Network network) {
         for (LimitViolationInfos violationInfo : limitViolationInfos) {
             if (violationInfo.getLimitName() != null && violationInfo.getLimitType() == LimitViolationType.CURRENT) {
                 violationInfo.setActualOverloadDuration(calculateActualOverloadDuration(violationInfo, network));
@@ -212,22 +170,6 @@ public class LoadFlowWorkerService {
             }
         }
         return limitViolationInfos;
-    }
-
-    private void cancelLoadFlowAsync(LoadFlowCancelContext cancelContext) {
-        lockRunAndCancelLF.lock();
-        try {
-            cancelComputationRequests.put(cancelContext.getResultUuid(), cancelContext);
-
-            // find the completableFuture associated with result uuid
-            CompletableFuture<LoadFlowResult> future = futures.get(cancelContext.getResultUuid());
-            if (future != null) {
-                future.cancel(true);  // cancel computation in progress
-            }
-            cleanLoadFlowResultsAndPublishCancel(cancelContext.getResultUuid(), cancelContext.getReceiver());
-        } finally {
-            lockRunAndCancelLF.unlock();
-        }
     }
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
@@ -244,64 +186,13 @@ public class LoadFlowWorkerService {
 
     private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {
         List<LimitViolation> violations;
-        LoadFlowParameters lfCommonParams = buildParameters(loadFlowRunContext.getParameters(), loadFlowRunContext.getProvider());
+        LoadFlowParameters lfCommonParams = buildParameters(loadFlowRunContext);
         if (lfCommonParams.isDc()) {
             violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
         } else {
             violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());
         }
         return violations.stream()
-            .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
+                .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
     }
-
-    @Bean
-    public Consumer<Message<String>> consumeRun() {
-        return message -> {
-            LoadFlowResultContext resultContext = LoadFlowResultContext.fromMessage(message, objectMapper);
-            try {
-                runRequests.add(resultContext.getResultUuid());
-                AtomicReference<Long> startTime = new AtomicReference<>();
-                startTime.set(System.nanoTime());
-
-                Network network = loadflowObserver.observe("network.load", resultContext.getRunContext(), () -> getNetwork(resultContext.getRunContext()));
-
-                LoadFlowResult result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
-
-                long nanoTime = System.nanoTime();
-                LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
-
-                loadflowObserver.observe("results.save", resultContext.getRunContext(), () -> saveLoadflowResult(network, resultContext, result));
-
-                long finalNanoTime = System.nanoTime();
-                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
-
-                if (result != null) {  // result available
-                    notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
-                    LOGGER.info("LoadFlow complete (resultUuid='{}')", resultContext.getResultUuid());
-                } else {  // result not available : stop computation request
-                    if (cancelComputationRequests.get(resultContext.getResultUuid()) != null) {
-                        cleanLoadFlowResultsAndPublishCancel(resultContext.getResultUuid(), cancelComputationRequests.get(resultContext.getResultUuid()).getReceiver());
-                    }
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                if (!(e instanceof CancellationException)) {
-                    LOGGER.error(FAIL_MESSAGE, e);
-                    notificationService.publishFail(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(), e.getMessage(), resultContext.getRunContext().getUserId());
-                    resultRepository.delete(resultContext.getResultUuid());
-                }
-            } finally {
-                futures.remove(resultContext.getResultUuid());
-                cancelComputationRequests.remove(resultContext.getResultUuid());
-                runRequests.remove(resultContext.getResultUuid());
-            }
-        };
-    }
-
-    @Bean
-    public Consumer<Message<String>> consumeCancel() {
-        return message -> cancelLoadFlowAsync(LoadFlowCancelContext.fromMessage(message));
-    }
-
 }

@@ -5,7 +5,7 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-package org.gridsuite.loadflow.server.service;
+package org.gridsuite.loadflow.server.service.computation;
 
 import com.powsybl.computation.ComputationManager;
 import com.powsybl.computation.local.LocalComputationManager;
@@ -24,7 +24,7 @@ import java.util.concurrent.Executors;
  */
 @Service
 @Getter
-public class LoadFlowExecutionService {
+public class ExecutionService {
 
     private ExecutorService executorService;
 

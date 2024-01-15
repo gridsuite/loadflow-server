@@ -1,30 +1,30 @@
-/**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
- * This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at http://mozilla.org/MPL/2.0/.
- */
-package org.gridsuite.loadflow.server.service;
+package org.gridsuite.loadflow.server.service.computation;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
+import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 
 import java.io.UncheckedIOException;
-import java.util.*;
+import java.util.Objects;
+import java.util.UUID;
 
-import static org.gridsuite.loadflow.server.service.NotificationService.*;
+import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_LIMIT_REDUCTION;
+import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_PROVIDER;
+import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_RECEIVER;
+import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_USER_ID;
 
 /**
- * @author Anis Touri <anis.touri at rte-france.com>
+ * @param <R> run context specific to a computation, including parameters
  */
 @Getter
-public class LoadFlowResultContext {
+public class ResultContext<R extends ComputationRunContext> {
 
     private static final String REPORT_UUID_HEADER = "reportUuid";
 
@@ -36,16 +36,16 @@ public class LoadFlowResultContext {
 
     private static final String MESSAGE_ROOT_NAME = "parameters";
 
-    private final UUID resultUuid;
+    protected final UUID resultUuid;
 
-    private final LoadFlowRunContext runContext;
+    protected final R runContext;
 
-    public LoadFlowResultContext(UUID resultUuid, LoadFlowRunContext runContext) {
+    public ResultContext(UUID resultUuid, R runContext) {
         this.resultUuid = Objects.requireNonNull(resultUuid);
         this.runContext = Objects.requireNonNull(runContext);
     }
 
-    public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
+    public static ResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
         UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, "resultUuid"));
@@ -82,7 +82,7 @@ public class LoadFlowResultContext {
                         .limitReduction(limitReduction)
                         .build();
 
-        return new LoadFlowResultContext(resultUuid, runContext);
+        return new ResultContext(resultUuid, runContext);
     }
 
     public Message<String> toMessage(ObjectMapper objectMapper) {

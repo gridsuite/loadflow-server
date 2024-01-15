@@ -13,6 +13,7 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.service.computation.ComputationRunContext;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
 import java.util.UUID;
@@ -21,26 +22,11 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
-@Builder
-public class LoadFlowRunContext {
+public class LoadFlowRunContext extends ComputationRunContext<LoadFlowParametersInfos> {
 
-    private final UUID networkUuid;
-
-    private final String variantId;
-
-    private final String receiver;
-
-    private final String provider;
-
-    private final LoadFlowParametersInfos parameters;
-
-    private final ReportContext reportContext;
-
-    private final String userId;
-
-    private final Float limitReduction;
-
-    public static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
+    public static LoadFlowParameters buildParameters(LoadFlowRunContext context) {
+        LoadFlowParametersInfos parameters = context.getParameters();
+        String provider = context.getProvider();
         LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();
         if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
@@ -53,5 +39,16 @@ public class LoadFlowRunContext {
                 .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
         params.addExtension((Class) extension.getClass(), extension);
         return params;
+    }
+
+    @Builder
+    public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportContext reportContext, String userId,
+                              Float limitReduction, LoadFlowParametersInfos parameters) {
+        super(networkUuid, variantId, receiver, provider, reportContext, userId, limitReduction, parameters);
+    }
+
+    @Override
+    public LoadFlowParametersInfos getParameters() {
+        return parameters;
     }
 }

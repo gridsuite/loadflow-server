@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
+import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_USER_ID;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 
@@ -127,7 +127,7 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200")})
     public ResponseEntity<List<String>> getProviders() {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
-                .body(LoadFlowService.getProviders());
+                .body(loadFlowService.getProviders());
     }
 
     @GetMapping(value = "/default-provider", produces = TEXT_PLAIN_VALUE)
