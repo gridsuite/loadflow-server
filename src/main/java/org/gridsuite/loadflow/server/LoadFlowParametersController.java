@@ -54,7 +54,7 @@ public class LoadFlowParametersController {
     @Operation(summary = "Duplicate parameters")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "parameters were duplicated")})
-    public ResponseEntity<UUID> createParameters(
+    public ResponseEntity<UUID> duplicateParameters(
             @RequestParam("duplicateFrom") UUID sourceParametersUuid) {
         return ResponseEntity.ok().body(parametersService.duplicateParameters(sourceParametersUuid));
     }
