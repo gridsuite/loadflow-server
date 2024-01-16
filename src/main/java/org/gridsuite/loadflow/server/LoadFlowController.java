@@ -18,7 +18,6 @@ import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -39,11 +38,13 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 @Tag(name = "loadflow-server")
 public class LoadFlowController {
 
-    @Autowired
-    private LoadFlowService loadFlowService;
+    private final LoadFlowService loadFlowService;
+    private final LoadFlowParametersService parametersService;
 
-    @Autowired
-    private LoadFlowParametersService parametersService;
+    public LoadFlowController(LoadFlowService loadFlowService, LoadFlowParametersService parametersService) {
+        this.loadFlowService = loadFlowService;
+        this.parametersService = parametersService;
+    }
 
     @PostMapping(value = "/networks/{networkUuid}/run-and-save", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Run a load flow on a network")

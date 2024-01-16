@@ -14,7 +14,6 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,8 +29,11 @@ import java.util.UUID;
 @Tag(name = "LoadFlow parameters")
 public class LoadFlowParametersController {
 
-    @Autowired
-    private LoadFlowParametersService parametersService;
+    private final LoadFlowParametersService parametersService;
+
+    public LoadFlowParametersController(LoadFlowParametersService parametersService) {
+        this.parametersService = parametersService;
+    }
 
     @PostMapping(value = "", consumes = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Create parameters")

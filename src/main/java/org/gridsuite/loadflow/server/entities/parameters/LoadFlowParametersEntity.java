@@ -116,19 +116,23 @@ public class LoadFlowParametersEntity {
                 loadFlowParametersInfos.getSpecificParametersPerProvider().forEach((provider, paramsMap) -> {
                     if (paramsMap != null) {
                         paramsMap.forEach((paramName, paramValue) -> {
-                                if (paramValue != null) {
-                                    allSpecificValuesEntities.add(new LoadFlowSpecificParameterEntity(
+                            if (paramValue != null) {
+                                allSpecificValuesEntities.add(new LoadFlowSpecificParameterEntity(
                                         null,
                                         provider,
                                         paramName,
                                         paramValue));
-                                }
                             }
-                        );
+                        });
                     }
                 });
             }
         }
+        assignCommonValues(allCommonValues);
+        assignSpecificValues(allSpecificValuesEntities);
+    }
+
+    private void assignCommonValues(LoadFlowParameters allCommonValues) {
         voltageInitMode = allCommonValues.getVoltageInitMode();
         transformerVoltageControlOn = allCommonValues.isTransformerVoltageControlOn();
         useReactiveLimits = allCommonValues.isUseReactiveLimits();
@@ -145,6 +149,9 @@ public class LoadFlowParametersEntity {
         connectedComponentMode = allCommonValues.getConnectedComponentMode();
         hvdcAcEmulation = allCommonValues.isHvdcAcEmulation();
         dcPowerFactor = allCommonValues.getDcPowerFactor();
+    }
+
+    private void assignSpecificValues(List<LoadFlowSpecificParameterEntity> allSpecificValuesEntities) {
         if (specificParameters == null) {
             specificParameters = allSpecificValuesEntities;
         } else {
