@@ -60,18 +60,7 @@ public class LoadFlowController {
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
-        String providerToUse = provider != null ? provider : loadFlowService.getDefaultProvider();
-        LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
-                .networkUuid(networkUuid)
-                .variantId(variantId)
-                .receiver(receiver)
-                .provider(providerToUse)
-                .parameters(parametersService.getParametersValues(parametersUuid, providerToUse))
-                .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).reportType(reportType).build())
-                .userId(userId)
-                .limitReduction(limitReduction)
-                .build();
-        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
+        UUID resultUuid = loadFlowService.runAndSaveResult(networkUuid, variantId, provider, receiver, reportId, reportName, reportType, limitReduction, parametersUuid, userId);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
     }
 

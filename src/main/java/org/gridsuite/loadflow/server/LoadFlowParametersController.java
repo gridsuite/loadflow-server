@@ -58,7 +58,9 @@ public class LoadFlowParametersController {
         @ApiResponse(responseCode = "200", description = "parameters were duplicated")})
     public ResponseEntity<UUID> duplicateParameters(
             @RequestParam("duplicateFrom") UUID sourceParametersUuid) {
-        return ResponseEntity.ok().body(parametersService.duplicateParameters(sourceParametersUuid));
+        return parametersService.duplicateParameters(sourceParametersUuid)
+                .map(duplicatedParametersUuid -> ResponseEntity.ok().body(duplicatedParametersUuid))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping(value = "/{uuid}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -68,9 +70,9 @@ public class LoadFlowParametersController {
         @ApiResponse(responseCode = "404", description = "parameters were not found")})
     public ResponseEntity<LoadFlowParametersInfos> getParameters(
             @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid) {
-        LoadFlowParametersInfos parameters = parametersService.getParameters(parametersUuid);
-        return parameters != null ? ResponseEntity.ok().body(parametersService.getParameters(parametersUuid))
-                : ResponseEntity.notFound().build();
+        return parametersService.getParameters(parametersUuid)
+                .map(paramsInfos -> ResponseEntity.ok().body(paramsInfos))
+                .orElse(ResponseEntity.notFound().build());
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)

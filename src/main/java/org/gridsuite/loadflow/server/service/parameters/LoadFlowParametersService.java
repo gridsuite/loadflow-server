@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.server.service.parameters;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -36,13 +37,14 @@ public class LoadFlowParametersService {
         return loadFlowParametersRepository.save(parametersInfos.toEntity()).getId();
     }
 
-    public LoadFlowParametersInfos getParameters(UUID parametersUuid) {
-        return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::toLoadFlowParametersInfos).orElse(null);
+    public Optional<LoadFlowParametersInfos> getParameters(UUID parametersUuid) {
+        return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::toLoadFlowParametersInfos);
     }
 
-    public LoadFlowParametersValues getParametersValues(UUID parametersUuid, String provider) {
-        LoadFlowParametersEntity parametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElse(null);
-        return parametersEntity != null ? parametersEntity.toLoadFlowParametersValues(provider) : null;
+    public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid, String provider) {
+        return loadFlowParametersRepository.findById(parametersUuid)
+            .map(entity -> Optional.of(entity.toLoadFlowParametersValues(provider)))
+            .orElse(Optional.empty());
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
@@ -59,10 +61,12 @@ public class LoadFlowParametersService {
     }
 
     @Transactional
-    public UUID duplicateParameters(UUID sourceParametersUuid) {
-        LoadFlowParametersEntity sourceParameters = loadFlowParametersRepository.findById(sourceParametersUuid).orElseThrow();
-        LoadFlowParametersEntity duplicatedParameters = sourceParameters.copy();
-        return loadFlowParametersRepository.save(duplicatedParameters).getId();
+    public Optional<UUID> duplicateParameters(UUID sourceParametersUuid) {
+        return loadFlowParametersRepository.findById(sourceParametersUuid)
+            .map(LoadFlowParametersEntity::copy)
+            .map(loadFlowParametersRepository::save)
+            .map(entity -> Optional.of(entity.getId()))
+            .orElse(Optional.empty());
     }
 
     public UUID createDefaultParameters() {
