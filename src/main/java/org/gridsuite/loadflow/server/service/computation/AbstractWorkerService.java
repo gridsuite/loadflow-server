@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package org.gridsuite.loadflow.server.service.computation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,16 +37,16 @@ import java.util.function.Consumer;
 import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.COMPUTATION_LABEL;
 
 /**
- * @param <Result> powsybl Result class specific to the computation
- * @param <R> run context specific to a computation, including parameters
- * @param <P> powsybl and gridsuite parameters specifics to the computation
- * @param <Repo> result repository specific to the computation
+ * @param <S> powsybl Result class specific to the computation
+ * @param <R> Run context specific to a computation, including parameters
+ * @param <P> powsybl and gridsuite Parameters specifics to the computation
+ * @param <O> result Repository specific to the computation
  */
 public abstract class AbstractWorkerService<
-        Result,
+        S,
         R extends ComputationRunContext<P>,
         P,
-        Repo extends AbstractComputationResultRepository> {
+        O extends AbstractComputationResultRepository> {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractWorkerService.class);
 
     protected final Lock lockRunAndCancel = new ReentrantLock();
@@ -50,18 +56,18 @@ public abstract class AbstractWorkerService<
     protected final ReportService reportService;
     protected final ExecutionService executionService;
     protected final NotificationService notificationService;
-    protected final AbstractObserver<Result, P> observer;
-    protected final Repo resultRepository;
-    protected final Map<UUID, CompletableFuture<Result>> futures = new ConcurrentHashMap<>();
+    protected final AbstractObserver<S, P> observer;
+    protected final O resultRepository;
+    protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
     protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
     private final String computationType;
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
                                     NotificationService notificationService,
                                     ReportService reportService,
-                                    Repo resultRepository,
+                                    O resultRepository,
                                     ExecutionService executionService,
-                                    AbstractObserver<Result, P> observer,
+                                    AbstractObserver<S, P> observer,
                                     ObjectMapper objectMapper,
                                     String computationType) {
         this.networkStoreService = networkStoreService;
@@ -91,7 +97,11 @@ public abstract class AbstractWorkerService<
     protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
         resultRepository.delete(resultUuid);
         notificationService.publishStop(resultUuid, receiver, COMPUTATION_LABEL);
-        LOGGER.info(NotificationService.getCancelMessage(COMPUTATION_LABEL) + " (resultUuid='{}')", resultUuid);
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("{} (resultUuid='{}')",
+                    NotificationService.getCancelMessage(COMPUTATION_LABEL),
+                    resultUuid);
+        }
     }
 
     private void cancelAsync(CancelContext cancelContext) {
@@ -100,7 +110,7 @@ public abstract class AbstractWorkerService<
             cancelComputationRequests.put(cancelContext.getResultUuid(), cancelContext);
 
             // find the completableFuture associated with result uuid
-            CompletableFuture<Result> future = futures.get(cancelContext.getResultUuid());
+            CompletableFuture<S> future = futures.get(cancelContext.getResultUuid());
             if (future != null) {
                 future.cancel(true);  // cancel computation in progress
             }
@@ -121,7 +131,7 @@ public abstract class AbstractWorkerService<
 
                 Network network = observer.observe("network.load", resultContext.getRunContext(), () -> getNetwork(resultContext.getRunContext()));
 
-                Result result = run((R) resultContext.getRunContext(), resultContext.getResultUuid());
+                S result = run(resultContext.getRunContext(), resultContext.getResultUuid());
 
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
@@ -133,7 +143,7 @@ public abstract class AbstractWorkerService<
 
                 if (result != null) {  // result available
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
-                    LOGGER.info(computationType + " complete (resultUuid='{}')", resultContext.getResultUuid());
+                    LOGGER.info("{} complete (resultUuid='{}')", computationType, resultContext.getResultUuid());
                 } else {  // result not available : stop computation request
                     if (cancelComputationRequests.get(resultContext.getResultUuid()) != null) {
                         cleanResultsAndPublishCancel(resultContext.getResultUuid(), cancelComputationRequests.get(resultContext.getResultUuid()).getReceiver());
@@ -162,7 +172,7 @@ public abstract class AbstractWorkerService<
         return message -> cancelAsync(CancelContext.fromMessage(message));
     }
 
-    protected abstract void saveResult(Network network, ResultContext<R> resultContext, Result result);
+    protected abstract void saveResult(Network network, ResultContext<R> resultContext, S result);
 
-    protected abstract Result run(R context, UUID resultUuid) throws Exception;
+    protected abstract S run(R context, UUID resultUuid) throws Exception;
 }

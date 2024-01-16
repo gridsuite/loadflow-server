@@ -85,6 +85,7 @@ public class LoadFlowResultRepository extends AbstractComputationResultRepositor
         return new LimitViolationsEntity(resultUuid, limitViolationInfos);
     }
 
+    @Override
     @Transactional
     public void delete(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);

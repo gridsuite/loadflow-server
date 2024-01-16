@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package org.gridsuite.loadflow.server.service.computation;
 
 import io.micrometer.core.instrument.Counter;
@@ -7,10 +13,10 @@ import io.micrometer.observation.ObservationRegistry;
 import lombok.NonNull;
 
 /**
- * @param <Result> powsybl Result class specific to the computation
+ * @param <R> powsybl Result class specific to the computation
  * @param <P> powsybl and gridsuite parameters specifics to the computation
  */
-public abstract class AbstractObserver<Result, P> {
+public abstract class AbstractObserver<R, P> {
     protected static final String OBSERVATION_PREFIX = "app.computation.";
     protected static final String PROVIDER_TAG_NAME = "provider";
     protected static final String TYPE_TAG_NAME = "type";
@@ -40,14 +46,14 @@ public abstract class AbstractObserver<Result, P> {
         return createObservation(name, runContext).observeChecked(callable);
     }
 
-    public <T extends Result, E extends Throwable> T observeRun(
+    public <T extends R, E extends Throwable> T observeRun(
             String name, ComputationRunContext<P> runContext, Observation.CheckedCallable<T, E> callable) throws E {
         T result = createObservation(name, runContext).observeChecked(callable);
         incrementCount(runContext, result);
         return result;
     }
 
-    private void incrementCount(ComputationRunContext<P> runContext, Result result) {
+    private void incrementCount(ComputationRunContext<P> runContext, R result) {
         Counter.builder(COMPUTATION_COUNTER_NAME)
                 .tag(PROVIDER_TAG_NAME, runContext.getProvider())
                 .tag(TYPE_TAG_NAME, computationType)
@@ -56,5 +62,5 @@ public abstract class AbstractObserver<Result, P> {
                 .increment();
     }
 
-    protected abstract String getResultStatus(Result res);
+    protected abstract String getResultStatus(R res);
 }

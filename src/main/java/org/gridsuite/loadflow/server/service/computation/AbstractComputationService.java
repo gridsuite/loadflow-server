@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package org.gridsuite.loadflow.server.service.computation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -12,9 +18,9 @@ import java.util.UUID;
 
 /**
  * @param <R> run context specific to a computation, including parameters
- * @param <Repo> result repository specific to the computation
+ * @param <P> result repository specific to the computation
  */
-public abstract class AbstractComputationService<R, Repo extends AbstractComputationResultRepository> {
+public abstract class AbstractComputationService<R, P extends AbstractComputationResultRepository> {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractComputationService.class);
 
@@ -23,9 +29,9 @@ public abstract class AbstractComputationService<R, Repo extends AbstractComputa
     @Getter
     protected String defaultProvider;
     protected UuidGeneratorService uuidGeneratorService;
-    protected Repo resultRepository;
+    protected P resultRepository;
 
-    protected AbstractComputationService(NotificationService notificationService, Repo resultRepository,
+    protected AbstractComputationService(NotificationService notificationService, P resultRepository,
                                          ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService,
                                          String defaultProvider) {
         this.notificationService = Objects.requireNonNull(notificationService);
