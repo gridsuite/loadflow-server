@@ -274,7 +274,7 @@ public class LoadFlowControllerTest {
                 .commonParameters(loadFlowParameters)
                 .specificParameters(Collections.emptyMap())
                 .build();
-            doReturn(loadFlowParametersInfos).when(loadFlowParametersService).getParametersValues(any(), any());
+            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
                     "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
