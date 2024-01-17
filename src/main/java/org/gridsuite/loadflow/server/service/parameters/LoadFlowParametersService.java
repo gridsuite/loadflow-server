@@ -43,8 +43,7 @@ public class LoadFlowParametersService {
 
     public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid, String provider) {
         return loadFlowParametersRepository.findById(parametersUuid)
-            .map(entity -> Optional.of(entity.toLoadFlowParametersValues(provider)))
-            .orElse(Optional.empty());
+            .map(entity -> entity.toLoadFlowParametersValues(provider));
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
@@ -65,8 +64,7 @@ public class LoadFlowParametersService {
         return loadFlowParametersRepository.findById(sourceParametersUuid)
             .map(LoadFlowParametersEntity::copy)
             .map(loadFlowParametersRepository::save)
-            .map(entity -> Optional.of(entity.getId()))
-            .orElse(Optional.empty());
+            .map(entity -> entity.getId());
     }
 
     public UUID createDefaultParameters() {
