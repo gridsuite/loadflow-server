@@ -12,6 +12,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
+
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
@@ -21,6 +23,7 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
+@Setter
 @Builder
 public class LoadFlowRunContext {
 
@@ -30,9 +33,9 @@ public class LoadFlowRunContext {
 
     private final String receiver;
 
-    private final String provider;
+    private String provider;
 
-    private final LoadFlowParametersValues parameters;
+    private LoadFlowParametersValues parameters;
 
     private final ReportContext reportContext;
 

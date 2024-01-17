@@ -22,7 +22,6 @@ import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
-import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -88,24 +87,16 @@ public class LoadFlowService {
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
-    public UUID runAndSaveResult(UUID networkUuid, String variantId, String provider, String receiver, UUID reportId,
-            String reportName, String reportType, Float limitReduction, UUID parametersUuid, String userId) {
+    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, String provider, UUID parametersUuid) {
         String providerToUse = provider != null ? provider : getDefaultProvider();
-        LoadFlowRunContext runContext = LoadFlowRunContext.builder()
-                .networkUuid(networkUuid)
-                .variantId(variantId)
-                .receiver(receiver)
-                .provider(providerToUse)
-                .parameters(parametersService.getParametersValues(parametersUuid, providerToUse).orElse(null))
-                .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).reportType(reportType).build())
-                .userId(userId)
-                .limitReduction(limitReduction)
-                .build();
+        // set provider and parameters
+        loadFlowRunContext.setParameters(parametersService.getParametersValues(parametersUuid, providerToUse).orElse(null));
+        loadFlowRunContext.setProvider(providerToUse);
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
-        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, runContext).toMessage(objectMapper));
+        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, loadFlowRunContext).toMessage(objectMapper));
         return resultUuid;
     }
 

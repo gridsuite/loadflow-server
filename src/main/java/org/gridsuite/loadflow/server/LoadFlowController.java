@@ -14,8 +14,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -37,11 +38,9 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 public class LoadFlowController {
 
     private final LoadFlowService loadFlowService;
-    private final LoadFlowParametersService parametersService;
 
-    public LoadFlowController(LoadFlowService loadFlowService, LoadFlowParametersService parametersService) {
+    public LoadFlowController(LoadFlowService loadFlowService) {
         this.loadFlowService = loadFlowService;
-        this.parametersService = parametersService;
     }
 
     @PostMapping(value = "/networks/{networkUuid}/run-and-save", produces = APPLICATION_JSON_VALUE)
@@ -58,7 +57,15 @@ public class LoadFlowController {
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
-        UUID resultUuid = loadFlowService.runAndSaveResult(networkUuid, variantId, provider, receiver, reportId, reportName, reportType, limitReduction, parametersUuid, userId);
+        LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
+                .networkUuid(networkUuid)
+                .variantId(variantId)
+                .receiver(receiver)
+                .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).reportType(reportType).build())
+                .userId(userId)
+                .limitReduction(limitReduction)
+                .build();
+        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext, provider, parametersUuid);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
     }
 
