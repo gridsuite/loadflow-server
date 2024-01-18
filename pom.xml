@@ -42,7 +42,7 @@
     </developers>
 
     <properties>
-        <jib.from.image>gridsuite/java-dynawo</jib.from.image>
+        <jib.from.image>powsybl/java-dynawo:2.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>28</gridsuite-dependencies.version>
         <!--
