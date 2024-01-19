@@ -13,7 +13,7 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
-import org.gridsuite.loadflow.server.service.computation.ComputationRunContext;
+import org.gridsuite.loadflow.server.service.computation.AbstractComputationRunContext;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
 import java.util.UUID;
@@ -22,7 +22,7 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
-public class LoadFlowRunContext extends ComputationRunContext<LoadFlowParametersInfos> {
+public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersInfos> {
 
     public static LoadFlowParameters buildParameters(LoadFlowRunContext context) {
         LoadFlowParametersInfos parameters = context.getParameters();

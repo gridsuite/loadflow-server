@@ -20,15 +20,14 @@ import com.powsybl.security.Security;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
-import org.gridsuite.loadflow.server.service.computation.AbstractWorkerService;
-import org.gridsuite.loadflow.server.service.computation.ResultContext;
-import org.gridsuite.loadflow.server.service.computation.ExecutionService;
-import org.gridsuite.loadflow.server.service.computation.NotificationService;
-import org.gridsuite.loadflow.server.service.computation.ReportService;
+import org.gridsuite.loadflow.server.service.computation.*;
+import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
-import java.util.concurrent.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
@@ -37,22 +36,27 @@ import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildPara
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Service
-public class LoadFlowWorkerService extends AbstractWorkerService<
-        LoadFlowResult,
-        LoadFlowRunContext,
-        LoadFlowParametersInfos,
-        LoadFlowResultRepository> {
+public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersInfos> {
 
-    public static final String COMPUTATION_LABEL = "LoadFlow";
+    public static final String LOADFLOW_LABEL = "LoadFlow";
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultRepository resultRepository,
                                  ExecutionService executionService, LoadflowObserver loadflowObserver,
                                  ObjectMapper objectMapper) {
-        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper, COMPUTATION_LABEL);
+        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper, LOADFLOW_LABEL);
     }
 
-    private CompletableFuture<LoadFlowResult> runLoadFlowAsync(
+    private LoadFlowResultRepository getResultRepository() {
+        return (LoadFlowResultRepository) resultRepository;
+    }
+
+    @Override
+    protected LoadFlowResultContext fromMessage(Message<String> message) {
+        return LoadFlowResultContext.fromMessage(message, objectMapper);
+    }
+
+    private CompletableFuture<LoadFlowResult> runAsync(
             Network network,
             String variantId,
             String provider,
@@ -98,7 +102,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<
             observer.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
         }
 
-        CompletableFuture<LoadFlowResult> future = runLoadFlowAsync(network, context.getVariantId(), provider, params, reporter, resultUuid);
+        CompletableFuture<LoadFlowResult> future = runAsync(network, context.getVariantId(), provider, params, reporter, resultUuid);
 
         LoadFlowResult result = future == null ? null : observer.observeRun("run", context, future::get);
         if (result != null && result.isOk()) {
@@ -112,10 +116,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<
     }
 
     @Override
-    protected void saveResult(Network network, ResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
+    protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-        resultRepository.insert(resultContext.getResultUuid(), result,
+        getResultRepository().insert(resultContext.getResultUuid(), result,
                 LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
     }
 
@@ -174,14 +178,14 @@ public class LoadFlowWorkerService extends AbstractWorkerService<
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
         return LimitViolationInfos.builder()
-            .subjectId(violation.getSubjectId())
-            .actualOverloadDuration(violation.getAcceptableDuration())
-            .upComingOverloadDuration(violation.getAcceptableDuration())
-            .limit(violation.getLimit())
-            .limitName(violation.getLimitName())
-            .value(violation.getValue())
-            .side(violation.getSide() != null ? violation.getSide().name() : "")
-            .limitType(violation.getLimitType()).build();
+                .subjectId(violation.getSubjectId())
+                .actualOverloadDuration(violation.getAcceptableDuration())
+                .upComingOverloadDuration(violation.getAcceptableDuration())
+                .limit(violation.getLimit())
+                .limitName(violation.getLimitName())
+                .value(violation.getValue())
+                .side(violation.getSide() != null ? violation.getSide().name() : "")
+                .limitType(violation.getLimitType()).build();
     }
 
     private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {

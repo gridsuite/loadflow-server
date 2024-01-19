@@ -17,10 +17,10 @@ import java.util.Objects;
 import java.util.UUID;
 
 /**
+ * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com
  * @param <R> run context specific to a computation, including parameters
- * @param <P> result repository specific to the computation
  */
-public abstract class AbstractComputationService<R, P extends AbstractComputationResultRepository> {
+public abstract class AbstractComputationService<R> {
 
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractComputationService.class);
 
@@ -29,9 +29,9 @@ public abstract class AbstractComputationService<R, P extends AbstractComputatio
     @Getter
     protected String defaultProvider;
     protected UuidGeneratorService uuidGeneratorService;
-    protected P resultRepository;
+    protected AbstractComputationResultRepository resultRepository;
 
-    protected AbstractComputationService(NotificationService notificationService, P resultRepository,
+    protected AbstractComputationService(NotificationService notificationService, AbstractComputationResultRepository resultRepository,
                                          ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService,
                                          String defaultProvider) {
         this.notificationService = Objects.requireNonNull(notificationService);

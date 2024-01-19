@@ -34,19 +34,15 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
 
-import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.COMPUTATION_LABEL;
+import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.LOADFLOW_LABEL;
 
 /**
+ * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com
  * @param <S> powsybl Result class specific to the computation
  * @param <R> Run context specific to a computation, including parameters
  * @param <P> powsybl and gridsuite Parameters specifics to the computation
- * @param <O> result Repository specific to the computation
  */
-public abstract class AbstractWorkerService<
-        S,
-        R extends ComputationRunContext<P>,
-        P,
-        O extends AbstractComputationResultRepository> {
+public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P> {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractWorkerService.class);
 
     protected final Lock lockRunAndCancel = new ReentrantLock();
@@ -56,8 +52,8 @@ public abstract class AbstractWorkerService<
     protected final ReportService reportService;
     protected final ExecutionService executionService;
     protected final NotificationService notificationService;
-    protected final AbstractObserver<S, P> observer;
-    protected final O resultRepository;
+    protected final AbstractComputationObserver<S, P> observer;
+    protected final AbstractComputationResultRepository resultRepository;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
     protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
     private final String computationType;
@@ -65,9 +61,9 @@ public abstract class AbstractWorkerService<
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
                                     NotificationService notificationService,
                                     ReportService reportService,
-                                    O resultRepository,
+                                    AbstractComputationResultRepository resultRepository,
                                     ExecutionService executionService,
-                                    AbstractObserver<S, P> observer,
+                                    AbstractComputationObserver<S, P> observer,
                                     ObjectMapper objectMapper,
                                     String computationType) {
         this.networkStoreService = networkStoreService;
@@ -80,7 +76,7 @@ public abstract class AbstractWorkerService<
         this.computationType = computationType;
     }
 
-    protected Network getNetwork(ComputationRunContext<P> runContext) {
+    protected Network getNetwork(AbstractComputationRunContext<P> runContext) {
         Network network;
         try {
             UUID networkUuid = runContext.getNetworkUuid();
@@ -96,10 +92,10 @@ public abstract class AbstractWorkerService<
 
     protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
         resultRepository.delete(resultUuid);
-        notificationService.publishStop(resultUuid, receiver, COMPUTATION_LABEL);
+        notificationService.publishStop(resultUuid, receiver, LOADFLOW_LABEL);
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("{} (resultUuid='{}')",
-                    NotificationService.getCancelMessage(COMPUTATION_LABEL),
+                    NotificationService.getCancelMessage(LOADFLOW_LABEL),
                     resultUuid);
         }
     }
@@ -120,10 +116,12 @@ public abstract class AbstractWorkerService<
         }
     }
 
+    protected abstract AbstractResultContext<R> fromMessage(Message<String> message);
+
     @Bean
     public Consumer<Message<String>> consumeRun() {
         return message -> {
-            ResultContext<R> resultContext = ResultContext.fromMessage(message, objectMapper);
+            AbstractResultContext<R> resultContext = fromMessage(message);
             try {
                 runRequests.add(resultContext.getResultUuid());
                 AtomicReference<Long> startTime = new AtomicReference<>();
@@ -153,10 +151,10 @@ public abstract class AbstractWorkerService<
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (!(e instanceof CancellationException)) {
-                    LOGGER.error(NotificationService.getFailedMessage(COMPUTATION_LABEL), e);
+                    LOGGER.error(NotificationService.getFailedMessage(LOADFLOW_LABEL), e);
                     notificationService.publishFail(
                             resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
-                            e.getMessage(), resultContext.getRunContext().getUserId(), COMPUTATION_LABEL);
+                            e.getMessage(), resultContext.getRunContext().getUserId(), LOADFLOW_LABEL);
                     resultRepository.delete(resultContext.getResultUuid());
                 }
             } finally {
@@ -172,7 +170,7 @@ public abstract class AbstractWorkerService<
         return message -> cancelAsync(CancelContext.fromMessage(message));
     }
 
-    protected abstract void saveResult(Network network, ResultContext<R> resultContext, S result);
+    protected abstract void saveResult(Network network, AbstractResultContext<R> resultContext, S result);
 
     protected abstract S run(R context, UUID resultUuid) throws Exception;
 }

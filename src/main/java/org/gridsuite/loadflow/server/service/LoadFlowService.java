@@ -12,17 +12,12 @@ import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.tuple.Pair;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LimitViolationsInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowResult;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.service.computation.AbstractComputationService;
-import org.gridsuite.loadflow.server.service.computation.ResultContext;
 import org.gridsuite.loadflow.server.service.computation.NotificationService;
 import org.gridsuite.loadflow.server.service.computation.UuidGeneratorService;
 import org.springframework.beans.factory.annotation.Value;
@@ -38,7 +33,7 @@ import java.util.stream.Collectors;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
-public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext, LoadFlowResultRepository> {
+public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext> {
 
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultRepository resultRepository,
@@ -46,6 +41,10 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            UuidGeneratorService uuidGeneratorService,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
+    }
+
+    private LoadFlowResultRepository getResultRepository() {
+        return (LoadFlowResultRepository) resultRepository;
     }
 
     @Override
@@ -56,7 +55,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public void setStatus(List<UUID> resultUuids, LoadFlowStatus status) {
-        resultRepository.insertStatus(resultUuids, status);
+        getResultRepository().insertStatus(resultUuids, status);
     }
 
     public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
@@ -77,7 +76,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
-        notificationService.sendRunMessage(new ResultContext(resultUuid, runContext).toMessage(objectMapper));
+        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, runContext).toMessage(objectMapper));
         return resultUuid;
     }
 
@@ -105,14 +104,14 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public LoadFlowResult getResult(UUID resultUuid) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
-        Optional<LoadFlowResultEntity> result = resultRepository.findResults(resultUuid);
+        Optional<LoadFlowResultEntity> result = getResultRepository().findResults(resultUuid);
         LoadFlowResult loadFlowResult = result.map(r -> fromEntity(r)).orElse(null);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
 
     public LoadFlowStatus getStatus(UUID resultUuid) {
-        return resultRepository.findStatus(resultUuid);
+        return getResultRepository().findStatus(resultUuid);
     }
 
     public static String getNonNullHeader(MessageHeaders headers, String name) {
@@ -131,7 +130,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
-        Optional<LimitViolationsEntity> limitViolationsEntity = resultRepository.findLimitViolations(resultUuid);
+        Optional<LimitViolationsEntity> limitViolationsEntity = getResultRepository().findLimitViolations(resultUuid);
         LimitViolationsInfos limitViolations = limitViolationsEntity.map(LimitViolationsEntity::toLimitViolationsInfos).orElse(null);
         return limitViolations != null ? limitViolations.getLimitViolations() : Collections.emptyList();
     }
