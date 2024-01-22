@@ -6,6 +6,9 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.powsybl.loadflow.LoadFlowResult;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.NonNull;
@@ -16,30 +19,51 @@ import org.springframework.stereotype.Service;
  */
 @Service
 public class LoadflowObserver {
+    private static final String OBSERVATION_PREFIX = "app.computation.";
+
+    private static final String PROVIDER_TAG_NAME = "provider";
+    private static final String TYPE_TAG_NAME = "type";
+    private static final String STATUS_TAG_NAME = "status";
+
+    private static final String COMPUTATION_TYPE = "loadflow";
+
+    private static final String COMPUTATION_COUNTER_NAME = OBSERVATION_PREFIX + "count";
 
     private final ObservationRegistry observationRegistry;
 
-    private static final String OBSERVATION_PREFIX = "app.";
-    private static final String PROVIDER_TAG_NAME = "provider";
+    private final MeterRegistry meterRegistry;
 
-    private static final String TYPE_TAG_NAME = "type";
-    private static final String COMPUTATION_NAME = "loadflow";
-
-    public LoadflowObserver(@NonNull ObservationRegistry observationRegistry) {
+    public LoadflowObserver(@NonNull ObservationRegistry observationRegistry, @NonNull MeterRegistry meterRegistry) {
         this.observationRegistry = observationRegistry;
+        this.meterRegistry = meterRegistry;
     }
 
     public <E extends Throwable> void observe(String name, LoadFlowRunContext runContext, Observation.CheckedRunnable<E> callable) throws E {
-        createLoadflowObservation(name, runContext).observeChecked(callable);
+        createObservation(name, runContext).observeChecked(callable);
     }
 
     public <T, E extends Throwable> T observe(String name, LoadFlowRunContext runContext, Observation.CheckedCallable<T, E> callable) throws E {
-        return createLoadflowObservation(name, runContext).observeChecked(callable);
+        return createObservation(name, runContext).observeChecked(callable);
     }
 
-    private Observation createLoadflowObservation(String name, LoadFlowRunContext runContext) {
+    public <T extends LoadFlowResult, E extends Throwable> T observeRun(String name, LoadFlowRunContext runContext, Observation.CheckedCallable<T, E> callable) throws E {
+        T result = createObservation(name, runContext).observeChecked(callable);
+        incrementCount(runContext, result);
+        return result;
+    }
+
+    private Observation createObservation(String name, LoadFlowRunContext runContext) {
         return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
                 .lowCardinalityKeyValue(PROVIDER_TAG_NAME, runContext.getProvider())
-                .lowCardinalityKeyValue(TYPE_TAG_NAME, COMPUTATION_NAME);
+                .lowCardinalityKeyValue(TYPE_TAG_NAME, COMPUTATION_TYPE);
+    }
+
+    private void incrementCount(LoadFlowRunContext runContext, LoadFlowResult result) {
+        Counter.builder(COMPUTATION_COUNTER_NAME)
+                .tag(PROVIDER_TAG_NAME, runContext.getProvider())
+                .tag(TYPE_TAG_NAME, COMPUTATION_TYPE)
+                .tag(STATUS_TAG_NAME, result != null && result.isOk() ? "OK" : "NOK")
+                .register(meterRegistry)
+                .increment();
     }
 }
