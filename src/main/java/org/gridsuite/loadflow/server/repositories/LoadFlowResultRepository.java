@@ -14,7 +14,7 @@ import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
-import org.gridsuite.loadflow.server.repositories.computation.AbstractComputationResultRepository;
+import org.gridsuite.loadflow.server.repositories.computation.ComputationResultRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 @Repository
-public class LoadFlowResultRepository extends AbstractComputationResultRepository {
+public class LoadFlowResultRepository implements ComputationResultRepository {
 
     private GlobalStatusRepository globalStatusRepository;
 

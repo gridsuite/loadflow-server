@@ -11,8 +11,8 @@ import java.util.UUID;
 /**
  * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com
  */
-public abstract class AbstractComputationResultRepository {
-    public abstract void delete(UUID resultUuid);
+public interface ComputationResultRepository {
+    void delete(UUID resultUuid);
 
-    public abstract void deleteAll();
+    void deleteAll();
 }

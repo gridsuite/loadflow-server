@@ -22,7 +22,7 @@ public abstract class AbstractComputationRunContext<P> {
     private final UUID networkUuid;
     private final String variantId;
     private final String receiver;
-    private final String provider;
+    protected final String provider;
     private final ReportContext reportContext;
     private final String userId;
     private final Float limitReduction;

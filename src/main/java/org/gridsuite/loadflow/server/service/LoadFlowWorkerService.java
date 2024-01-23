@@ -30,8 +30,6 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static org.gridsuite.loadflow.server.service.LoadFlowRunContext.buildParameters;
-
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
@@ -86,7 +84,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     @Override
     protected LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws Exception {
-        LoadFlowParameters params = buildParameters(context);
+        LoadFlowParameters params = context.buildParameters();
         LOGGER.info("Run loadFlow...");
         Network network = observer.observe("network.load", context, () -> getNetwork(context));
 
@@ -190,7 +188,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {
         List<LimitViolation> violations;
-        LoadFlowParameters lfCommonParams = buildParameters(loadFlowRunContext);
+        LoadFlowParameters lfCommonParams = loadFlowRunContext.buildParameters();
         if (lfCommonParams.isDc()) {
             violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
         } else {

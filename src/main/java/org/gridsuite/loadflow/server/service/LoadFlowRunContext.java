@@ -24,9 +24,7 @@ import java.util.UUID;
 @Getter
 public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersInfos> {
 
-    public static LoadFlowParameters buildParameters(LoadFlowRunContext context) {
-        LoadFlowParametersInfos parameters = context.getParameters();
-        String provider = context.getProvider();
+    public LoadFlowParameters buildParameters() {
         LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
                 LoadFlowParameters.load() : parameters.getCommonParameters();
         if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
@@ -45,10 +43,5 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportContext reportContext, String userId,
                               Float limitReduction, LoadFlowParametersInfos parameters) {
         super(networkUuid, variantId, receiver, provider, reportContext, userId, limitReduction, parameters);
-    }
-
-    @Override
-    public LoadFlowParametersInfos getParameters() {
-        return parameters;
     }
 }

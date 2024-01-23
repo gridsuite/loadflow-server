@@ -8,7 +8,7 @@ package org.gridsuite.loadflow.server.service.computation;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-import org.gridsuite.loadflow.server.repositories.computation.AbstractComputationResultRepository;
+import org.gridsuite.loadflow.server.repositories.computation.ComputationResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,9 +29,9 @@ public abstract class AbstractComputationService<R> {
     @Getter
     protected String defaultProvider;
     protected UuidGeneratorService uuidGeneratorService;
-    protected AbstractComputationResultRepository resultRepository;
+    protected ComputationResultRepository resultRepository;
 
-    protected AbstractComputationService(NotificationService notificationService, AbstractComputationResultRepository resultRepository,
+    protected AbstractComputationService(NotificationService notificationService, ComputationResultRepository resultRepository,
                                          ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService,
                                          String defaultProvider) {
         this.notificationService = Objects.requireNonNull(notificationService);

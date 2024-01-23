@@ -39,7 +39,7 @@ public abstract class AbstractResultContext<R extends AbstractComputationRunCont
 
     protected final R runContext;
 
-    public AbstractResultContext(UUID resultUuid, R runContext) {
+    protected AbstractResultContext(UUID resultUuid, R runContext) {
         this.resultUuid = Objects.requireNonNull(resultUuid);
         this.runContext = Objects.requireNonNull(runContext);
     }
