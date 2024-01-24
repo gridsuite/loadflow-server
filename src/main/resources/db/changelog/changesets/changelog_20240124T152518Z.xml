@@ -1,6 +1,6 @@
 <?xml version="1.1" encoding="UTF-8" standalone="no"?>
 <databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
-    <changeSet author="labidiayo (generated)" id="1703778855378-1">
+    <changeSet author="labidiayo (generated)" id="1706109930287-1">
         <createTable tableName="load_flow_parameters">
             <column name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="load_flow_parametersPK"/>
@@ -22,7 +22,7 @@
             <column defaultValueBoolean="false" name="write_slack_bus" type="BOOLEAN"/>
         </createTable>
     </changeSet>
-    <changeSet author="labidiayo (generated)" id="1703778855378-2">
+    <changeSet author="labidiayo (generated)" id="1706109930287-2">
         <createTable tableName="load_flow_parameters_entity_countries_to_balance">
             <column name="load_flow_parameters_entity_id" type="UUID">
                 <constraints nullable="false"/>
@@ -30,31 +30,31 @@
             <column name="countries_to_balance" type="VARCHAR(255)"/>
         </createTable>
     </changeSet>
-    <changeSet author="labidiayo (generated)" id="1703778855378-3">
+    <changeSet author="labidiayo (generated)" id="1706109930287-3">
         <createTable tableName="load_flow_specific_parameters">
             <column name="id" type="UUID">
                 <constraints nullable="false" primaryKey="true" primaryKeyName="load_flow_specific_parametersPK"/>
             </column>
             <column name="name" type="VARCHAR(255)"/>
             <column name="provider" type="VARCHAR(255)"/>
-            <column name="value" type="VARCHAR(255)"/>
-            <column name="load_flow_parameters_entity_id" type="UUID"/>
+            <column name="value_" type="VARCHAR(255)"/>
+            <column name="load_flow_parameters_id" type="UUID"/>
         </createTable>
     </changeSet>
-    <changeSet author="labidiayo (generated)" id="1703778855378-4">
+    <changeSet author="labidiayo (generated)" id="1706109930287-4">
         <createIndex indexName="loadFlowParametersEntity_countriesToBalance_idx1" tableName="load_flow_parameters_entity_countries_to_balance">
             <column name="load_flow_parameters_entity_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="labidiayo (generated)" id="1703778855378-5">
+    <changeSet author="labidiayo (generated)" id="1706109930287-5">
         <createIndex indexName="loadFlowParametersEntity_specificParameters_index" tableName="load_flow_specific_parameters">
-            <column name="load_flow_parameters_entity_id"/>
+            <column name="load_flow_parameters_id"/>
         </createIndex>
     </changeSet>
-    <changeSet author="labidiayo (generated)" id="1703778855378-6">
+    <changeSet author="labidiayo (generated)" id="1706109930287-6">
         <addForeignKeyConstraint baseColumnNames="load_flow_parameters_entity_id" baseTableName="load_flow_parameters_entity_countries_to_balance" constraintName="loadFlowParametersEntity_countriesToBalance_fk1" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="load_flow_parameters" validate="true"/>
     </changeSet>
-    <changeSet author="labidiayo (generated)" id="1703778855378-7">
-        <addForeignKeyConstraint baseColumnNames="load_flow_parameters_entity_id" baseTableName="load_flow_specific_parameters" constraintName="loadFlowParametersEntity_specificParameters_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="load_flow_parameters" validate="true"/>
+    <changeSet author="labidiayo (generated)" id="1706109930287-7">
+        <addForeignKeyConstraint baseColumnNames="load_flow_parameters_id" baseTableName="load_flow_specific_parameters" constraintName="loadFlowParametersEntity_specificParameters_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="load_flow_parameters" validate="true"/>
     </changeSet>
 </databaseChangeLog>

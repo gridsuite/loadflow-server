@@ -28,7 +28,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Entity
 @Table(name = "loadFlowSpecificParameters", indexes = {
-    @Index(name = "loadFlowParametersEntity_specificParameters_index", columnList = "load_flow_parameters_entity_id")
+    @Index(name = "loadFlowParametersEntity_specificParameters_index", columnList = "load_flow_parameters_id")
 })
 public class LoadFlowSpecificParameterEntity {
     @Id
@@ -42,6 +42,6 @@ public class LoadFlowSpecificParameterEntity {
     @Column(name = "name")
     private String name;
 
-    @Column(name = "value")
+    @Column(name = "value_")
     private String value;
 }

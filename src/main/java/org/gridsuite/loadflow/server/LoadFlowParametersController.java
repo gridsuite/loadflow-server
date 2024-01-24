@@ -52,12 +52,12 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok().body(parametersService.createDefaultParameters());
     }
 
-    @PostMapping(value = "")
+    @PostMapping(value = "/{sourceParametersUuid}")
     @Operation(summary = "Duplicate parameters")
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "parameters were duplicated")})
     public ResponseEntity<UUID> duplicateParameters(
-            @RequestParam("duplicateFrom") UUID sourceParametersUuid) {
+            @Parameter(description = "source parameters UUID") @PathVariable("sourceParametersUuid") UUID sourceParametersUuid) {
         return parametersService.duplicateParameters(sourceParametersUuid)
                 .map(duplicatedParametersUuid -> ResponseEntity.ok().body(duplicatedParametersUuid))
                 .orElse(ResponseEntity.notFound().build());
