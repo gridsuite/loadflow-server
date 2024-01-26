@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server;
 
-import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.gridsuite.loadflow.utils.assertions.Assertions.*;
 import java.util.List;
 import java.util.Map;
@@ -15,14 +14,11 @@ import java.util.UUID;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,11 +33,10 @@ import com.powsybl.loadflow.LoadFlowParameters;
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
  */
-@RunWith(SpringRunner.class)
 @SpringBootTest
 @AutoConfigureMockMvc
 @Transactional
-public class LoadFlowParametersTest {
+class LoadFlowParametersTest {
 
     private static final String URI_PARAMETERS_BASE = "/v1/parameters";
 
@@ -54,20 +49,15 @@ public class LoadFlowParametersTest {
     protected ObjectMapper mapper;
 
     @Autowired
-    private LoadFlowParametersRepository parametersRepository;
+    LoadFlowParametersRepository parametersRepository;
 
-    @Before
-    public void setup() {
-        parametersRepository.deleteAll();
-    }
-
-    @After
-    public void tearOff() {
+    @AfterEach
+    public void clean() {
         parametersRepository.deleteAll();
     }
 
     @Test
-    public void testCreate() throws Exception {
+    void testCreate() throws Exception {
 
         LoadFlowParametersInfos parametersToCreate = buildParameters();
         String parametersToCreateJson = mapper.writeValueAsString(parametersToCreate);
@@ -81,7 +71,7 @@ public class LoadFlowParametersTest {
     }
 
     @Test
-    public void testCreateWithDefaultValues() throws Exception {
+    void testCreateWithDefaultValues() throws Exception {
         LoadFlowParametersInfos defaultParameters = LoadFlowParametersInfos.builder()
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
@@ -96,7 +86,7 @@ public class LoadFlowParametersTest {
     }
 
     @Test
-    public void testRead() throws Exception {
+    void testRead() throws Exception {
 
         LoadFlowParametersInfos parametersToRead = buildParameters();
 
@@ -112,7 +102,7 @@ public class LoadFlowParametersTest {
     }
 
     @Test
-    public void testUpdate() throws Exception {
+    void testUpdate() throws Exception {
 
         LoadFlowParametersInfos parametersToUpdate = buildParameters();
 
@@ -131,7 +121,7 @@ public class LoadFlowParametersTest {
     }
 
     @Test
-    public void testDelete() throws Exception {
+    void testDelete() throws Exception {
 
         LoadFlowParametersInfos parametersToDelete = buildParameters();
 
@@ -141,11 +131,11 @@ public class LoadFlowParametersTest {
 
         List<LoadFlowParametersEntity> storedParameters = parametersRepository.findAll();
 
-        assertTrue(storedParameters.isEmpty());
+        assertThat(storedParameters).isEmpty();
     }
 
     @Test
-    public void testDuplicate() throws Exception {
+    void testDuplicate() throws Exception {
         LoadFlowParametersInfos parametersToDuplicate = buildParameters();
 
         UUID parametersUuid = saveAndRetunId(parametersToDuplicate);
@@ -159,13 +149,13 @@ public class LoadFlowParametersTest {
     }
 
     @Test
-    public void testGetWithInvalidId() throws Exception {
+    void testGetWithInvalidId() throws Exception {
         mockMvc.perform(get(URI_PARAMETERS_GET_PUT + UUID.randomUUID()))
                 .andExpect(status().isNotFound()).andReturn();
     }
 
     @Test
-    public void testGetAll() throws Exception {
+    void testGetAll() throws Exception {
         LoadFlowParametersInfos parameters1 = buildParameters();
 
         LoadFlowParametersInfos parameters2 = buildParametersUpdate();
