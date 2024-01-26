@@ -1,0 +1,84 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="labidiayo (generated)" id="1706271784260-1">
+        <createTable tableName="load_flow_parameters">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="load_flow_parametersPK"/>
+            </column>
+            <column name="balance_type" type="VARCHAR(255)"/>
+            <column name="connected_component_mode" type="VARCHAR(255)"/>
+            <column defaultValueBoolean="false" name="dc" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="1.0" name="dc_power_factor" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="dc_use_transformer_ratio" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="distributed_slack" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="hvdc_ac_emulation" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="phase_shifter_regulation_on" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="read_slack_bus" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="shunt_compensator_voltage_control_on" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="transformer_voltage_control_on" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="twt_split_shunt_admittance" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="use_reactive_limits" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column name="voltage_init_mode" type="VARCHAR(255)"/>
+            <column defaultValueBoolean="false" name="write_slack_bus" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="labidiayo (generated)" id="1706271784260-2">
+        <createTable tableName="load_flow_parameters_entity_countries_to_balance">
+            <column name="load_flow_parameters_entity_id" type="UUID">
+                <constraints nullable="false"/>
+            </column>
+            <column name="countries_to_balance" type="VARCHAR(255)"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="labidiayo (generated)" id="1706271784260-3">
+        <createTable tableName="load_flow_specific_parameters">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="load_flow_specific_parametersPK"/>
+            </column>
+            <column name="name" type="VARCHAR(255)"/>
+            <column name="provider" type="VARCHAR(255)"/>
+            <column name="value_" type="VARCHAR(255)"/>
+            <column name="load_flow_parameters_id" type="UUID"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="labidiayo (generated)" id="1706271784260-4">
+        <createIndex indexName="loadFlowParametersEntity_countriesToBalance_idx1" tableName="load_flow_parameters_entity_countries_to_balance">
+            <column name="load_flow_parameters_entity_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="labidiayo (generated)" id="1706271784260-5">
+        <createIndex indexName="loadFlowParametersEntity_specificParameters_index" tableName="load_flow_specific_parameters">
+            <column name="load_flow_parameters_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="labidiayo (generated)" id="1706271784260-6">
+        <addForeignKeyConstraint baseColumnNames="load_flow_parameters_entity_id" baseTableName="load_flow_parameters_entity_countries_to_balance" constraintName="loadFlowParametersEntity_countriesToBalance_fk1" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="load_flow_parameters" validate="true"/>
+    </changeSet>
+    <changeSet author="labidiayo (generated)" id="1706271784260-7">
+        <addForeignKeyConstraint baseColumnNames="load_flow_parameters_id" baseTableName="load_flow_specific_parameters" constraintName="loadFlowParametersEntity_specificParameters_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="load_flow_parameters" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

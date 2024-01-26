@@ -4,26 +4,18 @@
   License, v. 2.0. If a copy of the MPL was not distributed with this
   file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.gridsuite.loadflow.server.dto;
+package org.gridsuite.loadflow.server.dto.parameters;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 /**
  * @author David Braquart <david.braquart@rte-france.com>
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-public class LoadFlowParametersInfos {
-
-    private LoadFlowParameters commonParameters;
-
-    private Map<String, String> specificParameters;
-}
+public record LoadFlowParametersValues(
+    LoadFlowParameters commonParameters,
+    Map<String, String> specificParameters
+) { }
