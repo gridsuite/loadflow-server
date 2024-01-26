@@ -42,39 +42,39 @@ public class LoadFlowParametersEntity {
     @Enumerated(EnumType.STRING)
     private LoadFlowParameters.VoltageInitMode voltageInitMode;
 
-    @Column(name = "transformerVoltageControlOn", columnDefinition = "boolean default false")
-    private boolean transformerVoltageControlOn;
+    @Column(name = "transformerVoltageControlOn", columnDefinition = "boolean default false", nullable = false)
+    private boolean transformerVoltageControlOn = false;
 
-    @Column(name = "useReactiveLimits", columnDefinition = "boolean default true")
-    private boolean useReactiveLimits;
+    @Column(name = "useReactiveLimits", columnDefinition = "boolean default true", nullable = false)
+    private boolean useReactiveLimits = true;
 
-    @Column(name = "phaseShifterRegulationOn", columnDefinition = "boolean default false")
-    private boolean phaseShifterRegulationOn;
+    @Column(name = "phaseShifterRegulationOn", columnDefinition = "boolean default false", nullable = false)
+    private boolean phaseShifterRegulationOn = false;
 
-    @Column(name = "twtSplitShuntAdmittance", columnDefinition = "boolean default false")
-    private boolean twtSplitShuntAdmittance;
+    @Column(name = "twtSplitShuntAdmittance", columnDefinition = "boolean default false", nullable = false)
+    private boolean twtSplitShuntAdmittance = false;
 
-    @Column(name = "shuntCompensatorVoltageControlOn", columnDefinition = "boolean default false")
-    private boolean shuntCompensatorVoltageControlOn;
+    @Column(name = "shuntCompensatorVoltageControlOn", columnDefinition = "boolean default false", nullable = false)
+    private boolean shuntCompensatorVoltageControlOn = false;
 
-    @Column(name = "readSlackBus", columnDefinition = "boolean default true")
-    private boolean readSlackBus;
+    @Column(name = "readSlackBus", columnDefinition = "boolean default true", nullable = false)
+    private boolean readSlackBus = true;
 
-    @Column(name = "writeSlackBus", columnDefinition = "boolean default false")
-    private boolean writeSlackBus;
+    @Column(name = "writeSlackBus", columnDefinition = "boolean default false", nullable = false)
+    private boolean writeSlackBus = false;
 
-    @Column(name = "dc", columnDefinition = "boolean default false")
-    private boolean dc;
+    @Column(name = "dc", columnDefinition = "boolean default false", nullable = false)
+    private boolean dc = false;
 
-    @Column(name = "distributedSlack", columnDefinition = "boolean default true")
-    private boolean distributedSlack;
+    @Column(name = "distributedSlack", columnDefinition = "boolean default true", nullable = false)
+    private boolean distributedSlack = true;
 
     @Column(name = "balanceType")
     @Enumerated(EnumType.STRING)
     private LoadFlowParameters.BalanceType balanceType;
 
-    @Column(name = "dcUseTransformerRatio", columnDefinition = "boolean default true")
-    private boolean dcUseTransformerRatio;
+    @Column(name = "dcUseTransformerRatio", columnDefinition = "boolean default true", nullable = false)
+    private boolean dcUseTransformerRatio = true;
 
     @Column(name = "countriesToBalance")
     @ElementCollection
@@ -87,11 +87,11 @@ public class LoadFlowParametersEntity {
     @Enumerated(EnumType.STRING)
     private LoadFlowParameters.ConnectedComponentMode connectedComponentMode;
 
-    @Column(name = "hvdcAcEmulation", columnDefinition = "boolean default true")
-    private boolean hvdcAcEmulation;
+    @Column(name = "hvdcAcEmulation", columnDefinition = "boolean default true", nullable = false)
+    private boolean hvdcAcEmulation = true;
 
-    @Column(name = "dcPowerFactor", columnDefinition = "double default 1.0")
-    private double dcPowerFactor;
+    @Column(name = "dcPowerFactor", columnDefinition = "double default 1.0", nullable = false)
+    private double dcPowerFactor = 1.0;
 
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "load_flow_parameters_id", foreignKey = @ForeignKey(name = "loadFlowParametersEntity_specificParameters_fk"))
@@ -111,9 +111,9 @@ public class LoadFlowParametersEntity {
         if (loadFlowParametersInfos == null) {
             allCommonValues = LoadFlowParameters.load();
         } else {
-            allCommonValues = loadFlowParametersInfos.getCommonParameters();
-            if (loadFlowParametersInfos.getSpecificParametersPerProvider() != null) {
-                loadFlowParametersInfos.getSpecificParametersPerProvider().forEach((provider, paramsMap) -> {
+            allCommonValues = loadFlowParametersInfos.commonParameters();
+            if (loadFlowParametersInfos.specificParametersPerProvider() != null) {
+                loadFlowParametersInfos.specificParametersPerProvider().forEach((provider, paramsMap) -> {
                     if (paramsMap != null) {
                         paramsMap.forEach((paramName, paramValue) -> {
                             if (paramValue != null) {

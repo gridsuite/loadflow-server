@@ -7,23 +7,15 @@
 package org.gridsuite.loadflow.server.dto.parameters;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import lombok.AllArgsConstructor;
 import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.Map;
 
 /**
  * @author David Braquart <david.braquart@rte-france.com>
  */
-@Getter
-@NoArgsConstructor
-@AllArgsConstructor
 @Builder
-public class LoadFlowParametersValues {
-
-    private LoadFlowParameters commonParameters;
-
-    private Map<String, String> specificParameters;
-}
+public record LoadFlowParametersValues(
+    LoadFlowParameters commonParameters,
+    Map<String, String> specificParameters
+) { }

@@ -43,10 +43,10 @@ class LoadFlowParametersTest {
     private static final String URI_PARAMETERS_GET_PUT = URI_PARAMETERS_BASE + "/";
 
     @Autowired
-    protected MockMvc mockMvc;
+    MockMvc mockMvc;
 
     @Autowired
-    protected ObjectMapper mapper;
+    ObjectMapper mapper;
 
     @Autowired
     LoadFlowParametersRepository parametersRepository;

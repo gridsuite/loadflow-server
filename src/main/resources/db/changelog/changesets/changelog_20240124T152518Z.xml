@@ -7,19 +7,43 @@
             </column>
             <column name="balance_type" type="VARCHAR(255)"/>
             <column name="connected_component_mode" type="VARCHAR(255)"/>
-            <column defaultValueBoolean="false" name="dc" type="BOOLEAN"/>
-            <column defaultValueNumeric="1.0" name="dc_power_factor" type="DOUBLE PRECISION"/>
-            <column defaultValueBoolean="true" name="dc_use_transformer_ratio" type="BOOLEAN"/>
-            <column defaultValueBoolean="true" name="distributed_slack" type="BOOLEAN"/>
-            <column defaultValueBoolean="true" name="hvdc_ac_emulation" type="BOOLEAN"/>
-            <column defaultValueBoolean="false" name="phase_shifter_regulation_on" type="BOOLEAN"/>
-            <column defaultValueBoolean="true" name="read_slack_bus" type="BOOLEAN"/>
-            <column defaultValueBoolean="false" name="shunt_compensator_voltage_control_on" type="BOOLEAN"/>
-            <column defaultValueBoolean="false" name="transformer_voltage_control_on" type="BOOLEAN"/>
-            <column defaultValueBoolean="false" name="twt_split_shunt_admittance" type="BOOLEAN"/>
-            <column defaultValueBoolean="true" name="use_reactive_limits" type="BOOLEAN"/>
+            <column defaultValueBoolean="false" name="dc" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueNumeric="1.0" name="dc_power_factor" type="DOUBLE PRECISION">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="dc_use_transformer_ratio" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="distributed_slack" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="hvdc_ac_emulation" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="phase_shifter_regulation_on" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="read_slack_bus" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="shunt_compensator_voltage_control_on" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="transformer_voltage_control_on" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="false" name="twt_split_shunt_admittance" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
+            <column defaultValueBoolean="true" name="use_reactive_limits" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
             <column name="voltage_init_mode" type="VARCHAR(255)"/>
-            <column defaultValueBoolean="false" name="write_slack_bus" type="BOOLEAN"/>
+            <column defaultValueBoolean="false" name="write_slack_bus" type="BOOLEAN">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
     <changeSet author="labidiayo (generated)" id="1706109930287-2">
