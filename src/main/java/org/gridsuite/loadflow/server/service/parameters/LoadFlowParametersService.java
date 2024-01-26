@@ -23,7 +23,6 @@ import com.powsybl.loadflow.LoadFlowParameters;
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
  */
-
 @Service
 public class LoadFlowParametersService {
 
