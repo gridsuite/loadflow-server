@@ -51,7 +51,13 @@ public class LoadFlowParametersService {
 
     @Transactional
     public void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parametersInfos) {
-        loadFlowParametersRepository.findById(parametersUuid).orElseThrow().update(parametersInfos);
+        LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
+        //if the parameters is null it means it's a reset to defaultValues
+        if (parametersInfos == null) {
+            loadFlowParametersEntity.update(getDefaultParametersValues());
+        } else {
+            loadFlowParametersEntity.update(parametersInfos);
+        }
     }
 
     public void deleteParameters(UUID parametersUuid) {
@@ -68,10 +74,14 @@ public class LoadFlowParametersService {
 
     public UUID createDefaultParameters() {
         //default parameters
-        LoadFlowParametersInfos defaultParametersInfos = LoadFlowParametersInfos.builder()
+        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues();
+        return createParameters(defaultParametersInfos);
+    }
+
+    private LoadFlowParametersInfos getDefaultParametersValues() {
+        return LoadFlowParametersInfos.builder()
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
             .build();
-        return createParameters(defaultParametersInfos);
     }
 }
