@@ -121,6 +121,21 @@ class LoadFlowParametersTest {
     }
 
     @Test
+    void testResetToDefaultValues() throws Exception {
+        LoadFlowParametersInfos defaultValues = buildParameters();
+        LoadFlowParametersInfos parametersToUpdate = buildParametersUpdate();
+
+        UUID parametersUuid = saveAndRetunId(parametersToUpdate);
+
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+
+        assertThat(updatedParameters).recursivelyEquals(defaultValues);
+    }
+
+    @Test
     void testDelete() throws Exception {
 
         LoadFlowParametersInfos parametersToDelete = buildParameters();
