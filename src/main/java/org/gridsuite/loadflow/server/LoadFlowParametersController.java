@@ -78,7 +78,7 @@ public class LoadFlowParametersController {
     @ApiResponse(responseCode = "200", description = "parameters were updated")
     public ResponseEntity<Void> updateParameters(
             @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid,
-            @RequestBody LoadFlowParametersInfos parametersInfos) {
+            @RequestBody(required = false) LoadFlowParametersInfos parametersInfos) {
         parametersService.updateParameters(parametersUuid, parametersInfos);
         return ResponseEntity.ok().build();
     }
