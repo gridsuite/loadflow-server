@@ -12,7 +12,9 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import lombok.Setter;
+
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
 import java.util.UUID;
@@ -21,6 +23,7 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
+@Setter
 @Builder
 public class LoadFlowRunContext {
 
@@ -30,9 +33,9 @@ public class LoadFlowRunContext {
 
     private final String receiver;
 
-    private final String provider;
+    private String provider;
 
-    private final LoadFlowParametersInfos parameters;
+    private LoadFlowParametersValues parameters;
 
     private final ReportContext reportContext;
 
@@ -40,16 +43,16 @@ public class LoadFlowRunContext {
 
     private final Float limitReduction;
 
-    public static LoadFlowParameters buildParameters(LoadFlowParametersInfos parameters, String provider) {
-        LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
-                LoadFlowParameters.load() : parameters.getCommonParameters();
-        if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
+    public static LoadFlowParameters buildParameters(LoadFlowParametersValues parameters, String provider) {
+        LoadFlowParameters params = parameters == null || parameters.specificParameters() == null ?
+                LoadFlowParameters.load() : parameters.commonParameters();
+        if (parameters == null || parameters.specificParameters() == null || parameters.specificParameters().isEmpty()) {
             return params; // no specific LF params
         }
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
                 .filter(p -> p.getName().equals(provider))
                 .findFirst().orElseThrow(() -> new PowsyblException("LoadFLow provider not found " + provider));
-        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(parameters.getSpecificParameters())
+        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(parameters.specificParameters())
                 .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
         params.addExtension((Class) extension.getClass(), extension);
         return params;
