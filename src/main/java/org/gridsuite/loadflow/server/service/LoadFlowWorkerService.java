@@ -163,7 +163,7 @@ public class LoadFlowWorkerService {
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
         // limits are returned from the store by DESC duration / ASC value
-        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(Branch.Side.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
         if (!currentLimits.isPresent() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
             return null;
         } else {

@@ -10,8 +10,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -30,8 +30,8 @@ import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
-import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.LoadFlowExecutionService;
+import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.ReportService;
 import org.gridsuite.loadflow.server.service.UuidGeneratorService;
 import org.junit.After;
@@ -63,10 +63,7 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_MESSAGE;
 import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyFloat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -102,10 +99,10 @@ public class LoadFlowControllerTest {
 
     private static final class LimitViolationsMock {
         static List<LimitViolation> limitViolations = List.of(
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, Branch.Side.TWO),
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, Branch.Side.TWO),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, Branch.Side.ONE),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, Branch.Side.TWO));
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.ONE),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
     }
 
     @Autowired
