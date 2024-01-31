@@ -21,6 +21,7 @@ import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -51,11 +52,14 @@ public class LoadFlowService {
 
     private UuidGeneratorService uuidGeneratorService;
 
-    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService) {
+    private LoadFlowParametersService parametersService;
+
+    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService, LoadFlowParametersService parametersService) {
         this.notificationService = Objects.requireNonNull(notificationService);
         this.resultRepository = Objects.requireNonNull(resultRepository);
         this.objectMapper = Objects.requireNonNull(objectMapper);
         this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
+        this.parametersService = Objects.requireNonNull(parametersService);
     }
 
     public static List<String> getProviders() {
@@ -83,13 +87,16 @@ public class LoadFlowService {
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
-    public UUID runAndSaveResult(LoadFlowRunContext runContext) {
-        Objects.requireNonNull(runContext);
+    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, String provider, UUID parametersUuid) {
+        String providerToUse = provider != null ? provider : getDefaultProvider();
+        // set provider and parameters
+        loadFlowRunContext.setParameters(parametersService.getParametersValues(parametersUuid, providerToUse).orElse(null));
+        loadFlowRunContext.setProvider(providerToUse);
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
-        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, runContext).toMessage(objectMapper));
+        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, loadFlowRunContext).toMessage(objectMapper));
         return resultUuid;
     }
 
