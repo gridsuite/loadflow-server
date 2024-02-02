@@ -439,10 +439,9 @@ public class LoadFlowControllerTest {
         });
 
         assertNotNull(providers);
-        assertEquals(3, providers.size());
+        assertEquals(2, providers.size());
         assertTrue(providers.contains("DynaFlow"));
         assertTrue(providers.contains("OpenLoadFlow"));
-        assertTrue(providers.contains("Hades2"));
     }
 
     @Test
@@ -457,8 +456,8 @@ public class LoadFlowControllerTest {
 
     @Test
     public void getSpecificParametersTest() throws Exception {
-        // just Hades2
-        String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
+        // just OpenLoadFlow
+        String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=OpenLoadFlow"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn().getResponse().getContentAsString();
@@ -466,7 +465,7 @@ public class LoadFlowControllerTest {
         Map<String, List<Object>> lfParams = mapper.readValue(result, new TypeReference<>() {
         });
         assertNotNull(lfParams);
-        assertEquals(Set.of("Hades2"), lfParams.keySet());
+        assertEquals(Set.of("OpenLoadFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
         // all providers
@@ -478,7 +477,7 @@ public class LoadFlowControllerTest {
         lfParams = mapper.readValue(result, new TypeReference<>() {
         });
         assertNotNull(lfParams);
-        assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());
+        assertEquals(Set.of("OpenLoadFlow", "DynaFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
     }
