@@ -18,7 +18,7 @@ import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.service.computation.*;
 import org.springframework.messaging.Message;
@@ -34,7 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Service
-public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersInfos> {
+public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues> {
 
     public static final String LOADFLOW_LABEL = "LoadFlow";
 
@@ -123,7 +123,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
         // limits are returned from the store by DESC duration / ASC value
-        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(Branch.Side.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
         if (!currentLimits.isPresent() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
             return null;
         } else {

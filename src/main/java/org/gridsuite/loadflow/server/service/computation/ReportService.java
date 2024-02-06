@@ -11,7 +11,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModelJsonModule;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -40,7 +39,6 @@ public class ReportService {
 
     private ObjectMapper objectMapper;
 
-    @Autowired
     public ReportService(ObjectMapper objectMapper,
                          @Value("${gridsuite.services.report-server.base-uri:http://report-server/}") String reportServerBaseUri,
                          RestTemplate restTemplate) {

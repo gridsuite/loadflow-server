@@ -12,7 +12,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.computation.AbstractComputationRunContext;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 
@@ -22,18 +22,18 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
-public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersInfos> {
+public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersValues> {
 
     public LoadFlowParameters buildParameters() {
-        LoadFlowParameters params = parameters == null || parameters.getSpecificParameters() == null ?
-                LoadFlowParameters.load() : parameters.getCommonParameters();
-        if (parameters == null || parameters.getSpecificParameters() == null || parameters.getSpecificParameters().isEmpty()) {
+        LoadFlowParameters params = parameters == null || parameters.specificParameters() == null ?
+                LoadFlowParameters.load() : parameters.commonParameters();
+        if (parameters == null || parameters.specificParameters() == null || parameters.specificParameters().isEmpty()) {
             return params; // no specific LF params
         }
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
                 .filter(p -> p.getName().equals(provider))
                 .findFirst().orElseThrow(() -> new PowsyblException("LoadFLow provider not found " + provider));
-        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(parameters.getSpecificParameters())
+        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(parameters.specificParameters())
                 .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
         params.addExtension((Class) extension.getClass(), extension);
         return params;
@@ -41,7 +41,7 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
 
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportContext reportContext, String userId,
-                              Float limitReduction, LoadFlowParametersInfos parameters) {
+                              Float limitReduction, LoadFlowParametersValues parameters) {
         super(networkUuid, variantId, receiver, provider, reportContext, userId, limitReduction, parameters);
     }
 }

@@ -8,7 +8,7 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.computation.AbstractResultContext;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.messaging.Message;
@@ -36,13 +36,13 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         String provider = (String) headers.get(HEADER_PROVIDER);
         String userId = (String) headers.get(HEADER_USER_ID);
 
-        LoadFlowParametersInfos parameters;
+        LoadFlowParametersValues parameters;
         try {
             // can't use the following line because jackson doesn't unwrap null in the rootname
             // -> '{"parameters": null}' throws instead returning null
             //     MismatchedInputException: Cannot deserialize value of type `LoadFlowParametersInfos` from Null value (token `JsonToken.VALUE_NULL`)
             // parameters = objectMapper.reader().withRootName(MESSAGE_ROOT_NAME).readValue(message.getPayload(), LoadFlowParametersInfos.class);
-            parameters = objectMapper.treeToValue(objectMapper.readTree(message.getPayload()).get(MESSAGE_ROOT_NAME), LoadFlowParametersInfos.class);
+            parameters = objectMapper.treeToValue(objectMapper.readTree(message.getPayload()).get(MESSAGE_ROOT_NAME), LoadFlowParametersValues.class);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }

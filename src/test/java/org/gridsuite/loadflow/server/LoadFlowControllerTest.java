@@ -10,8 +10,8 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
@@ -28,13 +28,14 @@ import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.computation.ExecutionService;
 import org.gridsuite.loadflow.server.service.computation.NotificationService;
 import org.gridsuite.loadflow.server.service.computation.ReportService;
 import org.gridsuite.loadflow.server.service.computation.UuidGeneratorService;
+import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -46,6 +47,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
 import org.springframework.http.MediaType;
@@ -64,12 +66,10 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.LOADFLOW_LABEL;
 import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_USER_ID;
 import static org.junit.Assert.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyFloat;
-import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -87,6 +87,7 @@ public class LoadFlowControllerTest {
     private static final UUID RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5d");
     private static final UUID OTHER_RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5a");
     private static final UUID REPORT_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120002");
+    private static final UUID PARAMETERS_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120003");
 
     private static final String VARIANT_1_ID = "variant_1";
     private static final String VARIANT_2_ID = "variant_2";
@@ -103,10 +104,10 @@ public class LoadFlowControllerTest {
 
     private static final class LimitViolationsMock {
         static List<LimitViolation> limitViolations = List.of(
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, Branch.Side.TWO),
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, Branch.Side.TWO),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, Branch.Side.ONE),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, Branch.Side.TWO));
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.ONE),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
     }
 
     @Autowired
@@ -123,6 +124,9 @@ public class LoadFlowControllerTest {
 
     @Autowired
     private ExecutionService executionService;
+
+    @SpyBean
+    private LoadFlowParametersService loadFlowParametersService;
 
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
@@ -218,7 +222,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -264,15 +268,14 @@ public class LoadFlowControllerTest {
 
             LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
             loadFlowParameters.setDc(true);
-            LoadFlowParametersInfos loadFlowParametersInfos = LoadFlowParametersInfos.builder()
+            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
                 .commonParameters(loadFlowParameters)
                 .specificParameters(Collections.emptyMap())
                 .build();
-            String jsonLoadFlowParameters = mapper.writeValueAsString(loadFlowParametersInfos);
+            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
-                    "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&limitReduction=0.7", NETWORK_UUID)
-                    .content(jsonLoadFlowParameters).contentType(MediaType.APPLICATION_JSON)
+                    "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
                     .header(HEADER_USER_ID, "userId"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -305,7 +308,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -343,7 +346,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -394,7 +397,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID + "&variantId=" + VARIANT_2_ID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID + "&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
                             .header(HEADER_USER_ID, "user"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -413,7 +416,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
                             .header(HEADER_USER_ID, "user"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -434,10 +437,9 @@ public class LoadFlowControllerTest {
         });
 
         assertNotNull(providers);
-        assertEquals(3, providers.size());
+        assertEquals(2, providers.size());
         assertTrue(providers.contains("DynaFlow"));
         assertTrue(providers.contains("OpenLoadFlow"));
-        assertTrue(providers.contains("Hades2"));
     }
 
     @Test
@@ -452,8 +454,8 @@ public class LoadFlowControllerTest {
 
     @Test
     public void getSpecificParametersTest() throws Exception {
-        // just Hades2
-        String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
+        // just OpenLoadFlow
+        String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=OpenLoadFlow"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn().getResponse().getContentAsString();
@@ -461,7 +463,7 @@ public class LoadFlowControllerTest {
         Map<String, List<Object>> lfParams = mapper.readValue(result, new TypeReference<>() {
         });
         assertNotNull(lfParams);
-        assertEquals(Set.of("Hades2"), lfParams.keySet());
+        assertEquals(Set.of("OpenLoadFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
         // all providers
@@ -473,7 +475,7 @@ public class LoadFlowControllerTest {
         lfParams = mapper.readValue(result, new TypeReference<>() {
         });
         assertNotNull(lfParams);
-        assertEquals(Set.of("Hades2", "OpenLoadFlow", "DynaFlow"), lfParams.keySet());
+        assertEquals(Set.of("OpenLoadFlow", "DynaFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
     }

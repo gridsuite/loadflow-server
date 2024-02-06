@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server.service.computation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import org.gridsuite.loadflow.server.repositories.computation.ComputationResultRepository;
+import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,17 +29,22 @@ public abstract class AbstractComputationService<R> {
     protected NotificationService notificationService;
     @Getter
     protected String defaultProvider;
+
     protected UuidGeneratorService uuidGeneratorService;
     protected ComputationResultRepository resultRepository;
 
+    protected LoadFlowParametersService parametersService;
+
     protected AbstractComputationService(NotificationService notificationService, ComputationResultRepository resultRepository,
                                          ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService,
+                                         LoadFlowParametersService parametersService,
                                          String defaultProvider) {
         this.notificationService = Objects.requireNonNull(notificationService);
         this.objectMapper = Objects.requireNonNull(objectMapper);
         this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
         this.defaultProvider = Objects.requireNonNull(defaultProvider);
         this.resultRepository = Objects.requireNonNull(resultRepository);
+        this.parametersService = Objects.requireNonNull(parametersService);
     }
 
     public void stop(UUID resultUuid, String receiver) {
@@ -47,7 +53,7 @@ public abstract class AbstractComputationService<R> {
 
     public abstract List<String> getProviders();
 
-    public abstract UUID runAndSaveResult(R runContext);
+    public abstract UUID runAndSaveResult(R runContext, String provider, UUID parametersUuid);
 
     public void deleteResult(UUID resultUuid) {
         resultRepository.delete(resultUuid);

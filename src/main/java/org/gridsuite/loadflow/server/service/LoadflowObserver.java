@@ -10,7 +10,7 @@ import com.powsybl.loadflow.LoadFlowResult;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.NonNull;
-import org.gridsuite.loadflow.server.dto.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.computation.AbstractComputationObserver;
 import org.springframework.stereotype.Service;
 
@@ -20,7 +20,7 @@ import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.LOADFL
  * @author Slimane Amar <slimane.amar at rte-france.com>
  */
 @Service
-public class LoadflowObserver extends AbstractComputationObserver<LoadFlowResult, LoadFlowParametersInfos> {
+public class LoadflowObserver extends AbstractComputationObserver<LoadFlowResult, LoadFlowParametersValues> {
 
     public LoadflowObserver(@NonNull ObservationRegistry observationRegistry, @NonNull MeterRegistry meterRegistry) {
         super(observationRegistry, meterRegistry, LOADFLOW_LABEL);
