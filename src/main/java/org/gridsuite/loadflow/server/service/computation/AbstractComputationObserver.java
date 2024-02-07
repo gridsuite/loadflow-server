@@ -25,26 +25,22 @@ public abstract class AbstractComputationObserver<R, P> {
     protected static final String COMPUTATION_COUNTER_NAME = OBSERVATION_PREFIX + "count";
     protected final ObservationRegistry observationRegistry;
     protected final MeterRegistry meterRegistry;
-    private final String computationType;
 
-    protected AbstractComputationObserver(@NonNull ObservationRegistry observationRegistry, @NonNull MeterRegistry meterRegistry, String computationType) {
+    protected AbstractComputationObserver(@NonNull ObservationRegistry observationRegistry, @NonNull MeterRegistry meterRegistry) {
         this.observationRegistry = observationRegistry;
         this.meterRegistry = meterRegistry;
-        this.computationType = computationType;
     }
+
+    protected abstract String getComputationType();
 
     protected Observation createObservation(String name, AbstractComputationRunContext<P> runContext) {
         return Observation.createNotStarted(OBSERVATION_PREFIX + name, observationRegistry)
                 .lowCardinalityKeyValue(PROVIDER_TAG_NAME, runContext.getProvider())
-                .lowCardinalityKeyValue(TYPE_TAG_NAME, computationType);
+                .lowCardinalityKeyValue(TYPE_TAG_NAME, getComputationType());
     }
 
     public <E extends Throwable> void observe(String name, AbstractComputationRunContext<P> runContext, Observation.CheckedRunnable<E> callable) throws E {
         createObservation(name, runContext).observeChecked(callable);
-    }
-
-    public <T, E extends Throwable> T observe(String name, AbstractComputationRunContext<P> runContext, Observation.CheckedCallable<T, E> callable) throws E {
-        return createObservation(name, runContext).observeChecked(callable);
     }
 
     public <T extends R, E extends Throwable> T observeRun(
@@ -57,7 +53,7 @@ public abstract class AbstractComputationObserver<R, P> {
     private void incrementCount(AbstractComputationRunContext<P> runContext, R result) {
         Counter.builder(COMPUTATION_COUNTER_NAME)
                 .tag(PROVIDER_TAG_NAME, runContext.getProvider())
-                .tag(TYPE_TAG_NAME, computationType)
+                .tag(TYPE_TAG_NAME, getComputationType())
                 .tag(STATUS_TAG_NAME, getResultStatus(result))
                 .register(meterRegistry)
                 .increment();

@@ -63,7 +63,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.LOADFLOW_LABEL;
+import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.gridsuite.loadflow.server.service.computation.NotificationService.HEADER_USER_ID;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -362,7 +362,7 @@ public class LoadFlowControllerTest {
             assertNotNull(message);
             assertEquals(RESULT_UUID.toString(), message.getHeaders().get("resultUuid"));
             assertEquals("me", message.getHeaders().get("receiver"));
-            assertEquals(NotificationService.getCancelMessage(LOADFLOW_LABEL), message.getHeaders().get("message"));
+            assertEquals(NotificationService.getCancelMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
         }
     }
 

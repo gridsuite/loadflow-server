@@ -17,10 +17,10 @@ import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.service.computation.AbstractComputationService;
 import org.gridsuite.loadflow.server.service.computation.NotificationService;
 import org.gridsuite.loadflow.server.service.computation.UuidGeneratorService;
+import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
@@ -36,13 +36,18 @@ import java.util.stream.Collectors;
 @Service
 public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext> {
 
+    public static final String COMPUTATION_TYPE = "loadflow";
+
+    private final LoadFlowParametersService parametersService;
+
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultRepository resultRepository,
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
-        super(notificationService, resultRepository, objectMapper, uuidGeneratorService, parametersService, defaultProvider);
+        super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
+        this.parametersService = parametersService;
     }
 
     private LoadFlowResultRepository getResultRepository() {
@@ -110,7 +115,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
         Optional<LoadFlowResultEntity> result = getResultRepository().findResults(resultUuid);
-        LoadFlowResult loadFlowResult = result.map(r -> fromEntity(r)).orElse(null);
+        LoadFlowResult loadFlowResult = result.map(LoadFlowService::fromEntity).orElse(null);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }

@@ -18,15 +18,14 @@ import java.util.UUID;
  * @param <P> parameters structure specific to the computation
  */
 @Getter
-@Setter
 @AllArgsConstructor
 public abstract class AbstractComputationRunContext<P> {
     private final UUID networkUuid;
     private final String variantId;
     private final String receiver;
-    protected String provider;
     private final ReportContext reportContext;
     private final String userId;
     private final Float limitReduction;
-    protected P parameters;
+    @Setter protected String provider;
+    @Setter protected P parameters;
 }

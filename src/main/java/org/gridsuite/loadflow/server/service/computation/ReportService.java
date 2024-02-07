@@ -11,6 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModelJsonModule;
+import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -33,11 +34,12 @@ public class ReportService {
     private static final String DELIMITER = "/";
     private static final String QUERY_PARAM_REPORT_TYPE_FILTER = "reportTypeFilter";
     private static final String QUERY_PARAM_REPORT_THROW_ERROR = "errorOnReportNotFound";
+    @Setter
     private String reportServerBaseUri;
 
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     public ReportService(ObjectMapper objectMapper,
                          @Value("${gridsuite.services.report-server.base-uri:http://report-server/}") String reportServerBaseUri,
@@ -47,10 +49,6 @@ public class ReportService {
         this.restTemplate = restTemplate;
         ReporterModelJsonModule reporterModelJsonModule = new ReporterModelJsonModule();
         objectMapper.registerModule(reporterModelJsonModule);
-    }
-
-    public void setReportServerBaseUri(String reportServerBaseUri) {
-        this.reportServerBaseUri = reportServerBaseUri;
     }
 
     private String getReportServerURI() {

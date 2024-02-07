@@ -23,7 +23,11 @@ import static org.gridsuite.loadflow.server.service.computation.NotificationServ
  * @param <R> run context specific to a computation, including parameters
  */
 @Getter
-public abstract class AbstractResultContext<R extends AbstractComputationRunContext> {
+public abstract class AbstractResultContext<R extends AbstractComputationRunContext<?>> {
+
+    protected static final String RESULT_UUID_HEADER = "resultUuid";
+
+    protected static final String NETWORK_UUID_HEADER = "networkUuid";
 
     protected static final String REPORT_UUID_HEADER = "reportUuid";
 
@@ -47,16 +51,15 @@ public abstract class AbstractResultContext<R extends AbstractComputationRunCont
     public Message<String> toMessage(ObjectMapper objectMapper) {
         String parametersJson;
         try {
-            // can't use the following line because jackson doesn't wrap null in the rootname
+            // can't use 'withRootName(MESSAGE_ROOT_NAME).writeValueAsString' because jackson doesn't wrap null in the rootname
             // -> outputs 'null' instead of '{"parameters": null}'
-            // parametersJson = objectMapper.writer().withRootName(MESSAGE_ROOT_NAME).writeValueAsString(runContext.getParameters());
             parametersJson = objectMapper.writeValueAsString(objectMapper.createObjectNode().putPOJO(MESSAGE_ROOT_NAME, runContext.getParameters()));
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
         return MessageBuilder.withPayload(parametersJson)
-                .setHeader("resultUuid", resultUuid.toString())
-                .setHeader("networkUuid", runContext.getNetworkUuid().toString())
+                .setHeader(RESULT_UUID_HEADER, resultUuid.toString())
+                .setHeader(NETWORK_UUID_HEADER, runContext.getNetworkUuid().toString())
                 .setHeader(VARIANT_ID_HEADER, runContext.getVariantId())
                 .setHeader(HEADER_RECEIVER, runContext.getReceiver())
                 .setHeader(HEADER_PROVIDER, runContext.getProvider())

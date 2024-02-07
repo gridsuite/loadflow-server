@@ -29,8 +29,8 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
     public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
-        UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, "resultUuid"));
-        UUID networkUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, "networkUuid"));
+        UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, RESULT_UUID_HEADER));
+        UUID networkUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, NETWORK_UUID_HEADER));
         String variantId = (String) headers.get(VARIANT_ID_HEADER);
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
@@ -38,10 +38,9 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
 
         LoadFlowParametersValues parameters;
         try {
-            // can't use the following line because jackson doesn't unwrap null in the rootname
+            // can't use 'withRootName(MESSAGE_ROOT_NAME).writeValueAsString' because jackson doesn't wrap null in the rootname
             // -> '{"parameters": null}' throws instead returning null
             //     MismatchedInputException: Cannot deserialize value of type `LoadFlowParametersInfos` from Null value (token `JsonToken.VALUE_NULL`)
-            // parameters = objectMapper.reader().withRootName(MESSAGE_ROOT_NAME).readValue(message.getPayload(), LoadFlowParametersInfos.class);
             parameters = objectMapper.treeToValue(objectMapper.readTree(message.getPayload()).get(MESSAGE_ROOT_NAME), LoadFlowParametersValues.class);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);

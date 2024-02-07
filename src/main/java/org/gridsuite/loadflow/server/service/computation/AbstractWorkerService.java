@@ -9,18 +9,20 @@ package org.gridsuite.loadflow.server.service.computation;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.Sets;
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.repositories.computation.ComputationResultRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.web.server.ResponseStatusException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.Set;
@@ -33,8 +35,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Consumer;
-
-import static org.gridsuite.loadflow.server.service.LoadFlowWorkerService.LOADFLOW_LABEL;
 
 /**
  * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com
@@ -56,7 +56,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
     protected final ComputationResultRepository resultRepository;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
     protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
-    private final String computationType;
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
                                     NotificationService notificationService,
@@ -64,8 +63,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
                                     ComputationResultRepository resultRepository,
                                     ExecutionService executionService,
                                     AbstractComputationObserver<S, P> observer,
-                                    ObjectMapper objectMapper,
-                                    String computationType) {
+                                    ObjectMapper objectMapper) {
         this.networkStoreService = networkStoreService;
         this.notificationService = notificationService;
         this.reportService = reportService;
@@ -73,7 +71,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         this.observer = observer;
         this.objectMapper = objectMapper;
         this.resultRepository = resultRepository;
-        this.computationType = computationType;
     }
 
     protected Network getNetwork(AbstractComputationRunContext<P> runContext) {
@@ -92,10 +89,10 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
         resultRepository.delete(resultUuid);
-        notificationService.publishStop(resultUuid, receiver, LOADFLOW_LABEL);
+        notificationService.publishStop(resultUuid, receiver, getComputationType());
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("{} (resultUuid='{}')",
-                    NotificationService.getCancelMessage(LOADFLOW_LABEL),
+                    NotificationService.getCancelMessage(getComputationType()),
                     resultUuid);
         }
     }
@@ -127,9 +124,9 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
                 AtomicReference<Long> startTime = new AtomicReference<>();
                 startTime.set(System.nanoTime());
 
-                Network network = observer.observe("network.load", resultContext.getRunContext(), () -> getNetwork(resultContext.getRunContext()));
+                Network network = getNetwork(resultContext.getRunContext());
 
-                S result = run(resultContext.getRunContext(), resultContext.getResultUuid());
+                S result = run(network, resultContext);
 
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
@@ -141,7 +138,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
                 if (result != null) {  // result available
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
-                    LOGGER.info("{} complete (resultUuid='{}')", computationType, resultContext.getResultUuid());
+                    LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
                 } else {  // result not available : stop computation request
                     if (cancelComputationRequests.get(resultContext.getResultUuid()) != null) {
                         cleanResultsAndPublishCancel(resultContext.getResultUuid(), cancelComputationRequests.get(resultContext.getResultUuid()).getReceiver());
@@ -151,10 +148,10 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (!(e instanceof CancellationException)) {
-                    LOGGER.error(NotificationService.getFailedMessage(LOADFLOW_LABEL), e);
+                    LOGGER.error(NotificationService.getFailedMessage(getComputationType()), e);
                     notificationService.publishFail(
                             resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
-                            e.getMessage(), resultContext.getRunContext().getUserId(), LOADFLOW_LABEL);
+                            e.getMessage(), resultContext.getRunContext().getUserId(), getComputationType());
                     resultRepository.delete(resultContext.getResultUuid());
                 }
             } finally {
@@ -172,5 +169,53 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     protected abstract void saveResult(Network network, AbstractResultContext<R> resultContext, S result);
 
-    protected abstract S run(R context, UUID resultUuid) throws Exception;
+    protected S run(Network network, AbstractResultContext<R> resultContext) throws Exception {
+        LOGGER.info("Run {} computation ...", getComputationType());
+
+        R context = resultContext.runContext;
+        String provider = context.getProvider();
+        AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
+        Reporter reporter = Reporter.NO_OP;
+        if (context.getReportContext() != null) {
+            final String reportType = context.getReportContext().getReportType();
+            String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
+            rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
+            reporter = rootReporter.get().createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
+            // Delete any previous computation logs
+            observer.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
+        }
+
+        CompletableFuture<S> future = runAsync(network, context, provider, reporter, resultContext.getResultUuid());
+
+        S result = future == null ? null : observer.observeRun("run", context, future::get);
+        if (context.getReportContext().getReportId() != null) {
+            observer.observe("report.send", context, () -> reportService.sendReport(context.getReportContext().getReportId(), rootReporter.get()));
+        }
+        return result;
+    }
+
+    protected CompletableFuture<S> runAsync(
+            Network network,
+            R runContext,
+            String provider,
+            Reporter reporter,
+            UUID resultUuid) {
+        lockRunAndCancel.lock();
+        try {
+            if (resultUuid != null && cancelComputationRequests.get(resultUuid) != null) {
+                return null;
+            }
+            CompletableFuture<S> future = getCompletableFuture(network, runContext, provider, reporter);
+            if (resultUuid != null) {
+                futures.put(resultUuid, future);
+            }
+            return future;
+        } finally {
+            lockRunAndCancel.unlock();
+        }
+    }
+
+    protected abstract String getComputationType();
+
+    protected abstract CompletableFuture<S> getCompletableFuture(Network network, R runContext, String provider, Reporter reporter);
 }

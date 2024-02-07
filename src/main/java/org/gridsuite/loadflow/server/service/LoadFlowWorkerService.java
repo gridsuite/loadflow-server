@@ -8,7 +8,6 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -26,9 +25,9 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
+
+import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
@@ -36,13 +35,11 @@ import java.util.concurrent.atomic.AtomicReference;
 @Service
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues> {
 
-    public static final String LOADFLOW_LABEL = "LoadFlow";
-
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultRepository resultRepository,
-                                 ExecutionService executionService, LoadflowObserver loadflowObserver,
+                                 ExecutionService executionService, LoadFlowObserver loadflowObserver,
                                  ObjectMapper objectMapper) {
-        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper, LOADFLOW_LABEL);
+        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper);
     }
 
     private LoadFlowResultRepository getResultRepository() {
@@ -50,67 +47,35 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
+    protected String getComputationType() {
+        return COMPUTATION_TYPE;
+    }
+
+    @Override
     protected LoadFlowResultContext fromMessage(Message<String> message) {
         return LoadFlowResultContext.fromMessage(message, objectMapper);
     }
 
-    private CompletableFuture<LoadFlowResult> runAsync(
-            Network network,
-            String variantId,
-            String provider,
-            LoadFlowParameters params,
-            Reporter reporter,
-            UUID resultUuid) {
-        lockRunAndCancel.lock();
-        try {
-            if (resultUuid != null && cancelComputationRequests.get(resultUuid) != null) {
-                return null;
-            }
-            LoadFlow.Runner runner = LoadFlow.find(provider);
-            CompletableFuture<LoadFlowResult> future = runner.runAsync(
-                    network,
-                    variantId != null ? variantId : VariantManagerConstants.INITIAL_VARIANT_ID,
-                    executionService.getComputationManager(),
-                    params,
-                    reporter);
-            if (resultUuid != null) {
-                futures.put(resultUuid, future);
-            }
-            return future;
-        } finally {
-            lockRunAndCancel.unlock();
+    @Override
+    protected LoadFlowResult run(Network network, AbstractResultContext<LoadFlowRunContext> resultContext) throws Exception {
+        LoadFlowResult result = super.run(network, resultContext);
+        if (result != null && result.isOk()) {
+            // flush each network in the network store
+            observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(network));
         }
+        return result;
     }
 
     @Override
-    protected LoadFlowResult run(LoadFlowRunContext context, UUID resultUuid) throws Exception {
-        LoadFlowParameters params = context.buildParameters();
-        LOGGER.info("Run loadFlow...");
-        Network network = observer.observe("network.load", context, () -> getNetwork(context));
-
-        String provider = context.getProvider();
-        AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
-        Reporter reporter = Reporter.NO_OP;
-        if (context.getReportContext() != null) {
-            final String reportType = context.getReportContext().getReportType();
-            String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
-            rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
-            reporter = rootReporter.get().createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
-            // Delete any previous LF computation logs
-            observer.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
-        }
-
-        CompletableFuture<LoadFlowResult> future = runAsync(network, context.getVariantId(), provider, params, reporter, resultUuid);
-
-        LoadFlowResult result = future == null ? null : observer.observeRun("run", context, future::get);
-        if (result != null && result.isOk()) {
-            // flush each network in the network store
-            observer.observe("network.save", context, () -> networkStoreService.flush(network));
-        }
-        if (context.getReportContext().getReportId() != null) {
-            observer.observe("report.send", context, () -> reportService.sendReport(context.getReportContext().getReportId(), rootReporter.get()));
-        }
-        return result;
+    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, Reporter reporter) {
+        LoadFlowParameters params = runContext.buildParameters();
+        LoadFlow.Runner runner = LoadFlow.find(provider);
+        return runner.runAsync(
+                network,
+                runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
+                executionService.getComputationManager(),
+                params,
+                reporter);
     }
 
     @Override

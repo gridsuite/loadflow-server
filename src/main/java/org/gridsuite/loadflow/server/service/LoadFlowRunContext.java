@@ -42,6 +42,6 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportContext reportContext, String userId,
                               Float limitReduction, LoadFlowParametersValues parameters) {
-        super(networkUuid, variantId, receiver, provider, reportContext, userId, limitReduction, parameters);
+        super(networkUuid, variantId, receiver, reportContext, userId, limitReduction, provider, parameters);
     }
 }
