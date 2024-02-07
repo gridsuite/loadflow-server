@@ -31,6 +31,6 @@ powsybl-ws:
   database:
     name: loadflow
 
-# default values for loadflow providers "Hades2" or "OpenLoadFlow"
+# default values for loadflow providers "DynaFlow" or "OpenLoadFlow"
 loadflow:
   default-provider: OpenLoadFlow
