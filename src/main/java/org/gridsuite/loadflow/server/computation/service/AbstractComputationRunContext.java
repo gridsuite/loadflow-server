@@ -9,7 +9,7 @@ package org.gridsuite.loadflow.server.computation.service;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.gridsuite.loadflow.server.utils.ReportContext;
+import org.gridsuite.loadflow.server.computation.utils.ReportContext;
 
 import java.util.UUID;
 
