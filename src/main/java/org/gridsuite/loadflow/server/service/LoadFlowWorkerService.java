@@ -19,7 +19,7 @@ import com.powsybl.security.Security;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
-import org.gridsuite.loadflow.server.service.computation.*;
+import org.gridsuite.loadflow.server.computation.service.*;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 

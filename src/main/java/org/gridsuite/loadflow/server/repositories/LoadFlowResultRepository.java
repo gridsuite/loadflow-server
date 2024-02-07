@@ -14,7 +14,7 @@ import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
-import org.gridsuite.loadflow.server.repositories.computation.ComputationResultRepository;
+import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 

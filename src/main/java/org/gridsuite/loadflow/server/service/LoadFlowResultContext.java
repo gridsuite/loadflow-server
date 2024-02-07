@@ -9,7 +9,7 @@ package org.gridsuite.loadflow.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.service.computation.AbstractResultContext;
+import org.gridsuite.loadflow.server.computation.service.AbstractResultContext;
 import org.gridsuite.loadflow.server.utils.ReportContext;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
@@ -18,7 +18,7 @@ import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.gridsuite.loadflow.server.service.computation.NotificationService.*;
+import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
 

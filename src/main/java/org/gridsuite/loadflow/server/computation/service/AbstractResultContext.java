@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.gridsuite.loadflow.server.service.computation;
+package org.gridsuite.loadflow.server.computation.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -16,7 +16,7 @@ import java.io.UncheckedIOException;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.gridsuite.loadflow.server.service.computation.NotificationService.*;
+import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
 
 /**
  * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com
