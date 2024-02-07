@@ -6,6 +6,8 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.powsybl.iidm.network.Branch;
+import com.powsybl.security.LimitViolationType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -17,10 +19,14 @@ import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.utils.ReportContext;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,7 +62,7 @@ public class LoadFlowController {
                                     @Parameter(description = "The limit reduction") @RequestParam(name = "limitReduction", required = false, defaultValue = "0.8F") Float limitReduction,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
-                                    ) {
+    ) {
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
                 .networkUuid(networkUuid)
                 .variantId(variantId)
@@ -69,14 +75,27 @@ public class LoadFlowController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
     }
 
+    @GetMapping(value = "/results/{resultUuid}/limit-violations")
+    @Operation(summary = "Get limit violations")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The limit violations")})
+    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid,
+                                                                        @Parameter(description = "Filters") @RequestParam(name = "filters", required = false) String stringFilters,
+                                                                        @Parameter(description = "Sort parameters") Sort sort) {
+        String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
+        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(resultUuid, decodedStringFilters, sort);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+    }
+
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a loadflow result from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow result"),
         @ApiResponse(responseCode = "404", description = "The loadflow result has not been found")})
-    public ResponseEntity<LoadFlowResult> getResult(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        LoadFlowResult result = loadFlowService.getResult(resultUuid);
-        return result != null ? ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result)
-                : ResponseEntity.notFound().build();
+    public ResponseEntity<LoadFlowResult> getResult(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid,
+                                                @Parameter(description = "Filters") @RequestParam(name = "filters", required = false) String stringFilters,
+                                                @Parameter(description = "Sort parameters") Sort sort) {
+        String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
+        LoadFlowResult result = loadFlowService.getResult(resultUuid, decodedStringFilters, sort);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 
     @DeleteMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
@@ -144,10 +163,27 @@ public class LoadFlowController {
                 .body(LoadFlowService.getSpecificLoadFlowParameters(provider));
     }
 
-    @GetMapping(value = "/results/{resultUuid}/limit-violations")
-    @Operation(summary = "Get limit violations")
-    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The limit violations")})
-    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getLimitViolations(resultUuid));
+    @GetMapping(value = "/limit-types", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get available limit types")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available limit types"))
+    public ResponseEntity<List<LimitViolationType>> getLimitTypes() {
+        List<LimitViolationType> limitViolationTypesToRemove = List.of(LimitViolationType.HIGH_SHORT_CIRCUIT_CURRENT, LimitViolationType.LOW_SHORT_CIRCUIT_CURRENT, LimitViolationType.LOW_VOLTAGE_ANGLE, LimitViolationType.HIGH_VOLTAGE_ANGLE);
+        return ResponseEntity.ok().body(Arrays.stream(LimitViolationType.values())
+                .filter(lm -> !limitViolationTypesToRemove.contains(lm))
+                .toList());
+    }
+
+    @GetMapping(value = "/branch-sides", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get available branch sides")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available branch sides"))
+    public ResponseEntity<Branch.Side[]> getBranchSides() {
+        return ResponseEntity.ok().body(Branch.Side.values());
+    }
+
+    @GetMapping(value = "/computation-status", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get available computation status")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available computation status"))
+    public ResponseEntity<com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status[]> getComputationStatus() {
+        return ResponseEntity.ok().body(com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status.values());
     }
 }

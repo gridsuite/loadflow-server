@@ -6,27 +6,31 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.tuple.Pair;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LimitViolationsInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowResult;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.repositories.LimitViolationsRepository;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.utils.LoadflowException;
+import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -41,6 +45,9 @@ public class LoadFlowService {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
+    private static final String PREFIX_SORT_LOADFLOW_RESULT = "componentResults.";
+    private static final String PREFIX_SORT_LIMI_VIOLATION_RESULT = "limitViolations.";
+
     @Value("${loadflow.default-provider}")
     private String defaultProvider;
 
@@ -54,12 +61,15 @@ public class LoadFlowService {
 
     private LoadFlowParametersService parametersService;
 
-    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService, LoadFlowParametersService parametersService) {
+    private LimitViolationsRepository limitViolationsRepository;
+
+    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService, LoadFlowParametersService parametersService, LimitViolationsRepository limitViolationsRepository) {
         this.notificationService = Objects.requireNonNull(notificationService);
         this.resultRepository = Objects.requireNonNull(resultRepository);
         this.objectMapper = Objects.requireNonNull(objectMapper);
         this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
         this.parametersService = Objects.requireNonNull(parametersService);
+        this.limitViolationsRepository = Objects.requireNonNull(limitViolationsRepository);
     }
 
     public static List<String> getProviders() {
@@ -121,11 +131,12 @@ public class LoadFlowService {
                 .build();
     }
 
-    public LoadFlowResult getResult(UUID resultUuid) {
+    public LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
-        Optional<LoadFlowResultEntity> result = resultRepository.findResults(resultUuid);
-        LoadFlowResult loadFlowResult = result.map(r -> fromEntity(r)).orElse(null);
+        Sort sortModified = addPrefixToSort(PREFIX_SORT_LOADFLOW_RESULT, sort);
+        List<LoadFlowResultEntity> result = resultRepository.findResults(resultUuid, fromStringFiltersToDTO(stringFilters), sortModified);
+        LoadFlowResult loadFlowResult = result.stream().map(r -> fromEntity(r)).findFirst().orElse(null);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
@@ -169,9 +180,53 @@ public class LoadFlowService {
                 .collect(Collectors.toList()).isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
-    public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
-        Optional<LimitViolationsEntity> limitViolationsEntity = resultRepository.findLimitViolations(resultUuid);
-        LimitViolationsInfos limitViolations = limitViolationsEntity.map(LimitViolationsEntity::toLimitViolationsInfos).orElse(null);
-        return limitViolations != null ? limitViolations.getLimitViolations() : Collections.emptyList();
+    public void assertResultExists(UUID resultUuid) {
+        if (limitViolationsRepository.findById(resultUuid).isEmpty()) {
+            throw new LoadflowException(LoadflowException.Type.RESULT_NOT_FOUND);
+        }
     }
+
+    public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
+        assertResultExists(resultUuid);
+        Sort sortModified = addPrefixToSort(PREFIX_SORT_LIMI_VIOLATION_RESULT, sort);
+        List<LimitViolationsEntity> limitViolationsResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sortModified);
+        return limitViolationsResult.stream()
+                .findFirst()
+                .map(entity -> entity.getLimitViolations().stream().map(LimitViolationInfos::toLimitViolationInfos).toList())
+                .orElse(List.of());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LimitViolationsEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+        Objects.requireNonNull(resultUuid);
+        return findLimitViolationsEntities(resultUuid, resourceFilters, sort);
+    }
+
+    private List<LimitViolationsEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+        Specification<LimitViolationsEntity> specification = SpecificationBuilder.buildLimitViolationsSpecifications(limitViolationUuid, resourceFilters);
+        return limitViolationsRepository.findAll(specification, sort);
+    }
+
+    private Sort addPrefixToSort(String prefix, Sort sort) {
+        Sort modifiedSort = Sort.unsorted();
+        for (Sort.Order originalOrder : sort) {
+            String modifiedProperty = prefix + originalOrder.getProperty();
+            Sort.Order modifiedOrder = new Sort.Order(Sort.Direction.DESC, modifiedProperty);
+            modifiedSort = modifiedSort.and(Sort.by(modifiedOrder));
+        }
+        return modifiedSort;
+    }
+
+    public List<ResourceFilter> fromStringFiltersToDTO(String stringFilters) {
+        if (stringFilters == null || stringFilters.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(stringFilters, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
+        }
+    }
+
 }

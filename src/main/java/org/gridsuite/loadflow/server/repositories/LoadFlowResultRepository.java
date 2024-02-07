@@ -10,10 +10,14 @@ import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,9 +97,10 @@ public class LoadFlowResultRepository {
     }
 
     @Transactional(readOnly = true)
-    public Optional<LoadFlowResultEntity> findResults(UUID resultUuid) {
+    public List<LoadFlowResultEntity> findResults(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
-        return resultRepository.findByResultUuid(resultUuid);
+        Specification<LoadFlowResultEntity> specification = SpecificationBuilder.buildLoadflowResultSpecifications(resultUuid, resourceFilters);
+        return resultRepository.findAll(specification, sort);
     }
 
     @Transactional
@@ -113,8 +118,7 @@ public class LoadFlowResultRepository {
     }
 
     @Transactional(readOnly = true)
-    public Optional<LimitViolationsEntity> findLimitViolations(UUID resultUuid) {
-        Objects.requireNonNull(resultUuid);
-        return limitViolationsRepository.findByResultUuid(resultUuid);
+    public List<LimitViolationsEntity> findLimitViolations(Specification specification, Sort sort) {
+        return limitViolationsRepository.findAll(specification, sort);
     }
 }

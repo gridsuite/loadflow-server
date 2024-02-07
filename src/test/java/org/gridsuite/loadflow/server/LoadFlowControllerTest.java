@@ -243,16 +243,20 @@ public class LoadFlowControllerTest {
             org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
             assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
 
-            // should throw not found if result does not exist
-            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
-                    .andExpect(status().isNotFound());
+            // Should return an empty result with status OK if the result does not exist
+            result = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
+                    .andExpect(status().isOk())
+                    .andReturn();
+            assertEquals(0, result.getResponse().getContentLength());
 
             // test one result deletion
             mockMvc.perform(delete("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isOk());
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk())
+                    .andReturn();
+            assertEquals(0, result.getResponse().getContentLength());
         }
     }
 
@@ -333,8 +337,11 @@ public class LoadFlowControllerTest {
             mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString())
             ).andExpect(status().isOk());
 
-            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isNotFound());
+            result = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(result.getResponse().getContentAsString(), "");
         }
     }
 
