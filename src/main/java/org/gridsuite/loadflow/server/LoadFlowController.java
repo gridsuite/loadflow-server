@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.iidm.network.Branch;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.security.LimitViolationType;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -176,8 +177,8 @@ public class LoadFlowController {
     @GetMapping(value = "/branch-sides", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get available branch sides")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available branch sides"))
-    public ResponseEntity<Branch.Side[]> getBranchSides() {
-        return ResponseEntity.ok().body(Branch.Side.values());
+    public ResponseEntity<TwoSides[]> getBranchSides() {
+        return ResponseEntity.ok().body(TwoSides.values());
     }
 
     @GetMapping(value = "/computation-status", produces = APPLICATION_JSON_VALUE)
