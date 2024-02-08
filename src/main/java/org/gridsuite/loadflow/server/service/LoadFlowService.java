@@ -36,7 +36,7 @@ import java.util.stream.Collectors;
 @Service
 public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext> {
 
-    public static final String COMPUTATION_TYPE = "loadflow";
+    public static final String COMPUTATION_TYPE = "LoadFlow";
 
     private final LoadFlowParametersService parametersService;
 
