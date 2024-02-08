@@ -91,4 +91,15 @@ public class LoadFlowParametersController {
         parametersService.deleteParameters(parametersUuid);
         return ResponseEntity.ok().build();
     }
+
+    @PatchMapping(value = "/{uuid}/provider")
+    @Operation(summary = "Update provider")
+    @ApiResponse(responseCode = "200", description = "provider was updated")
+    public ResponseEntity<Void> updateProvider(
+            @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid,
+            @RequestBody(required = false) String provider) {
+        parametersService.updateProvider(parametersUuid, provider);
+        return ResponseEntity.ok().build();
+    }
+
 }

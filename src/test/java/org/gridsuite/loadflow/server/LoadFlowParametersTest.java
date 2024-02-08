@@ -17,6 +17,7 @@ import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersR
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
@@ -42,6 +43,8 @@ class LoadFlowParametersTest {
 
     private static final String URI_PARAMETERS_GET_PUT = URI_PARAMETERS_BASE + "/";
 
+    private static final String PROVIDER = "LFProvider";
+
     @Autowired
     MockMvc mockMvc;
 
@@ -50,6 +53,9 @@ class LoadFlowParametersTest {
 
     @Autowired
     LoadFlowParametersRepository parametersRepository;
+
+    @Value("${loadflow.default-provider}")
+    String defaultLoadflowProvider;
 
     @AfterEach
     public void clean() {
@@ -73,6 +79,7 @@ class LoadFlowParametersTest {
     @Test
     void testCreateWithDefaultValues() throws Exception {
         LoadFlowParametersInfos defaultParameters = LoadFlowParametersInfos.builder()
+            .provider(defaultLoadflowProvider)
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
             .build();
@@ -188,6 +195,37 @@ class LoadFlowParametersTest {
         assertThat(receivedParameters).hasSize(2);
     }
 
+    @Test
+    void testUpdateProvider() throws Exception {
+        LoadFlowParametersInfos parameters = buildParameters();
+
+        UUID parametersUuid = saveAndRetunId(parameters);
+
+        String newProvider = "newProvider";
+
+        mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider")
+                .content(newProvider))
+                .andExpect(status().isOk()).andReturn();
+
+        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+
+        assertThat(updatedParameters.provider()).isEqualTo(newProvider);
+    }
+
+    @Test
+    void testResetProvider() throws Exception {
+        LoadFlowParametersInfos parameters = buildParameters();
+
+        UUID parametersUuid = saveAndRetunId(parameters);
+
+        mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
+                .andExpect(status().isOk()).andReturn();
+
+        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+
+        assertThat(updatedParameters.provider()).isEqualTo(defaultLoadflowProvider);
+    }
+
     /** Save parameters into the repository and return its UUID. */
     protected UUID saveAndRetunId(LoadFlowParametersInfos parametersInfos) {
         parametersRepository.save(parametersInfos.toEntity());
@@ -196,6 +234,7 @@ class LoadFlowParametersTest {
 
     protected LoadFlowParametersInfos buildParameters() {
         return LoadFlowParametersInfos.builder()
+            .provider(PROVIDER)
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
             .build();
@@ -205,6 +244,7 @@ class LoadFlowParametersTest {
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
         loadFlowParameters.setDc(true);
         return LoadFlowParametersInfos.builder()
+            .provider(PROVIDER)
             .commonParameters(loadFlowParameters)
             .specificParametersPerProvider(Map.of())
             .build();

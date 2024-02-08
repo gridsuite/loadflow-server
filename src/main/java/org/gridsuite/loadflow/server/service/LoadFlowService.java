@@ -17,6 +17,7 @@ import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LimitViolationsInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
@@ -87,11 +88,13 @@ public class LoadFlowService {
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
-    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, String provider, UUID parametersUuid) {
-        String providerToUse = provider != null ? provider : getDefaultProvider();
+    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, UUID parametersUuid) {
+        Optional<LoadFlowParametersValues> params = parametersService.getParametersValues(parametersUuid);
         // set provider and parameters
-        loadFlowRunContext.setParameters(parametersService.getParametersValues(parametersUuid, providerToUse).orElse(null));
-        loadFlowRunContext.setProvider(providerToUse);
+        params.ifPresent(p -> {
+            loadFlowRunContext.setParameters(p);
+            loadFlowRunContext.setProvider(p.provider() != null ? p.provider() : getDefaultProvider());
+        });
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status

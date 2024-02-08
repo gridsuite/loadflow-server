@@ -38,6 +38,9 @@ public class LoadFlowParametersEntity {
     @Column(name = "id")
     private UUID id;
 
+    @Column(name = "provider")
+    private String provider;
+
     @Column(name = "voltageInitMode")
     @Enumerated(EnumType.STRING)
     private LoadFlowParameters.VoltageInitMode voltageInitMode;
@@ -127,6 +130,7 @@ public class LoadFlowParametersEntity {
                     }
                 });
             }
+            updateProvider(loadFlowParametersInfos.provider());
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
@@ -162,6 +166,10 @@ public class LoadFlowParametersEntity {
         }
     }
 
+    public void updateProvider(String provider) {
+        this.provider = provider;
+    }
+
     public LoadFlowParameters toLoadFlowParameters() {
         return LoadFlowParameters.load()
                 .setVoltageInitMode(this.getVoltageInitMode())
@@ -185,6 +193,7 @@ public class LoadFlowParametersEntity {
     public LoadFlowParametersInfos toLoadFlowParametersInfos() {
         return LoadFlowParametersInfos.builder()
                 .uuid(id)
+                .provider(provider)
                 .commonParameters(toLoadFlowParameters())
                 .specificParametersPerProvider(specificParameters.stream()
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
@@ -193,8 +202,9 @@ public class LoadFlowParametersEntity {
                 .build();
     }
 
-    public LoadFlowParametersValues toLoadFlowParametersValues(String provider) {
+    public LoadFlowParametersValues toLoadFlowParametersValues() {
         return LoadFlowParametersValues.builder()
+                .provider(provider)
                 .commonParameters(toLoadFlowParameters())
                 .specificParameters(specificParameters.stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))

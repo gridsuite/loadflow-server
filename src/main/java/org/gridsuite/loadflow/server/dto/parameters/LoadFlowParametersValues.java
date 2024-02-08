@@ -16,6 +16,7 @@ import java.util.Map;
  */
 @Builder
 public record LoadFlowParametersValues(
+    String provider,
     LoadFlowParameters commonParameters,
     Map<String, String> specificParameters
 ) { }

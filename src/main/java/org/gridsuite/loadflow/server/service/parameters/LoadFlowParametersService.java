@@ -15,6 +15,7 @@ import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -26,10 +27,14 @@ import com.powsybl.loadflow.LoadFlowParameters;
 @Service
 public class LoadFlowParametersService {
 
+    private final String defaultLoadflowProvider;
+
     private final LoadFlowParametersRepository loadFlowParametersRepository;
 
-    public LoadFlowParametersService(LoadFlowParametersRepository loadFlowParametersRepository) {
+    public LoadFlowParametersService(LoadFlowParametersRepository loadFlowParametersRepository,
+            @Value("${loadflow.default-provider}") String defaultLoadflowProvider) {
         this.loadFlowParametersRepository = loadFlowParametersRepository;
+        this.defaultLoadflowProvider = defaultLoadflowProvider;
     }
 
     public UUID createParameters(LoadFlowParametersInfos parametersInfos) {
@@ -40,9 +45,9 @@ public class LoadFlowParametersService {
         return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::toLoadFlowParametersInfos);
     }
 
-    public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid, String provider) {
+    public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid) {
         return loadFlowParametersRepository.findById(parametersUuid)
-            .map(entity -> entity.toLoadFlowParametersValues(provider));
+            .map(entity -> entity.toLoadFlowParametersValues());
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
@@ -52,9 +57,9 @@ public class LoadFlowParametersService {
     @Transactional
     public void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parametersInfos) {
         LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
-        //if the parameters is null it means it's a reset to defaultValues
+        //if the parameters is null it means it's a reset to defaultValues but we need to keep the provider because it's updated separately
         if (parametersInfos == null) {
-            loadFlowParametersEntity.update(getDefaultParametersValues());
+            loadFlowParametersEntity.update(getDefaultParametersValues(loadFlowParametersEntity.getProvider()));
         } else {
             loadFlowParametersEntity.update(parametersInfos);
         }
@@ -74,14 +79,22 @@ public class LoadFlowParametersService {
 
     public UUID createDefaultParameters() {
         //default parameters
-        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues();
+        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues(defaultLoadflowProvider);
         return createParameters(defaultParametersInfos);
     }
 
-    private LoadFlowParametersInfos getDefaultParametersValues() {
+    private LoadFlowParametersInfos getDefaultParametersValues(String provider) {
         return LoadFlowParametersInfos.builder()
+            .provider(provider)
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
             .build();
+    }
+
+    @Transactional
+    public void updateProvider(UUID parametersUuid, String provider) {
+        loadFlowParametersRepository.findById(parametersUuid)
+            .orElseThrow()
+            .updateProvider(provider != null ? provider : defaultLoadflowProvider);
     }
 }
