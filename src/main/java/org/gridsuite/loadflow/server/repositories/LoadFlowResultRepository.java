@@ -10,11 +10,15 @@ import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
+import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -35,6 +39,7 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
     private ResultRepository resultRepository;
 
     private LimitViolationRepository limitViolationRepository;
+    private final ComponentResultRepository componentResultRepository;
 
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
         List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
@@ -105,7 +110,6 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         Objects.requireNonNull(resultUuid);
         globalStatusRepository.deleteByResultUuid(resultUuid);
         resultRepository.deleteByResultUuid(resultUuid);
-        limitViolationRepository.deleteByResultUuid(resultUuid);
     }
 
     @Transactional(readOnly = true)
@@ -129,9 +133,9 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         return globalEntity != null ? globalEntity.getStatus() : null;
     }
 
-   /* @Transactional(readOnly = true)
-    public Optional<LimitViolationEntity> findLimitViolations(UUID resultUuid) {
+    public List<ComponentResultEntity> findComponentResults(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
-        return limitViolationRepository.findByResultUuid(resultUuid);
-    }*/
+        Specification<ComponentResultEntity> specification = SpecificationBuilder.buildLoadflowResultSpecifications(resultUuid, resourceFilters);
+        return componentResultRepository.findAll(specification, sort);
+    }
 }

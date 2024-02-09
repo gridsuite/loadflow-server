@@ -122,11 +122,18 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 .build();
     }
 
-    public LoadFlowResult getResult(UUID resultUuid) {
+    public LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
-        Optional<LoadFlowResultEntity> result = getResultRepository().findResults(resultUuid);
-        LoadFlowResult loadFlowResult = result.map(LoadFlowService::fromEntity).orElse(null);
+        Objects.requireNonNull(resultUuid);
+        org.gridsuite.loadflow.server.dto.LoadFlowResult loadFlowResult;
+        LoadFlowResultEntity loadFlowResultEntity = getResultRepository().findResults(resultUuid).orElse(null);
+        if (loadFlowResultEntity == null) {
+            return null;
+        }
+        List<ComponentResultEntity> componentResults = getResultRepository().findComponentResults(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        loadFlowResultEntity.setComponentResults(componentResults);
+        loadFlowResult = fromEntity(loadFlowResultEntity);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
@@ -150,14 +157,8 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
- /*   public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
-        Optional<LimitViolationsEntity> limitViolationsEntity = getResultRepository().findLimitViolations(resultUuid);
-        LimitViolationsInfos limitViolations = limitViolationsEntity.map(LimitViolationsEntity::toLimitViolationsInfos).orElse(null);
-        return limitViolations != null ? limitViolations.getLimitViolations() : Collections.emptyList();
-    }*/
-
     public void assertResultExists(UUID resultUuid) {
-        if (limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
+        if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             throw new LoadflowException(LoadflowException.Type.RESULT_NOT_FOUND);
         }
     }
