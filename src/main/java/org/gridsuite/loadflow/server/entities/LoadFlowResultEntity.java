@@ -6,14 +6,11 @@
  */
 package org.gridsuite.loadflow.server.entities;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import jakarta.persistence.*;
 import java.time.ZonedDateTime;
-import java.util.Set;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,6 +30,11 @@ public class LoadFlowResultEntity {
     @Column
     private ZonedDateTime writeTimeStamp;
 
-    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult")
-    private Set<ComponentResultEntity> componentResults;
+    @Setter
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
+    private List<ComponentResultEntity> componentResults;
+
+    @Setter
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
+    private List<LimitViolationEntity> limitViolations;
 }

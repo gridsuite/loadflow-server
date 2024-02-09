@@ -6,6 +6,8 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
@@ -14,16 +16,22 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
-import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
+import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
 import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.utils.LoadflowException;
+import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -39,15 +47,18 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public static final String COMPUTATION_TYPE = "LoadFlow";
 
     private final LoadFlowParametersService parametersService;
+    private final LimitViolationRepository limitViolationRepository;
 
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultRepository resultRepository,
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
+                           LimitViolationRepository limitViolationRepository,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
+        this.limitViolationRepository = limitViolationRepository;
     }
 
     private LoadFlowResultRepository getResultRepository() {
@@ -139,9 +150,44 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
-    public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
+ /*   public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
         Optional<LimitViolationsEntity> limitViolationsEntity = getResultRepository().findLimitViolations(resultUuid);
         LimitViolationsInfos limitViolations = limitViolationsEntity.map(LimitViolationsEntity::toLimitViolationsInfos).orElse(null);
         return limitViolations != null ? limitViolations.getLimitViolations() : Collections.emptyList();
+    }*/
+
+    public void assertResultExists(UUID resultUuid) {
+        if (limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
+            throw new LoadflowException(LoadflowException.Type.RESULT_NOT_FOUND);
+        }
+    }
+
+    public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
+        assertResultExists(resultUuid);
+        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
+    public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+        Objects.requireNonNull(resultUuid);
+        return findLimitViolationsEntities(resultUuid, resourceFilters, sort);
+    }
+
+    private List<LimitViolationEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+        Specification<LimitViolationEntity> specification = SpecificationBuilder.buildLimitViolationsSpecifications(limitViolationUuid, resourceFilters);
+        return limitViolationRepository.findAll(specification, sort);
+    }
+
+    public List<ResourceFilter> fromStringFiltersToDTO(String stringFilters) {
+        if (stringFilters == null || stringFilters.isEmpty()) {
+            return List.of();
+        }
+        try {
+            return objectMapper.readValue(stringFilters, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
+        }
     }
 }

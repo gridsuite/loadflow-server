@@ -6,19 +6,21 @@
  */
 package org.gridsuite.loadflow.server.repositories;
 
-import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
+import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface LimitViolationsRepository extends JpaRepository<LimitViolationsEntity, UUID> {
-    Optional<LimitViolationsEntity> findByResultUuid(UUID resultUuid);
+public interface LimitViolationRepository extends JpaRepository<LimitViolationEntity, UUID>, JpaSpecificationExecutor<LimitViolationEntity> {
+    //List<LimitViolationEntity> findByResultUuid(UUID resultUuid);
 
     void deleteByResultUuid(UUID resultUuid);
+
+    boolean existsLimitViolationEntitiesByLoadFlowResultResultUuid(UUID resultUuid);
 }

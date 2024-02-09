@@ -17,10 +17,13 @@ import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.computation.utils.ReportContext;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.net.URLDecoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -147,7 +150,11 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}/limit-violations")
     @Operation(summary = "Get limit violations")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The limit violations")})
-    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getLimitViolations(resultUuid));
+    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid,
+                                                                        @Parameter(description = "Filters") @RequestParam(name = "filters", required = false) String stringFilters,
+                                                                        @Parameter(description = "Sort parameters") Sort sort) {
+        String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
+        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(resultUuid, decodedStringFilters, sort);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 }

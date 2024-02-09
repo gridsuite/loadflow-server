@@ -12,7 +12,7 @@ import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
-import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
+import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
 import org.springframework.stereotype.Repository;
@@ -34,13 +34,16 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
 
     private ResultRepository resultRepository;
 
-    private LimitViolationsRepository limitViolationsRepository;
+    private LimitViolationRepository limitViolationRepository;
 
-    private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result) {
-        Set<ComponentResultEntity> componentResults = result.getComponentResults().stream()
+    private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
+        List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
                 .map(componentResult -> LoadFlowResultRepository.toComponentResultEntity(resultUuid, componentResult))
-                .collect(Collectors.toSet());
-        return new LoadFlowResultEntity(resultUuid, ZonedDateTime.now(ZoneOffset.UTC), componentResults);
+                .collect(Collectors.toList());
+        List<LimitViolationEntity> limitViolations = limitViolationInfos.stream()
+                .map(limitViolationInfo -> toLimitViolationsEntity(resultUuid, limitViolationInfo))
+                .collect(Collectors.toList());
+        return new LoadFlowResultEntity(resultUuid, ZonedDateTime.now(ZoneOffset.UTC), componentResults, limitViolations);
     }
 
     private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {
@@ -75,14 +78,25 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
                        List<LimitViolationInfos> limitViolationInfos) {
         Objects.requireNonNull(resultUuid);
         if (result != null) {
-            resultRepository.save(toResultEntity(resultUuid, result));
+            resultRepository.save(toResultEntity(resultUuid, result, limitViolationInfos));
         }
         globalStatusRepository.save(toStatusEntity(resultUuid, status));
-        limitViolationsRepository.save(toLimitViolationsEntity(resultUuid, limitViolationInfos));
     }
 
-    private static LimitViolationsEntity toLimitViolationsEntity(UUID resultUuid, List<LimitViolationInfos> limitViolationInfos) {
-        return new LimitViolationsEntity(resultUuid, limitViolationInfos);
+    private static LimitViolationEntity toLimitViolationsEntity(UUID resultUuid, LimitViolationInfos limitViolationInfos) {
+        return LimitViolationEntity.builder()
+                .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
+                .subjectId(limitViolationInfos.getSubjectId())
+                .limitType(limitViolationInfos.getLimitType())
+                .limit(limitViolationInfos.getLimit())
+                .limitName(limitViolationInfos.getLimitName())
+                .actualOverload(limitViolationInfos.getActualOverloadDuration())
+                .upComingOverload(limitViolationInfos.getUpComingOverloadDuration())
+                .overload(limitViolationInfos.getOverload())
+                .value(limitViolationInfos.getValue())
+                .side(limitViolationInfos.getSide())
+                .build();
+
     }
 
     @Override
@@ -91,7 +105,7 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         Objects.requireNonNull(resultUuid);
         globalStatusRepository.deleteByResultUuid(resultUuid);
         resultRepository.deleteByResultUuid(resultUuid);
-        limitViolationsRepository.deleteByResultUuid(resultUuid);
+        limitViolationRepository.deleteByResultUuid(resultUuid);
     }
 
     @Transactional(readOnly = true)
@@ -105,7 +119,7 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
     public void deleteAll() {
         globalStatusRepository.deleteAll();
         resultRepository.deleteAll();
-        limitViolationsRepository.deleteAll();
+        limitViolationRepository.deleteAll();
     }
 
     @Transactional(readOnly = true)
@@ -115,9 +129,9 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         return globalEntity != null ? globalEntity.getStatus() : null;
     }
 
-    @Transactional(readOnly = true)
-    public Optional<LimitViolationsEntity> findLimitViolations(UUID resultUuid) {
+   /* @Transactional(readOnly = true)
+    public Optional<LimitViolationEntity> findLimitViolations(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        return limitViolationsRepository.findByResultUuid(resultUuid);
-    }
+        return limitViolationRepository.findByResultUuid(resultUuid);
+    }*/
 }
