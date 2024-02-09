@@ -44,7 +44,7 @@ import java.util.stream.Collectors;
 @Service
 public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext> {
 
-    public static final String COMPUTATION_TYPE = "LoadFlow";
+    public static final String COMPUTATION_TYPE = "loadflow";
 
     private final LoadFlowParametersService parametersService;
     private final LimitViolationRepository limitViolationRepository;
