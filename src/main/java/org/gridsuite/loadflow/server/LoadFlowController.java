@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server;
 
-import com.powsybl.iidm.network.Branch;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.security.LimitViolationType;
 import io.swagger.v3.oas.annotations.Operation;

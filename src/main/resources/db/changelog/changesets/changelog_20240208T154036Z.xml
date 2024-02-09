@@ -1,0 +1,40 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="tourian1 (generated)" id="1707406855551-1">
+        <addColumn tableName="limit_violation">
+            <column name="id" type="uuid">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-2">
+        <addColumn tableName="limit_violation">
+            <column name="result_uuid" type="uuid"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-3">
+        <addPrimaryKey columnNames="id" constraintName="limit_violationPK" tableName="limit_violation"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-4">
+        <createIndex indexName="limitViolation_resultUuid_idx" tableName="limit_violation">
+            <column name="result_uuid"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-5">
+        <addForeignKeyConstraint baseColumnNames="result_uuid" baseTableName="limit_violation" constraintName="FKjvuuktkbgeteric8g60d5kt30" deferrable="false" initiallyDeferred="false" referencedColumnNames="result_uuid" referencedTableName="loadflow_result" validate="true"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-6">
+        <dropForeignKeyConstraint baseTableName="limit_violation" constraintName="LimitViolationsEntity_limits_fk1"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-7">
+        <dropTable tableName="limit_violations"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-8">
+        <dropColumn columnName="limit_violations_entity_result_uuid" tableName="limit_violation"/>
+    </changeSet>
+    <changeSet author="tourian1 (generated)" id="1707406855551-9">
+        <addColumn tableName="limit_violation">
+            <column name="overload" type="float(53)"/>
+        </addColumn>
+    </changeSet>
+</databaseChangeLog>

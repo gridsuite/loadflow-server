@@ -68,6 +68,8 @@ public record ResourceFilter(DataType dataType, Type type, Object value, Column 
         SIDE("side"),
         @JsonProperty("upComingOverload")
         UP_COMING_OVERLOAD("upComingOverload"),
+        @JsonProperty("overload")
+        OVERLOAD("overload"),
 
         // Loadflow result columns
         @JsonProperty("connectedComponentNum")

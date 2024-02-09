@@ -16,9 +16,10 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
-import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
+import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
-import org.gridsuite.loadflow.server.repositories.LimitViolationsRepository;
+import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
+import org.gridsuite.loadflow.server.repositories.ResultRepository;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
@@ -51,7 +52,7 @@ public class LoadFlowService {
     @Value("${loadflow.default-provider}")
     private String defaultProvider;
 
-    private LoadFlowResultRepository resultRepository;
+    private LoadFlowResultRepository loadFlowResultRepository;
 
     private ObjectMapper objectMapper;
 
@@ -61,15 +62,18 @@ public class LoadFlowService {
 
     private LoadFlowParametersService parametersService;
 
-    private LimitViolationsRepository limitViolationsRepository;
+    private LimitViolationRepository limitViolationRepository;
 
-    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService, LoadFlowParametersService parametersService, LimitViolationsRepository limitViolationsRepository) {
+    private ResultRepository resultRepository;
+
+    public LoadFlowService(NotificationService notificationService, ResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService, LoadFlowParametersService parametersService, LimitViolationRepository limitViolationRepository, LoadFlowResultRepository loadFlowResultRepository) {
         this.notificationService = Objects.requireNonNull(notificationService);
         this.resultRepository = Objects.requireNonNull(resultRepository);
         this.objectMapper = Objects.requireNonNull(objectMapper);
         this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
         this.parametersService = Objects.requireNonNull(parametersService);
-        this.limitViolationsRepository = Objects.requireNonNull(limitViolationsRepository);
+        this.limitViolationRepository = Objects.requireNonNull(limitViolationRepository);
+        this.loadFlowResultRepository = Objects.requireNonNull(loadFlowResultRepository);
     }
 
     public static List<String> getProviders() {
@@ -110,8 +114,8 @@ public class LoadFlowService {
         return resultUuid;
     }
 
-    private static LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity) {
-        return LoadFlowResult.builder()
+    private static org.gridsuite.loadflow.server.dto.LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity) {
+        return org.gridsuite.loadflow.server.dto.LoadFlowResult.builder()
                 .resultUuid(resultEntity.getResultUuid())
                 .writeTimeStamp(resultEntity.getWriteTimeStamp())
                 .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).collect(Collectors.toList()))
@@ -131,18 +135,24 @@ public class LoadFlowService {
                 .build();
     }
 
-    public LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
+    public org.gridsuite.loadflow.server.dto.LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
-        Sort sortModified = addPrefixToSort(PREFIX_SORT_LOADFLOW_RESULT, sort);
-        List<LoadFlowResultEntity> result = resultRepository.findResults(resultUuid, fromStringFiltersToDTO(stringFilters), sortModified);
-        LoadFlowResult loadFlowResult = result.stream().map(r -> fromEntity(r)).findFirst().orElse(null);
+        Objects.requireNonNull(resultUuid);
+        org.gridsuite.loadflow.server.dto.LoadFlowResult loadFlowResult;
+        LoadFlowResultEntity loadFlowResultEntity = this.loadFlowResultRepository.findById(resultUuid).orElse(null);
+        if (loadFlowResultEntity == null) {
+            return null;
+        }
+        List<ComponentResultEntity> componentResults = resultRepository.findComponentResults(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        loadFlowResultEntity.setComponentResults(componentResults);
+        loadFlowResult = fromEntity(loadFlowResultEntity);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
 
     public void deleteResult(UUID resultUuid) {
-        resultRepository.delete(resultUuid);
+        loadFlowResultRepository.deleteById(resultUuid);
     }
 
     public void deleteResults(List<UUID> resultUuids) {
@@ -181,7 +191,7 @@ public class LoadFlowService {
     }
 
     public void assertResultExists(UUID resultUuid) {
-        if (limitViolationsRepository.findById(resultUuid).isEmpty()) {
+        if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             throw new LoadflowException(LoadflowException.Type.RESULT_NOT_FOUND);
         }
     }
@@ -189,22 +199,19 @@ public class LoadFlowService {
     public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
         assertResultExists(resultUuid);
         Sort sortModified = addPrefixToSort(PREFIX_SORT_LIMI_VIOLATION_RESULT, sort);
-        List<LimitViolationsEntity> limitViolationsResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sortModified);
-        return limitViolationsResult.stream()
-                .findFirst()
-                .map(entity -> entity.getLimitViolations().stream().map(LimitViolationInfos::toLimitViolationInfos).toList())
-                .orElse(List.of());
+        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
     }
 
     @Transactional(readOnly = true)
-    public List<LimitViolationsEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+    public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
         return findLimitViolationsEntities(resultUuid, resourceFilters, sort);
     }
 
-    private List<LimitViolationsEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilter> resourceFilters, Sort sort) {
-        Specification<LimitViolationsEntity> specification = SpecificationBuilder.buildLimitViolationsSpecifications(limitViolationUuid, resourceFilters);
-        return limitViolationsRepository.findAll(specification, sort);
+    private List<LimitViolationEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+        Specification<LimitViolationEntity> specification = SpecificationBuilder.buildLimitViolationsSpecifications(limitViolationUuid, resourceFilters);
+        return limitViolationRepository.findAll(specification, sort);
     }
 
     private Sort addPrefixToSort(String prefix, Sort sort) {

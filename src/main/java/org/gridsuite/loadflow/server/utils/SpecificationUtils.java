@@ -141,6 +141,7 @@ public final class SpecificationUtils {
             case LIMIT_TYPE -> "limitType";
             case ACTUEL_OVERLOAD -> "actualOverload";
             case UP_COMING_OVERLOAD -> "upComingOverload";
+            case OVERLOAD -> "overload";
             case VALUE -> "value";
             case SIDE -> "side";
             case CONNECTED_COMPONENT_NUM -> "connectedComponentNum";

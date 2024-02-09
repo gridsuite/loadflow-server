@@ -22,7 +22,7 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.repositories.ResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -59,12 +59,12 @@ public class LoadFlowWorkerService {
     private final ReportService reportService;
     private final LoadFlowExecutionService loadFlowExecutionService;
     private final NotificationService notificationService;
-    private final LoadFlowResultRepository resultRepository;
+    private final ResultRepository resultRepository;
 
     private final LoadflowObserver loadflowObserver;
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService, ReportService reportService,
-                                 LoadFlowResultRepository resultRepository, LoadFlowExecutionService loadFlowExecutionService, LoadflowObserver loadflowObserver, ObjectMapper objectMapper) {
+                                 ResultRepository resultRepository, LoadFlowExecutionService loadFlowExecutionService, LoadflowObserver loadflowObserver, ObjectMapper objectMapper) {
         this.networkStoreService = networkStoreService;
         this.notificationService = notificationService;
         this.reportService = reportService;
@@ -235,6 +235,7 @@ public class LoadFlowWorkerService {
             .subjectId(violation.getSubjectId())
             .actualOverloadDuration(violation.getAcceptableDuration())
             .upComingOverloadDuration(violation.getAcceptableDuration())
+            .overload((violation.getValue() / violation.getLimit()) * 100)
             .limit(violation.getLimit())
             .limitName(violation.getLimitName())
             .value(violation.getValue())

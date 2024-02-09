@@ -6,10 +6,9 @@
  */
 package org.gridsuite.loadflow.server.repositories;
 
-import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
+import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.stereotype.Repository;
@@ -22,10 +21,6 @@ import java.util.UUID;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com
  */
 @Repository
-public interface LimitViolationsRepository extends JpaRepository<LimitViolationsEntity, UUID>, JpaSpecificationExecutor<LimitViolationsEntity> {
-
-    @EntityGraph(attributePaths = {"limitViolations"}, type = EntityGraph.EntityGraphType.LOAD)
-    List<LimitViolationsEntity> findAll(Specification specification, Sort sort);
-
-    void deleteByResultUuid(UUID resultUuid);
+public interface ComponentResultRepository extends JpaRepository<ComponentResultEntity, UUID>, JpaSpecificationExecutor<ComponentResultEntity> {
+    List<ComponentResultEntity> findAll(Specification specification, Sort sort);
 }
