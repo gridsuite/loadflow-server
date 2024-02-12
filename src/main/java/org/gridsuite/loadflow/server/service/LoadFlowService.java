@@ -165,7 +165,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
     public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
         assertResultExists(resultUuid);
-        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        List<LimitViolationEntity> limitViolationResult = this.findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
     }
 
