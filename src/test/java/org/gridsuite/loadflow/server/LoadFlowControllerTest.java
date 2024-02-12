@@ -556,4 +556,47 @@ public class LoadFlowControllerTest {
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
     }
+
+    @Test
+    public void geLimitTypesTest() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/limit-types"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() { });
+        assertEquals(6, limitTypes.size());
+        assertTrue(limitTypes.contains(LimitViolationType.ACTIVE_POWER));
+        assertFalse(limitTypes.contains(LimitViolationType.HIGH_SHORT_CIRCUIT_CURRENT));
+    }
+
+    @Test
+    public void geBranchSidesTest() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/branch-sides"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<TwoSides> sides = mapper.readValue(resultAsString, new TypeReference<>() { });
+        assertEquals(2, sides.size());
+        assertTrue(sides.contains(TwoSides.ONE));
+        assertTrue(sides.contains(TwoSides.TWO));
+    }
+
+    @Test
+    public void getComputationStatus() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/computation-status"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(resultAsString, new TypeReference<>() { });
+        assertEquals(status, Arrays.asList(LoadFlowResult.ComponentResult.Status.values()));
+    }
 }
