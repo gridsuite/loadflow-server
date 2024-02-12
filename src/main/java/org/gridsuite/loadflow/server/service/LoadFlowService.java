@@ -163,13 +163,13 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         }
     }
 
+    @Transactional(readOnly = true)
     public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
         assertResultExists(resultUuid);
-        List<LimitViolationEntity> limitViolationResult = this.findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
     }
 
-    @Transactional(readOnly = true)
     public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
         return findLimitViolationsEntities(resultUuid, resourceFilters, sort);

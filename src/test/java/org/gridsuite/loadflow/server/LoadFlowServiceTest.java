@@ -24,7 +24,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest
-public class LoadFlowServiceTest {
+class LoadFlowServiceTest {
 
     @MockBean
     private LimitViolationRepository limitViolationRepository;
