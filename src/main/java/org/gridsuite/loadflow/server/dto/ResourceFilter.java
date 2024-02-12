@@ -8,11 +8,7 @@
 package org.gridsuite.loadflow.server.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-
-import java.util.List;
 
 /**
  * An object that can be used to filter data with the JPA Criteria API (via Spring Specification)
@@ -98,16 +94,5 @@ public record ResourceFilter(DataType dataType, Type type, Object value, Column 
             this.columnName = columnName;
         }
 
-        public String getColumnName() {
-            return columnName;
-        }
-    }
-
-    public static List<ResourceFilter> fromStringToList(String filters) throws JsonProcessingException {
-        if (filters == null || filters.isEmpty()) {
-            return List.of();
-        }
-        return objectMapper.readValue(filters, new TypeReference<>() {
-        });
     }
 }
