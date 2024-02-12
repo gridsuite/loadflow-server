@@ -27,11 +27,6 @@ public class LoadflowException extends RuntimeException {
         this.type = type;
     }
 
-    public LoadflowException(Type type, String message) {
-        super(message);
-        this.type = type;
-    }
-
     public Type getType() {
         return type;
     }
