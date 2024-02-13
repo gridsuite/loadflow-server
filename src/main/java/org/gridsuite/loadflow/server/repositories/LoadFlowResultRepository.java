@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com
@@ -44,10 +43,10 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
         List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
                 .map(componentResult -> LoadFlowResultRepository.toComponentResultEntity(resultUuid, componentResult))
-                .collect(Collectors.toList());
+                .toList();
         List<LimitViolationEntity> limitViolations = limitViolationInfos.stream()
                 .map(limitViolationInfo -> toLimitViolationsEntity(resultUuid, limitViolationInfo))
-                .collect(Collectors.toList());
+                .toList();
         return new LoadFlowResultEntity(resultUuid, ZonedDateTime.now(ZoneOffset.UTC), componentResults, limitViolations);
     }
 

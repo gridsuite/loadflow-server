@@ -94,5 +94,8 @@ public record ResourceFilter(DataType dataType, Type type, Object value, Column 
             this.columnName = columnName;
         }
 
+        public String columnName() {
+            return columnName;
+        }
     }
 }

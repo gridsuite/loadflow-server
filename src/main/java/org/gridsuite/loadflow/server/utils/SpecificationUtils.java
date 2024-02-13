@@ -32,7 +32,7 @@ public final class SpecificationUtils {
                                     List<Predicate> predicates,
                                     ResourceFilter filter) {
 
-        String dotSeparatedField = columnToDotSeparatedField(filter.column());
+        String dotSeparatedField = filter.column().columnName();
         addPredicate(criteriaBuilder, path, predicates, filter, dotSeparatedField);
     }
 
@@ -108,27 +108,5 @@ public final class SpecificationUtils {
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
 
-    }
-
-    static String columnToDotSeparatedField(ResourceFilter.Column column) {
-        return switch (column) {
-            case SUBJECT_ID -> "subjectId";
-            case LIMIT -> "limit";
-            case LIMIT_NAME -> "limitName";
-            case LIMIT_TYPE -> "limitType";
-            case ACTUEL_OVERLOAD -> "actualOverload";
-            case UP_COMING_OVERLOAD -> "upComingOverload";
-            case OVERLOAD -> "overload";
-            case VALUE -> "value";
-            case SIDE -> "side";
-            case CONNECTED_COMPONENT_NUM -> "connectedComponentNum";
-            case SYNCHRONOUS_COMPONENT_NUM -> "synchronousComponentNum";
-            case STATUS -> "status";
-            case ITERATION_COUNT -> "iterationCount";
-            case SLACK_BUS_ID -> "slackBusId";
-            case SLACK_BUS_ID_ACTIVE_POWER_MISMATCH -> "slackBusActivePowerMismatch";
-            case DISTRIBUTED_ACTIVE_POWER -> "distributedActivePower";
-            default -> throw new LoadflowException(LoadflowException.Type.INVALID_FILTER);
-        };
     }
 }

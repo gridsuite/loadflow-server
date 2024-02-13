@@ -13,6 +13,7 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
@@ -126,7 +127,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
         Objects.requireNonNull(resultUuid);
-        org.gridsuite.loadflow.server.dto.LoadFlowResult loadFlowResult;
+        LoadFlowResult loadFlowResult;
         LoadFlowResultEntity loadFlowResultEntity = getResultRepository().findResults(resultUuid).orElse(null);
         if (loadFlowResultEntity == null) {
             return null;
@@ -181,7 +182,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public List<ResourceFilter> fromStringFiltersToDTO(String stringFilters) {
-        if (stringFilters == null || stringFilters.isEmpty()) {
+        if (StringUtils.isEmpty(stringFilters)) {
             return List.of();
         }
         try {
