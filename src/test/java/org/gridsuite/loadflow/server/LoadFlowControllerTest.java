@@ -30,10 +30,11 @@ import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.service.LoadFlowExecutionService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
-import org.gridsuite.loadflow.server.service.ReportService;
-import org.gridsuite.loadflow.server.service.UuidGeneratorService;
+import org.gridsuite.loadflow.server.computation.service.ExecutionService;
+import org.gridsuite.loadflow.server.computation.service.NotificationService;
+import org.gridsuite.loadflow.server.computation.service.ReportService;
+import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.junit.After;
 import org.junit.Before;
@@ -62,8 +63,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_MESSAGE;
-import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
+import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
+import static org.gridsuite.loadflow.server.computation.service.NotificationService.HEADER_USER_ID;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -122,7 +123,7 @@ public class LoadFlowControllerTest {
     private ReportService reportService;
 
     @Autowired
-    private LoadFlowExecutionService loadFlowExecutionService;
+    private ExecutionService executionService;
 
     @SpyBean
     private LoadFlowParametersService loadFlowParametersService;
@@ -226,7 +227,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimits(any(), anyFloat())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(loadFlowExecutionService.getComputationManager()),
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(Reporter.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
@@ -271,7 +272,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(loadFlowExecutionService.getComputationManager()),
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                     any(LoadFlowParameters.class), any(Reporter.class)))
                 .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
@@ -304,7 +305,7 @@ public class LoadFlowControllerTest {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(loadFlowExecutionService.getComputationManager()),
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(Reporter.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
@@ -363,7 +364,7 @@ public class LoadFlowControllerTest {
             assertNotNull(message);
             assertEquals(RESULT_UUID.toString(), message.getHeaders().get("resultUuid"));
             assertEquals("me", message.getHeaders().get("receiver"));
-            assertEquals(CANCEL_MESSAGE, message.getHeaders().get("message"));
+            assertEquals(NotificationService.getCancelMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
         }
     }
 

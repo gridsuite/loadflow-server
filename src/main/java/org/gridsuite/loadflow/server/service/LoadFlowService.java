@@ -12,19 +12,16 @@ import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.tuple.Pair;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LimitViolationsInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowResult;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
+import org.gridsuite.loadflow.server.computation.service.NotificationService;
+import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
@@ -38,43 +35,35 @@ import java.util.stream.Collectors;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
-public class LoadFlowService {
+public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext> {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
+    public static final String COMPUTATION_TYPE = "loadflow";
 
-    @Value("${loadflow.default-provider}")
-    private String defaultProvider;
+    private final LoadFlowParametersService parametersService;
 
-    private LoadFlowResultRepository resultRepository;
-
-    private ObjectMapper objectMapper;
-
-    NotificationService notificationService;
-
-    private UuidGeneratorService uuidGeneratorService;
-
-    private LoadFlowParametersService parametersService;
-
-    public LoadFlowService(NotificationService notificationService, LoadFlowResultRepository resultRepository, ObjectMapper objectMapper, UuidGeneratorService uuidGeneratorService, LoadFlowParametersService parametersService) {
-        this.notificationService = Objects.requireNonNull(notificationService);
-        this.resultRepository = Objects.requireNonNull(resultRepository);
-        this.objectMapper = Objects.requireNonNull(objectMapper);
-        this.uuidGeneratorService = Objects.requireNonNull(uuidGeneratorService);
-        this.parametersService = Objects.requireNonNull(parametersService);
+    public LoadFlowService(NotificationService notificationService,
+                           LoadFlowResultRepository resultRepository,
+                           ObjectMapper objectMapper,
+                           UuidGeneratorService uuidGeneratorService,
+                           LoadFlowParametersService parametersService,
+                           @Value("${loadflow.default-provider}") String defaultProvider) {
+        super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
+        this.parametersService = parametersService;
     }
 
-    public static List<String> getProviders() {
+    private LoadFlowResultRepository getResultRepository() {
+        return (LoadFlowResultRepository) resultRepository;
+    }
+
+    @Override
+    public List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
                 .map(LoadFlowProvider::getName)
-                .collect(Collectors.toList());
-    }
-
-    public String getDefaultProvider() {
-        return defaultProvider;
+                .toList();
     }
 
     public void setStatus(List<UUID> resultUuids, LoadFlowStatus status) {
-        resultRepository.insertStatus(resultUuids, status);
+        getResultRepository().insertStatus(resultUuids, status);
     }
 
     public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
@@ -83,11 +72,12 @@ public class LoadFlowService {
                 .map(provider -> {
                     List<Parameter> params = provider.getSpecificParameters().stream()
                             .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
-                            .collect(Collectors.toList());
+                            .toList();
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
+    @Override
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, UUID parametersUuid) {
         LoadFlowParametersValues params = parametersService.getParametersValues(parametersUuid);
         // set provider and parameters
@@ -105,7 +95,7 @@ public class LoadFlowService {
         return LoadFlowResult.builder()
                 .resultUuid(resultEntity.getResultUuid())
                 .writeTimeStamp(resultEntity.getWriteTimeStamp())
-                .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).collect(Collectors.toList()))
+                .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).toList())
                 .build();
     }
 
@@ -125,34 +115,14 @@ public class LoadFlowService {
     public LoadFlowResult getResult(UUID resultUuid) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
-        Optional<LoadFlowResultEntity> result = resultRepository.findResults(resultUuid);
-        LoadFlowResult loadFlowResult = result.map(r -> fromEntity(r)).orElse(null);
+        Optional<LoadFlowResultEntity> result = getResultRepository().findResults(resultUuid);
+        LoadFlowResult loadFlowResult = result.map(LoadFlowService::fromEntity).orElse(null);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
 
-    public void deleteResult(UUID resultUuid) {
-        resultRepository.delete(resultUuid);
-    }
-
-    public void deleteResults(List<UUID> resultUuids) {
-        if (resultUuids != null && !resultUuids.isEmpty()) {
-            resultUuids.forEach(resultRepository::delete);
-        } else {
-            deleteResults();
-        }
-    }
-
-    public void deleteResults() {
-        resultRepository.deleteAll();
-    }
-
     public LoadFlowStatus getStatus(UUID resultUuid) {
-        return resultRepository.findStatus(resultUuid);
-    }
-
-    public void stop(UUID resultUuid, String receiver) {
-        notificationService.sendCancelMessage(new LoadFlowCancelContext(resultUuid, receiver).toMessage());
+        return getResultRepository().findStatus(resultUuid);
     }
 
     public static String getNonNullHeader(MessageHeaders headers, String name) {
@@ -167,11 +137,11 @@ public class LoadFlowService {
         return result.getComponentResults().stream()
                 .filter(cr -> cr.getConnectedComponentNum() == 0 && cr.getSynchronousComponentNum() == 0
                         && cr.getStatus() == com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status.CONVERGED)
-                .collect(Collectors.toList()).isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
+                .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
     public List<LimitViolationInfos> getLimitViolations(UUID resultUuid) {
-        Optional<LimitViolationsEntity> limitViolationsEntity = resultRepository.findLimitViolations(resultUuid);
+        Optional<LimitViolationsEntity> limitViolationsEntity = getResultRepository().findLimitViolations(resultUuid);
         LimitViolationsInfos limitViolations = limitViolationsEntity.map(LimitViolationsEntity::toLimitViolationsInfos).orElse(null);
         return limitViolations != null ? limitViolations.getLimitViolations() : Collections.emptyList();
     }

@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.gridsuite.loadflow.server.service;
+package org.gridsuite.loadflow.server.computation.service;
 
 import org.gridsuite.loadflow.server.utils.annotations.PostCompletion;
 import org.slf4j.Logger;
@@ -34,9 +34,6 @@ public class NotificationService {
     private static final Logger RESULT_MESSAGE_LOGGER = LoggerFactory.getLogger(RESULT_CATEGORY_BROKER_OUTPUT);
     private static final Logger FAILED_MESSAGE_LOGGER = LoggerFactory.getLogger(FAILED_CATEGORY_BROKER_OUTPUT);
 
-    public static final String CANCEL_MESSAGE = "LoadFlow was canceled";
-    public static final String FAIL_MESSAGE = "LoadFlow has failed";
-
     public static final String HEADER_RESULT_UUID = "resultUuid";
     public static final String HEADER_RECEIVER = "receiver";
     public static final String HEADER_PROVIDER = "provider";
@@ -46,8 +43,12 @@ public class NotificationService {
 
     public static final String SENDING_MESSAGE = "Sending message : {}";
 
+    private final StreamBridge publisher;
+
     @Autowired
-    private StreamBridge publisher;
+    public NotificationService(StreamBridge publisher) {
+        this.publisher = publisher;
+    }
 
     public void sendRunMessage(Message<String> message) {
         RUN_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
@@ -71,27 +72,35 @@ public class NotificationService {
     }
 
     @PostCompletion
-    public void publishStop(UUID resultUuid, String receiver) {
+    public void publishStop(UUID resultUuid, String receiver, String computationLabel) {
         Message<String> message = MessageBuilder
                 .withPayload("")
                 .setHeader(HEADER_RESULT_UUID, resultUuid.toString())
                 .setHeader(HEADER_RECEIVER, receiver)
-                .setHeader(HEADER_MESSAGE, CANCEL_MESSAGE)
+                .setHeader(HEADER_MESSAGE, getCancelMessage(computationLabel))
                 .build();
         STOP_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
         publisher.send("publishStopped-out-0", message);
     }
 
     @PostCompletion
-    public void publishFail(UUID resultUuid, String receiver, String causeMessage, String userId) {
+    public void publishFail(UUID resultUuid, String receiver, String causeMessage, String userId, String computationLabel) {
         Message<String> message = MessageBuilder
                 .withPayload("")
                 .setHeader(HEADER_RESULT_UUID, resultUuid.toString())
                 .setHeader(HEADER_RECEIVER, receiver)
-                .setHeader(HEADER_MESSAGE, FAIL_MESSAGE + " : " + causeMessage)
+                .setHeader(HEADER_MESSAGE, getFailedMessage(computationLabel) + " : " + causeMessage)
                 .setHeader(HEADER_USER_ID, userId)
                 .build();
         FAILED_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
         publisher.send("publishFailed-out-0", message);
+    }
+
+    public static String getCancelMessage(String computationLabel) {
+        return computationLabel + " was canceled";
+    }
+
+    public static String getFailedMessage(String computationLabel) {
+        return computationLabel + " has failed";
     }
 }

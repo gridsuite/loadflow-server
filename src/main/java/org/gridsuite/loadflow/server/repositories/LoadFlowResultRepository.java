@@ -14,6 +14,7 @@ import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationsEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -27,7 +28,7 @@ import java.util.stream.Collectors;
  */
 @AllArgsConstructor
 @Repository
-public class LoadFlowResultRepository {
+public class LoadFlowResultRepository implements ComputationResultRepository {
 
     private GlobalStatusRepository globalStatusRepository;
 
@@ -84,6 +85,7 @@ public class LoadFlowResultRepository {
         return new LimitViolationsEntity(resultUuid, limitViolationInfos);
     }
 
+    @Override
     @Transactional
     public void delete(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
@@ -98,6 +100,7 @@ public class LoadFlowResultRepository {
         return resultRepository.findByResultUuid(resultUuid);
     }
 
+    @Override
     @Transactional
     public void deleteAll() {
         globalStatusRepository.deleteAll();
