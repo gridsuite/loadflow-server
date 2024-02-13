@@ -12,6 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.junit.jupiter.api.Test;
@@ -174,6 +175,23 @@ class LoadFlowParametersTest {
     void testGetWithInvalidId() throws Exception {
         mockMvc.perform(get(URI_PARAMETERS_GET_PUT + UUID.randomUUID()))
                 .andExpect(status().isNotFound()).andReturn();
+    }
+
+    @Test
+    void testGetParametersValuesForAProvider() throws Exception {
+        LoadFlowParametersInfos parameters = buildParameters();
+
+        UUID parametersUuid = saveAndRetunId(parameters);
+
+        MvcResult mvcResult = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid + "/values" + "?provider=" + PROVIDER))
+                .andExpect(status().isOk()).andReturn();
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        LoadFlowParametersValues receivedParameters = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
+
+        LoadFlowParametersValues parametersValues = parameters.toEntity().toLoadFlowParametersValues(PROVIDER);
+
+        assertThat(receivedParameters).recursivelyEquals(parametersValues);
     }
 
     @Test

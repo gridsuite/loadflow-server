@@ -213,6 +213,17 @@ public class LoadFlowParametersEntity {
                 .build();
     }
 
+    public LoadFlowParametersValues toLoadFlowParametersValues(String provider) {
+        return LoadFlowParametersValues.builder()
+                .provider(provider)
+                .commonParameters(toLoadFlowParameters())
+                .specificParameters(specificParameters.stream()
+                        .filter(p -> p.getProvider().equalsIgnoreCase(provider))
+                        .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
+                                LoadFlowSpecificParameterEntity::getValue)))
+                .build();
+    }
+
     public LoadFlowParametersEntity copy() {
         return toLoadFlowParametersInfos().toEntity();
     }

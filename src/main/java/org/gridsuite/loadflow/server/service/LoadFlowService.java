@@ -89,12 +89,10 @@ public class LoadFlowService {
     }
 
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, UUID parametersUuid) {
-        Optional<LoadFlowParametersValues> params = parametersService.getParametersValues(parametersUuid);
+        LoadFlowParametersValues params = parametersService.getParametersValues(parametersUuid);
         // set provider and parameters
-        params.ifPresent(p -> {
-            loadFlowRunContext.setParameters(p);
-            loadFlowRunContext.setProvider(p.provider() != null ? p.provider() : getDefaultProvider());
-        });
+        loadFlowRunContext.setParameters(params);
+        loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status

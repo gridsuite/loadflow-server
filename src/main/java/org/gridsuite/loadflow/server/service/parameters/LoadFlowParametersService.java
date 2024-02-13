@@ -45,9 +45,13 @@ public class LoadFlowParametersService {
         return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::toLoadFlowParametersInfos);
     }
 
-    public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid) {
+    public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid, String provider) {
+        return loadFlowParametersRepository.findById(parametersUuid).map(entity -> entity.toLoadFlowParametersValues(provider));
+    }
+
+    public LoadFlowParametersValues getParametersValues(UUID parametersUuid) {
         return loadFlowParametersRepository.findById(parametersUuid)
-            .map(entity -> entity.toLoadFlowParametersValues());
+            .map(LoadFlowParametersEntity::toLoadFlowParametersValues).orElseThrow();
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {

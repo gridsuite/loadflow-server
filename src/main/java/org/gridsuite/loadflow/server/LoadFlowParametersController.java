@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -64,6 +65,16 @@ public class LoadFlowParametersController {
     public ResponseEntity<LoadFlowParametersInfos> getParameters(
             @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid) {
         return ResponseEntity.of(parametersService.getParameters(parametersUuid));
+    }
+
+    @GetMapping(value = "/{uuid}/values", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get parameters for a given provider")
+    @ApiResponse(responseCode = "200", description = "parameters were returned")
+    @ApiResponse(responseCode = "404", description = "parameters were not found")
+    public ResponseEntity<LoadFlowParametersValues> getParameters(
+            @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid,
+            @Parameter(description = "provider name") @RequestParam("provider") String provider) {
+        return ResponseEntity.of(parametersService.getParametersValues(parametersUuid, provider));
     }
 
     @GetMapping(value = "", produces = MediaType.APPLICATION_JSON_VALUE)

@@ -190,12 +190,12 @@ public class LoadFlowControllerTest {
         // parameters mocking
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
         loadFlowParameters.setDc(true);
-        LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
+        LoadFlowParametersValues loadFlowParametersValues = LoadFlowParametersValues.builder()
             .provider("LFProvider")
             .commonParameters(loadFlowParameters)
             .specificParameters(Collections.emptyMap())
             .build();
-        doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any());
+        doReturn(loadFlowParametersValues).when(loadFlowParametersService).getParametersValues(any());
 
         // purge messages
         while (output.receive(1000, "loadflow.result") != null) {
