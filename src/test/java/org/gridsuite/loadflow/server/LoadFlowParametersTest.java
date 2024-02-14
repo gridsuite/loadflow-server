@@ -15,6 +15,7 @@ import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
+import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -54,6 +55,9 @@ class LoadFlowParametersTest {
 
     @Autowired
     LoadFlowParametersRepository parametersRepository;
+
+    @Autowired
+    LoadFlowParametersService parametersService;
 
     @Value("${loadflow.default-provider}")
     String defaultLoadflowProvider;
@@ -242,6 +246,17 @@ class LoadFlowParametersTest {
         LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
 
         assertThat(updatedParameters.provider()).isEqualTo(defaultLoadflowProvider);
+    }
+
+    @Test
+    void testGetParametersValues() {
+        LoadFlowParametersInfos parameters = buildParameters();
+
+        UUID parametersUuid = saveAndRetunId(parameters);
+
+        LoadFlowParametersValues parametersValues = parametersService.getParametersValues(parametersUuid);
+
+        assertThat(parametersRepository.findById(parametersUuid).get().toLoadFlowParametersValues()).recursivelyEquals(parametersValues);
     }
 
     /** Save parameters into the repository and return its UUID. */
