@@ -116,13 +116,13 @@ public class LoadFlowParametersEntity {
         } else {
             allCommonValues = loadFlowParametersInfos.commonParameters();
             if (loadFlowParametersInfos.specificParametersPerProvider() != null) {
-                loadFlowParametersInfos.specificParametersPerProvider().forEach((provider, paramsMap) -> {
+                loadFlowParametersInfos.specificParametersPerProvider().forEach((p, paramsMap) -> {
                     if (paramsMap != null) {
                         paramsMap.forEach((paramName, paramValue) -> {
                             if (paramValue != null) {
                                 allSpecificValuesEntities.add(new LoadFlowSpecificParameterEntity(
                                         null,
-                                        provider,
+                                        p,
                                         paramName,
                                         paramValue));
                             }
