@@ -84,7 +84,8 @@ public class LoadFlowController {
                                                     @Parameter(description = "Sort parameters") Sort sort) {
         String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
         LoadFlowResult result = loadFlowService.getResult(resultUuid, decodedStringFilters, sort);
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+        return result != null ? ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result)
+                : ResponseEntity.notFound().build();
     }
 
     @DeleteMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
@@ -167,9 +168,8 @@ public class LoadFlowController {
     @Operation(summary = "Get available limit types")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available limit types"))
     public ResponseEntity<List<LimitViolationType>> getLimitTypes() {
-        List<LimitViolationType> limitViolationTypesToRemove = List.of(LimitViolationType.HIGH_SHORT_CIRCUIT_CURRENT, LimitViolationType.LOW_SHORT_CIRCUIT_CURRENT, LimitViolationType.LOW_VOLTAGE_ANGLE, LimitViolationType.HIGH_VOLTAGE_ANGLE);
         return ResponseEntity.ok().body(Arrays.stream(LimitViolationType.values())
-                .filter(limitType -> !limitViolationTypesToRemove.contains(limitType))
+                .filter(limitType -> limitType.equals(LimitViolationType.HIGH_VOLTAGE) || limitType.equals(LimitViolationType.LOW_VOLTAGE))
                 .toList());
     }
 

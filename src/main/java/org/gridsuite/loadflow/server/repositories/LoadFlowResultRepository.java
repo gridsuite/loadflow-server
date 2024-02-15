@@ -122,7 +122,6 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
     public void deleteAll() {
         globalStatusRepository.deleteAll();
         resultRepository.deleteAll();
-        limitViolationRepository.deleteAll();
     }
 
     @Transactional(readOnly = true)

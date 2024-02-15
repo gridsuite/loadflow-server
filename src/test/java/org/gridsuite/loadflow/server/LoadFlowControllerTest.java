@@ -245,19 +245,15 @@ public class LoadFlowControllerTest {
             assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
 
             // Should return an empty result with status OK if the result does not exist
-            result = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
-                    .andExpect(status().isOk())
-                    .andReturn();
-            assertEquals(0, result.getResponse().getContentLength());
+            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
+                    .andExpect(status().isNotFound());
 
             // test one result deletion
             mockMvc.perform(delete("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isOk());
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isOk())
-                    .andReturn();
-            assertEquals(0, result.getResponse().getContentLength());
+                    .andExpect(status().isNotFound());
         }
     }
 
@@ -405,11 +401,8 @@ public class LoadFlowControllerTest {
             mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString())
             ).andExpect(status().isOk());
 
-            result = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andReturn();
-            assertEquals("", result.getResponse().getContentAsString());
+            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+                    .andExpect(status().isNotFound());
         }
     }
 
@@ -567,9 +560,10 @@ public class LoadFlowControllerTest {
 
         String resultAsString = mvcResult.getResponse().getContentAsString();
         List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() { });
-        assertEquals(6, limitTypes.size());
-        assertTrue(limitTypes.contains(LimitViolationType.ACTIVE_POWER));
-        assertFalse(limitTypes.contains(LimitViolationType.HIGH_SHORT_CIRCUIT_CURRENT));
+        assertEquals(2, limitTypes.size());
+        assertTrue(limitTypes.contains(LimitViolationType.HIGH_VOLTAGE));
+        assertTrue(limitTypes.contains(LimitViolationType.LOW_VOLTAGE));
+        assertFalse(limitTypes.contains(LimitViolationType.CURRENT));
     }
 
     @Test
