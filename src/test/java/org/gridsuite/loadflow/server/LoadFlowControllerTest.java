@@ -29,6 +29,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.loadflow.server.dto.ComponentResult;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.computation.service.ExecutionService;
@@ -36,6 +37,7 @@ import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.ReportService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +60,7 @@ import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
@@ -241,7 +244,7 @@ public class LoadFlowControllerTest {
             org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
             assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
 
-            // should throw not found if result does not exist
+            // Should return an empty result with status OK if the result does not exist
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
                     .andExpect(status().isNotFound());
 
@@ -296,6 +299,73 @@ public class LoadFlowControllerTest {
             });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations, network);
         }
+    }
+
+    @Test
+    public void testGetLimitViolationsWithFilters() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+            loadFlowParameters.setDc(true);
+            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
+                    .commonParameters(loadFlowParameters)
+                    .specificParameters(Collections.emptyMap())
+                    .build();
+            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get loadflow limit violations with filter
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + buildFilterUrl()))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString = mvcResult.getResponse().getContentAsString();
+            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
+            });
+            assertEquals(1, limitViolationInfos.size());
+
+        }
+
+    }
+
+    private String buildFilterUrl() {
+        String filterUrl = "";
+        try {
+            List<ResourceFilter> filters = List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "NHV1_NHV2", ResourceFilter.Column.SUBJECT_ID),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1500", ResourceFilter.Column.LIMIT),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200", ResourceFilter.Column.VALUE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
+            );
+
+            String jsonFilters = new ObjectMapper().writeValueAsString(filters);
+
+            filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
+
+            return filterUrl;
+        } catch (Exception ignored) {
+        }
+        return filterUrl;
     }
 
     @Test
@@ -478,5 +548,49 @@ public class LoadFlowControllerTest {
         assertEquals(Set.of("OpenLoadFlow", "DynaFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
+    }
+
+    @Test
+    public void geLimitTypesTest() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/limit-types"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() { });
+        assertEquals(2, limitTypes.size());
+        assertTrue(limitTypes.contains(LimitViolationType.HIGH_VOLTAGE));
+        assertTrue(limitTypes.contains(LimitViolationType.LOW_VOLTAGE));
+        assertFalse(limitTypes.contains(LimitViolationType.CURRENT));
+    }
+
+    @Test
+    public void geBranchSidesTest() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/branch-sides"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<TwoSides> sides = mapper.readValue(resultAsString, new TypeReference<>() { });
+        assertEquals(2, sides.size());
+        assertTrue(sides.contains(TwoSides.ONE));
+        assertTrue(sides.contains(TwoSides.TWO));
+    }
+
+    @Test
+    public void getComputationStatus() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/computation-status"))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(resultAsString, new TypeReference<>() { });
+        assertEquals(status, Arrays.asList(LoadFlowResult.ComponentResult.Status.values()));
     }
 }

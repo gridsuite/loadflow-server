@@ -12,7 +12,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import lombok.experimental.SuperBuilder;
-import org.gridsuite.loadflow.server.entities.LimitViolationEmbeddable;
+import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -33,26 +33,25 @@ public class LimitViolationInfos {
 
     private Integer upComingOverloadDuration;
 
+    private Double overload;
+
     private Double value;
 
     private String side;
 
     private LimitViolationType limitType;
 
-    public LimitViolationEmbeddable toEmbeddable() {
-        return new LimitViolationEmbeddable(subjectId, limit, limitName, actualOverloadDuration, upComingOverloadDuration, value, side, limitType);
-    }
-
-    public static LimitViolationInfos toLimitViolationInfos(LimitViolationEmbeddable limitViolationEmbeddable) {
+    public static LimitViolationInfos toLimitViolationInfos(LimitViolationEntity limitViolationEntity) {
         return LimitViolationInfos.builder()
-            .subjectId(limitViolationEmbeddable.getSubjectId())
-            .limit(limitViolationEmbeddable.getLimit())
-            .limitName(limitViolationEmbeddable.getLimitName())
-            .actualOverloadDuration(limitViolationEmbeddable.getActualOverload())
-            .upComingOverloadDuration(limitViolationEmbeddable.getUpComingOverload())
-            .value(limitViolationEmbeddable.getValue())
-            .side(limitViolationEmbeddable.getSide())
-            .limitType(limitViolationEmbeddable.getLimitType())
-            .build();
+                .subjectId(limitViolationEntity.getSubjectId())
+                .limit(limitViolationEntity.getLimit())
+                .limitName(limitViolationEntity.getLimitName())
+                .actualOverloadDuration(limitViolationEntity.getActualOverload())
+                .upComingOverloadDuration(limitViolationEntity.getUpComingOverload())
+                .overload(limitViolationEntity.getOverload())
+                .value(limitViolationEntity.getValue())
+                .side(limitViolationEntity.getSide())
+                .limitType(limitViolationEntity.getLimitType())
+                .build();
     }
 }

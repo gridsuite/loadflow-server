@@ -8,13 +8,13 @@
 package org.gridsuite.loadflow.server.entities;
 
 import com.powsybl.security.LimitViolationType;
-import jakarta.persistence.Column;
-import jakarta.persistence.Embeddable;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
+import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+
+import java.util.UUID;
 
 /**
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
@@ -22,8 +22,21 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-@Embeddable
-public class LimitViolationEmbeddable {
+@Builder
+@Entity
+@Table(name = "limitViolation", indexes = {
+    @Index(name = "limitViolation_resultUuid_idx", columnList = "resultUuid")
+})
+public class LimitViolationEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.AUTO)
+    private UUID id;
+
+    @ManyToOne
+    @JoinColumn(name = "resultUuid")
+    private LoadFlowResultEntity loadFlowResult;
+
     @Column
     private String subjectId;
 
@@ -38,6 +51,9 @@ public class LimitViolationEmbeddable {
 
     @Column
     private Integer upComingOverload;
+
+    @Column
+    private Double overload;
 
     @Column(name = "value_")
     private Double value;
