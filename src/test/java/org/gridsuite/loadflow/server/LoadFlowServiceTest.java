@@ -6,7 +6,6 @@ import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
-import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -66,18 +65,11 @@ class LoadFlowServiceTest {
     }
 
     @Test
-    void assertResultExistsWhenResultExistsShouldNotThrowException() {
-        UUID existingUuid = UUID.randomUUID();
-        when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(existingUuid)).thenReturn(true);
-        assertDoesNotThrow(() -> loadFlowService.assertResultExists(existingUuid));
-    }
-
-    @Test
-    void assertResultExistsWhenResultDoesNotExistShouldThrowLoadflowException() {
+    void assertResultExistsWhenResultDoesNotExistShouldThrowReturnEmptyResult() {
         UUID nonExistingUuid = UUID.randomUUID();
         when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(nonExistingUuid)).thenReturn(false);
-        LoadflowException thrown = assertThrows(LoadflowException.class, () -> loadFlowService.assertResultExists(nonExistingUuid));
-        assertEquals(LoadflowException.Type.RESULT_NOT_FOUND, thrown.getType());
+        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(nonExistingUuid, null, null);
+        assertEquals(0, result.size());
     }
 
     @Test

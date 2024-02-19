@@ -37,7 +37,6 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
 
     private ResultRepository resultRepository;
 
-    private LimitViolationRepository limitViolationRepository;
     private final ComponentResultRepository componentResultRepository;
 
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
