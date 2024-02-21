@@ -158,15 +158,11 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
-    public void assertResultExists(UUID resultUuid) {
-        if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
-            throw new LoadflowException(LoadflowException.Type.RESULT_NOT_FOUND);
-        }
-    }
-
     @Transactional(readOnly = true)
     public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
-        assertResultExists(resultUuid);
+        if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
+            return List.of();
+        }
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
     }
