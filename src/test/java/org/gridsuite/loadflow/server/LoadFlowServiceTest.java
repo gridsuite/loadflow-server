@@ -65,7 +65,7 @@ class LoadFlowServiceTest {
     }
 
     @Test
-    void assertResultExistsWhenResultDoesNotExistShouldThrowReturnEmptyResult() {
+    void assertResultExistsWhenResultDoesNotExistShouldReturnEmptyResult() {
         UUID nonExistingUuid = UUID.randomUUID();
         when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(nonExistingUuid)).thenReturn(false);
         List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(nonExistingUuid, null, null);
