@@ -54,7 +54,6 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The load flow has been performed")})
     public ResponseEntity<UUID> run(@Parameter(description = "Network UUID") @PathVariable("networkUuid") UUID networkUuid,
                                     @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId,
-                                    @Parameter(description = "Provider") @RequestParam(name = "provider", required = false) String provider,
                                     @Parameter(description = "Result receiver") @RequestParam(name = "receiver", required = false) String receiver,
                                     @Parameter(description = "reportUuid") @RequestParam(name = "reportUuid", required = false) UUID reportId,
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
@@ -71,7 +70,7 @@ public class LoadFlowController {
                 .userId(userId)
                 .limitReduction(limitReduction)
                 .build();
-        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext, provider, parametersUuid);
+        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext, parametersUuid);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
     }
 

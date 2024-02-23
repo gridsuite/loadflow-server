@@ -48,7 +48,7 @@ public abstract class AbstractComputationService<R> {
 
     public abstract List<String> getProviders();
 
-    public abstract UUID runAndSaveResult(R runContext, String provider, UUID parametersUuid);
+    public abstract UUID runAndSaveResult(R runContext, UUID parametersUuid);
 
     public void deleteResult(UUID resultUuid) {
         resultRepository.delete(resultUuid);
