@@ -7,12 +7,12 @@
 package org.gridsuite.loadflow.server.entities;
 
 import com.powsybl.loadflow.LoadFlowResult;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import jakarta.persistence.*;
+
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -24,6 +24,17 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 public class ComponentResultEntity {
+    public ComponentResultEntity(int connectedComponentNum, int synchronousComponentNum, LoadFlowResult.ComponentResult.Status status, int iterationCount, double distributedActivePower, List<SlackBusResultEntity> slackBusResults, LoadFlowResultEntity loadFlowResult) {
+        this.connectedComponentNum = connectedComponentNum;
+        this.synchronousComponentNum = synchronousComponentNum;
+        this.status = status;
+        this.iterationCount = iterationCount;
+        this.distributedActivePower = distributedActivePower;
+        this.loadFlowResult = loadFlowResult;
+        setSlackBusResults(slackBusResults);
+
+    }
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private UUID componentResultUuid;
@@ -42,16 +53,20 @@ public class ComponentResultEntity {
     int iterationCount;
 
     @Column
-    String slackBusId;
-
-    @Column
-    double slackBusActivePowerMismatch;
-
-    @Column
     double distributedActivePower;
+
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "componentResult", fetch = FetchType.LAZY)
+    private List<SlackBusResultEntity> slackBusResults = new ArrayList<>();
 
     @ManyToOne
     @JoinColumn(name = "resultUuid")
     private LoadFlowResultEntity loadFlowResult;
+
+    private void setSlackBusResults(List<SlackBusResultEntity> slackBusResults) {
+        if (slackBusResults != null) {
+            this.slackBusResults = slackBusResults;
+            slackBusResults.forEach(slackBusResult -> slackBusResult.setComponentResult(this));
+        }
+    }
 
 }

@@ -19,6 +19,7 @@ import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
@@ -102,25 +103,40 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         return resultUuid;
     }
 
-    private static LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity) {
+    private static LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
         return LoadFlowResult.builder()
                 .resultUuid(resultEntity.getResultUuid())
                 .writeTimeStamp(resultEntity.getWriteTimeStamp())
-                .componentResults(resultEntity.getComponentResults().stream().map(LoadFlowService::fromEntity).toList())
+                .componentResults(resultEntity.getComponentResults().stream().map(result -> LoadFlowService.fromEntity(result, slackBusResultEntities, hasChildFilter)).toList())
                 .build();
     }
 
-    private static ComponentResult fromEntity(ComponentResultEntity componentResultEntity) {
+    private static ComponentResult fromEntity(ComponentResultEntity componentResultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
         return ComponentResult.builder()
                 .componentResultUuid(componentResultEntity.getComponentResultUuid())
                 .connectedComponentNum(componentResultEntity.getConnectedComponentNum())
                 .synchronousComponentNum(componentResultEntity.getSynchronousComponentNum())
                 .status(componentResultEntity.getStatus())
                 .iterationCount(componentResultEntity.getIterationCount())
-                .slackBusId(componentResultEntity.getSlackBusId())
-                .slackBusActivePowerMismatch(componentResultEntity.getSlackBusActivePowerMismatch())
+                .slackBusResults(getSlackBusResult(hasChildFilter, slackBusResultEntities, componentResultEntity))
                 .distributedActivePower(componentResultEntity.getDistributedActivePower())
                 .build();
+    }
+
+    private static List<SlackBusResult> getSlackBusResult(boolean hasChildFilter, List <SlackBusResultEntity> slackBusResultEntities, ComponentResultEntity componentResultEntity) {
+        List <SlackBusResultEntity> slackBusResults = new ArrayList<>();
+        if (!hasChildFilter) {
+            slackBusResults.addAll(componentResultEntity.getSlackBusResults());
+        } else {
+            // map the componentResultUuid to the associated slackBusResult entities
+            Map<UUID, List<SlackBusResultEntity>> map = slackBusResultEntities.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(slackBusResultEntity -> slackBusResultEntity.getComponentResult().getComponentResultUuid()));
+            if (map.isEmpty()) {
+                return List.of();
+            }
+            slackBusResults.addAll(map.get(componentResultEntity.getComponentResultUuid()));
+        }
+
+        return slackBusResults.stream().map(slackBusResultEntity -> new SlackBusResult(slackBusResultEntity.getId(), slackBusResultEntity.getActivePowerMismatch())).toList();
     }
 
     public LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
@@ -133,8 +149,14 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             return null;
         }
         List<ComponentResultEntity> componentResults = getResultRepository().findComponentResults(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        boolean hasChildFilter = fromStringFiltersToDTO(stringFilters).stream().anyMatch(resourceFilter -> !SpecificationBuilder.isParentFilter(resourceFilter));
+        boolean hasFilter = !StringUtils.isEmpty(stringFilters);
+        List<SlackBusResultEntity> slackBusResultEntities = new ArrayList<>();
+        if (hasChildFilter) {
+            slackBusResultEntities.addAll(getResultRepository().findSlackBusResults(componentResults, fromStringFiltersToDTO(stringFilters), sort));
+        }
         loadFlowResultEntity.setComponentResults(componentResults);
-        loadFlowResult = fromEntity(loadFlowResultEntity);
+        loadFlowResult = fromEntity(loadFlowResultEntity, slackBusResultEntities, hasFilter && hasChildFilter);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
