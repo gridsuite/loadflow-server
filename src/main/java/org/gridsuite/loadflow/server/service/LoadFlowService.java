@@ -16,6 +16,7 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
@@ -90,11 +91,11 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     @Override
-    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, String provider, UUID parametersUuid) {
-        String providerToUse = provider != null ? provider : getDefaultProvider();
+    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, UUID parametersUuid) {
+        LoadFlowParametersValues params = parametersService.getParametersValues(parametersUuid);
         // set provider and parameters
-        loadFlowRunContext.setParameters(parametersService.getParametersValues(parametersUuid, providerToUse).orElse(null));
-        loadFlowRunContext.setProvider(providerToUse);
+        loadFlowRunContext.setParameters(params);
+        loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status

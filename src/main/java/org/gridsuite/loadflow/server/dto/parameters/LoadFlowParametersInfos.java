@@ -21,6 +21,7 @@ import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntit
 @Builder
 public record LoadFlowParametersInfos(
     UUID uuid,
+    String provider,
     LoadFlowParameters commonParameters,
     Map<String, Map<String, String>> specificParametersPerProvider) {
     public LoadFlowParametersEntity toEntity() {

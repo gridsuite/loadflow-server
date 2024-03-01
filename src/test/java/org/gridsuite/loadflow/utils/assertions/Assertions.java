@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.utils.assertions;
 
 import org.assertj.core.util.CheckReturnValue;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 
 /**
  *  @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
@@ -16,6 +17,11 @@ import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 public class Assertions extends org.assertj.core.api.Assertions {
     @CheckReturnValue
     public static DTOAssert<LoadFlowParametersInfos> assertThat(LoadFlowParametersInfos actual) {
+        return new DTOAssert<>(actual);
+    }
+
+    @CheckReturnValue
+    public static DTOAssert<LoadFlowParametersValues > assertThat(LoadFlowParametersValues actual) {
         return new DTOAssert<>(actual);
     }
 }

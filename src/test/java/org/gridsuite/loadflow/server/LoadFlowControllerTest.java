@@ -199,6 +199,16 @@ public class LoadFlowControllerTest {
         // UUID service mocking to always generate the same result UUID
         given(uuidGeneratorService.generate()).willReturn(RESULT_UUID);
 
+        // parameters mocking
+        LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+        loadFlowParameters.setDc(true);
+        LoadFlowParametersValues loadFlowParametersValues = LoadFlowParametersValues.builder()
+            .provider("LFProvider")
+            .commonParameters(loadFlowParameters)
+            .specificParameters(Collections.emptyMap())
+            .build();
+        doReturn(loadFlowParametersValues).when(loadFlowParametersService).getParametersValues(any());
+
         // purge messages
         while (output.receive(1000, "loadflow.result") != null) {
         }
@@ -276,14 +286,6 @@ public class LoadFlowControllerTest {
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                     any(LoadFlowParameters.class), any(Reporter.class)))
                 .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
-
-            LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
-            loadFlowParameters.setDc(true);
-            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
-                .commonParameters(loadFlowParameters)
-                .specificParameters(Collections.emptyMap())
-                .build();
-            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
                     "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
