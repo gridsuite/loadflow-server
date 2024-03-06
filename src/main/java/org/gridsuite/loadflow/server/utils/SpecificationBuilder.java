@@ -48,7 +48,7 @@ public final class SpecificationBuilder {
             List<ResourceFilter> childrenFilters = filters.stream().filter(resourceFilter -> !isParentFilter(resourceFilter)).toList();
             if (withJoin) {
                 if (!childrenFilters.isEmpty()) {
-                    // user filters on OneToMany collection - needed here to filter main entities that would have empty collection when filters are applied
+                    // use filters on OneToMany collection - needed here to filter main entities that would have empty collection when filters are applied
                     childrenFilters
                             .forEach(filter -> SpecificationUtils.addPredicate(criteriaBuilder, root.get(SLACK_BUS_RESULTS), predicates, filter));
                 } else {

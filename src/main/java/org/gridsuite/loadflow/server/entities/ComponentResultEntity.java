@@ -24,16 +24,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @Entity
 public class ComponentResultEntity {
-    public ComponentResultEntity(int connectedComponentNum, int synchronousComponentNum, LoadFlowResult.ComponentResult.Status status, int iterationCount, double distributedActivePower, List<SlackBusResultEntity> slackBusResults, LoadFlowResultEntity loadFlowResult) {
-        this.connectedComponentNum = connectedComponentNum;
-        this.synchronousComponentNum = synchronousComponentNum;
-        this.status = status;
-        this.iterationCount = iterationCount;
-        this.distributedActivePower = distributedActivePower;
-        this.loadFlowResult = loadFlowResult;
-        setSlackBusResults(slackBusResults);
-
-    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
@@ -62,7 +52,7 @@ public class ComponentResultEntity {
     @JoinColumn(name = "resultUuid")
     private LoadFlowResultEntity loadFlowResult;
 
-    private void setSlackBusResults(List<SlackBusResultEntity> slackBusResults) {
+    public void setSlackBusResults(List<SlackBusResultEntity> slackBusResults) {
         if (slackBusResults != null) {
             this.slackBusResults = slackBusResults;
             slackBusResults.forEach(slackBusResult -> slackBusResult.setComponentResult(this));

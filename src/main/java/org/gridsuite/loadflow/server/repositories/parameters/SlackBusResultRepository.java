@@ -7,7 +7,6 @@
 package org.gridsuite.loadflow.server.repositories.parameters;
 
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
-import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -19,6 +18,6 @@ import java.util.UUID;
  * @author AJELLAL Ali <ali.ajellal@rte-france.com>
  */
 public interface SlackBusResultRepository extends JpaRepository<SlackBusResultEntity, UUID>, JpaSpecificationExecutor<SlackBusResultEntity> {
-    List<SlackBusResultEntity> findAll(Specification specification, Sort sort);
+    List<SlackBusResultEntity> findAll(Specification specification);
 
 }

@@ -50,10 +50,16 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
     }
 
     private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {
-        return new ComponentResultEntity(componentResult.getConnectedComponentNum(), componentResult.getSynchronousComponentNum(),
-                componentResult.getStatus(), componentResult.getIterationCount(),
-                componentResult.getDistributedActivePower(),
-                getSlackBusResultEntity(componentResult.getSlackBusResults()), LoadFlowResultEntity.builder().resultUuid(resultUuid).build());
+        ComponentResultEntity componentResultEntity = ComponentResultEntity.builder()
+                .connectedComponentNum(componentResult.getConnectedComponentNum())
+                .synchronousComponentNum(componentResult.getSynchronousComponentNum())
+                .status(componentResult.getStatus())
+                .iterationCount(componentResult.getIterationCount())
+                .distributedActivePower(componentResult.getDistributedActivePower())
+                .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
+                .build();
+        componentResultEntity.setSlackBusResults(getSlackBusResultEntity(componentResult.getSlackBusResults()));
+        return componentResultEntity;
     }
 
     private static List<SlackBusResultEntity> getSlackBusResultEntity(List<LoadFlowResult.SlackBusResult> slackBusResults) {
@@ -134,12 +140,12 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         return componentResultRepository.findAll(specification, sort);
     }
 
-    public List<SlackBusResultEntity> findSlackBusResults(List<ComponentResultEntity> componentResultEntities, List<ResourceFilter> resourceFilters, Sort sort) {
+    public List<SlackBusResultEntity> findSlackBusResults(List<ComponentResultEntity> componentResultEntities, List<ResourceFilter> resourceFilters) {
         List<UUID> componentResultUuids = componentResultEntities.stream()
                     .map(ComponentResultEntity::getComponentResultUuid)
                     .toList();
         Specification<SlackBusResultEntity> specificationSlack = SpecificationBuilder.getSlackBusResultsSpecifications(componentResultUuids, resourceFilters);
-        return slackBusResultRepository.findAll(specificationSlack, sort);
+        return slackBusResultRepository.findAll(specificationSlack);
     }
 
 }

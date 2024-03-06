@@ -149,15 +149,15 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         if (loadFlowResultEntity == null) {
             return null;
         }
-        List<ComponentResultEntity> componentResults = getResultRepository().findComponentResults(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
-        boolean hasChildFilter = fromStringFiltersToDTO(stringFilters).stream().anyMatch(resourceFilter -> !SpecificationBuilder.isParentFilter(resourceFilter));
-        boolean hasFilter = !StringUtils.isEmpty(stringFilters);
+        List<ResourceFilter> resourceFilters = fromStringFiltersToDTO(stringFilters);
+        List<ComponentResultEntity> componentResults = getResultRepository().findComponentResults(resultUuid, resourceFilters, sort);
+        boolean hasChildFilter = resourceFilters.stream().anyMatch(resourceFilter -> !SpecificationBuilder.isParentFilter(resourceFilter));
         List<SlackBusResultEntity> slackBusResultEntities = new ArrayList<>();
         if (hasChildFilter) {
-            slackBusResultEntities.addAll(getResultRepository().findSlackBusResults(componentResults, fromStringFiltersToDTO(stringFilters), sort));
+            slackBusResultEntities.addAll(getResultRepository().findSlackBusResults(componentResults, resourceFilters));
         }
         loadFlowResultEntity.setComponentResults(componentResults);
-        loadFlowResult = fromEntity(loadFlowResultEntity, slackBusResultEntities, hasFilter && hasChildFilter);
+        loadFlowResult = fromEntity(loadFlowResultEntity, slackBusResultEntities, hasChildFilter);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
     }
