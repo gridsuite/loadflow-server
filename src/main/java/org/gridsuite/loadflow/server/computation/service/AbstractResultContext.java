@@ -13,6 +13,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 
 import java.io.UncheckedIOException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -67,7 +68,9 @@ public abstract class AbstractResultContext<R extends AbstractComputationRunCont
                 .setHeader(REPORT_UUID_HEADER, runContext.getReportContext().getReportId() != null ? runContext.getReportContext().getReportId().toString() : null)
                 .setHeader(REPORTER_ID_HEADER, runContext.getReportContext().getReportName())
                 .setHeader(REPORT_TYPE_HEADER, runContext.getReportContext().getReportType())
-                .setHeader(HEADER_LIMIT_REDUCTION, runContext.getLimitReduction() != null ? runContext.getLimitReduction().toString() : null)
+                .copyHeaders(getSpecificMsgHeaders())
             .build();
     }
+
+    public abstract Map<String, String> getSpecificMsgHeaders();
 }

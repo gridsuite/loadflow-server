@@ -15,6 +15,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.UncheckedIOException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -63,5 +64,13 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .build();
 
         return new LoadFlowResultContext(resultUuid, runContext);
+    }
+
+    public Map<String, String> getSpecificMsgHeaders() {
+        return Map.of(
+                HEADER_LIMIT_REDUCTION,
+                runContext.getLimitReduction() != null ?
+                        runContext.getLimitReduction().toString() :
+                        null);
     }
 }
