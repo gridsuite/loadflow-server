@@ -11,11 +11,9 @@ import lombok.AllArgsConstructor;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
-import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
-import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
-import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
-import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
+import org.gridsuite.loadflow.server.entities.*;
 import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
+import org.gridsuite.loadflow.server.repositories.parameters.SlackBusResultRepository;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -39,6 +37,8 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
 
     private final ComponentResultRepository componentResultRepository;
 
+    private final SlackBusResultRepository slackBusResultRepository;
+
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
         List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
                 .map(componentResult -> LoadFlowResultRepository.toComponentResultEntity(resultUuid, componentResult))
@@ -50,17 +50,21 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
     }
 
     private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {
-        return ComponentResultEntity.builder().connectedComponentNum(componentResult.getConnectedComponentNum())
+        ComponentResultEntity componentResultEntity = ComponentResultEntity.builder()
+                .connectedComponentNum(componentResult.getConnectedComponentNum())
                 .synchronousComponentNum(componentResult.getSynchronousComponentNum())
                 .status(componentResult.getStatus())
                 .iterationCount(componentResult.getIterationCount())
-                .slackBusId(componentResult.getSlackBusId())
-                .iterationCount(componentResult.getIterationCount())
-                .slackBusId(componentResult.getSlackBusId())
-                .slackBusActivePowerMismatch(componentResult.getSlackBusActivePowerMismatch())
                 .distributedActivePower(componentResult.getDistributedActivePower())
                 .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
                 .build();
+        componentResultEntity.setSlackBusResults(getSlackBusResultEntity(componentResult.getSlackBusResults()));
+        return componentResultEntity;
+    }
+
+    private static List<SlackBusResultEntity> getSlackBusResultEntity(List<LoadFlowResult.SlackBusResult> slackBusResults) {
+        return slackBusResults.stream()
+                .map(slackBusResult -> SlackBusResultEntity.toEntity(slackBusResult.getId(), slackBusResult.getActivePowerMismatch())).toList();
     }
 
     private static GlobalStatusEntity toStatusEntity(UUID resultUuid, LoadFlowStatus status) {
@@ -135,4 +139,13 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         Specification<ComponentResultEntity> specification = SpecificationBuilder.buildLoadflowResultSpecifications(resultUuid, resourceFilters);
         return componentResultRepository.findAll(specification, sort);
     }
+
+    public List<SlackBusResultEntity> findSlackBusResults(List<ComponentResultEntity> componentResultEntities, List<ResourceFilter> resourceFilters) {
+        List<UUID> componentResultUuids = componentResultEntities.stream()
+                    .map(ComponentResultEntity::getComponentResultUuid)
+                    .toList();
+        Specification<SlackBusResultEntity> specificationSlack = SpecificationBuilder.getSlackBusResultsSpecifications(componentResultUuids, resourceFilters);
+        return slackBusResultRepository.findAll(specificationSlack);
+    }
+
 }
