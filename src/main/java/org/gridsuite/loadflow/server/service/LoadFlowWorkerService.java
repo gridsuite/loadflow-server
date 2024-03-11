@@ -134,6 +134,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             if (violationInfo.getLimitName() != null && violationInfo.getLimitType() == LimitViolationType.CURRENT) {
                 violationInfo.setActualOverloadDuration(calculateActualOverloadDuration(violationInfo, network));
                 violationInfo.setUpComingOverloadDuration(calculateUpcomingOverloadDuration(violationInfo));
+                violationInfo.setOverload((violationInfo.getValue() / violationInfo.getLimit()) * 100);
             }
         }
         return limitViolationInfos;
