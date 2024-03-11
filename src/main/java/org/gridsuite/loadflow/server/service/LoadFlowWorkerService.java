@@ -59,7 +59,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     @Override
     protected LoadFlowResult run(Network network, AbstractResultContext<LoadFlowRunContext> resultContext) throws Exception {
         LoadFlowResult result = super.run(network, resultContext);
-        if (result != null && result.isOk()) {
+        if (result != null && result.isPartiallyConverged()) {
             // flush each network in the network store
             observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(network));
         }

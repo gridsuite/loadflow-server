@@ -79,11 +79,11 @@ public record ResourceFilter(DataType dataType, Type type, Object value, Column 
         @JsonProperty("iterationCount")
         ITERATION_COUNT("iterationCount"),
 
-        @JsonProperty("slackBusId")
-        SLACK_BUS_ID("slackBusId"),
+        @JsonProperty("activePowerMismatch")
+        ACTIVE_POWER_MISMATCH("activePowerMismatch"),
 
-        @JsonProperty("slackBusActivePowerMismatch")
-        SLACK_BUS_ID_ACTIVE_POWER_MISMATCH("slackBusActivePowerMismatch"),
+        @JsonProperty("id")
+        ID("id"),
 
         @JsonProperty("distributedActivePower")
         DISTRIBUTED_ACTIVE_POWER("distributedActivePower");
