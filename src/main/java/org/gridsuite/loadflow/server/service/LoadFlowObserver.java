@@ -33,6 +33,6 @@ public class LoadFlowObserver extends AbstractComputationObserver<LoadFlowResult
 
     @Override
     protected String getResultStatus(LoadFlowResult res) {
-        return res != null && res.isPartiallyConverged() ? "OK" : "NOK";
+        return res != null && !res.isFailed() ? "OK" : "NOK";
     }
 }
