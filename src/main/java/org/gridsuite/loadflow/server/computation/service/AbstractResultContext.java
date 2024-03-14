@@ -52,9 +52,7 @@ public abstract class AbstractResultContext<R extends AbstractComputationRunCont
     public Message<String> toMessage(ObjectMapper objectMapper) {
         String parametersJson;
         try {
-            // can't use 'withRootName(MESSAGE_ROOT_NAME).writeValueAsString' because jackson doesn't wrap null in the rootname
-            // -> outputs 'null' instead of '{"parameters": null}'
-            parametersJson = objectMapper.writeValueAsString(objectMapper.createObjectNode().putPOJO(MESSAGE_ROOT_NAME, runContext.getParameters()));
+            parametersJson = objectMapper.writeValueAsString(runContext.getParameters());
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }

@@ -6,7 +6,7 @@
  */
 package org.gridsuite.loadflow.server.computation.service;
 
-import org.gridsuite.loadflow.server.utils.annotations.PostCompletion;
+import org.gridsuite.loadflow.server.computation.utils.annotations.PostCompletion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,9 +39,10 @@ public class NotificationService {
     public static final String HEADER_PROVIDER = "provider";
     public static final String HEADER_MESSAGE = "message";
     public static final String HEADER_USER_ID = "userId";
-    public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
 
     public static final String SENDING_MESSAGE = "Sending message : {}";
+
+    public static final int MSG_MAX_LENGTH = 256;
 
     private final StreamBridge publisher;
 
@@ -89,7 +90,8 @@ public class NotificationService {
                 .withPayload("")
                 .setHeader(HEADER_RESULT_UUID, resultUuid.toString())
                 .setHeader(HEADER_RECEIVER, receiver)
-                .setHeader(HEADER_MESSAGE, getFailedMessage(computationLabel) + " : " + causeMessage)
+                .setHeader(HEADER_MESSAGE, shortenMessage(
+                        getFailedMessage(computationLabel) + " : " + causeMessage))
                 .setHeader(HEADER_USER_ID, userId)
                 .build();
         FAILED_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
@@ -102,5 +104,17 @@ public class NotificationService {
 
     public static String getFailedMessage(String computationLabel) {
         return computationLabel + " has failed";
+    }
+
+    // prevent the message from being too long for rabbitmq
+    // the beginning and ending are both kept, it should make it easier to identify
+    public String shortenMessage(String msg) {
+        if (msg == null) {
+            return msg;
+        }
+
+        return msg.length() > MSG_MAX_LENGTH ?
+                msg.substring(0, MSG_MAX_LENGTH / 2) + " ... " + msg.substring(msg.length() - MSG_MAX_LENGTH / 2, msg.length() - 1)
+                : msg;
     }
 }

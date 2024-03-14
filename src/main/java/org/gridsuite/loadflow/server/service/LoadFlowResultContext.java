@@ -22,6 +22,7 @@ import java.util.UUID;
 import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
+    public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
 
     public LoadFlowResultContext(UUID resultUuid, LoadFlowRunContext runContext) {
         super(resultUuid, runContext);
@@ -39,10 +40,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
 
         LoadFlowParametersValues parameters;
         try {
-            // can't use 'withRootName(MESSAGE_ROOT_NAME).writeValueAsString' because jackson doesn't wrap null in the rootname
-            // -> '{"parameters": null}' throws instead returning null
-            //     MismatchedInputException: Cannot deserialize value of type `LoadFlowParametersInfos` from Null value (token `JsonToken.VALUE_NULL`)
-            parameters = objectMapper.treeToValue(objectMapper.readTree(message.getPayload()).get(MESSAGE_ROOT_NAME), LoadFlowParametersValues.class);
+            parameters = objectMapper.readValue(message.getPayload(), LoadFlowParametersValues.class);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
