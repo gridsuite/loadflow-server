@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.computation.service.AbstractResultContext;
 import org.gridsuite.loadflow.server.computation.utils.ReportContext;
@@ -31,8 +32,8 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
     public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
-        UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, RESULT_UUID_HEADER));
-        UUID networkUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, NETWORK_UUID_HEADER));
+        UUID resultUuid = UUID.fromString(AbstractComputationService.getNonNullHeader(headers, RESULT_UUID_HEADER));
+        UUID networkUuid = UUID.fromString(AbstractComputationService.getNonNullHeader(headers, NETWORK_UUID_HEADER));
         String variantId = (String) headers.get(VARIANT_ID_HEADER);
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);

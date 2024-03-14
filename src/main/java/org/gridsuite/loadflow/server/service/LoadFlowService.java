@@ -9,7 +9,6 @@ package org.gridsuite.loadflow.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -32,7 +31,6 @@ import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -164,14 +162,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
     public LoadFlowStatus getStatus(UUID resultUuid) {
         return getResultRepository().findStatus(resultUuid);
-    }
-
-    public static String getNonNullHeader(MessageHeaders headers, String name) {
-        String header = (String) headers.get(name);
-        if (header == null) {
-            throw new PowsyblException("Header '" + name + "' not found");
-        }
-        return header;
     }
 
     public static LoadFlowStatus computeLoadFlowStatus(com.powsybl.loadflow.LoadFlowResult result) {
