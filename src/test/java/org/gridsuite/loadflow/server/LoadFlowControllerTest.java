@@ -99,8 +99,15 @@ public class LoadFlowControllerTest {
     private static final int TIMEOUT = 1000;
 
     private static final class LoadFlowResultMock {
-        static LoadFlowResult.ComponentResult componentResult1 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "slackBusId1", 4, 5);
-        static LoadFlowResult.ComponentResult componentResult2 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED, 3, "slackBusId1", 4, 5);
+        static List<LoadFlowResult.SlackBusResult> slackBusResults = List.of(new LoadFlowResultImpl.SlackBusResultImpl("slackBusId1", 4));
+        static LoadFlowResult.ComponentResult componentResult1 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED,
+                null, Collections.emptyMap(), 3,
+                null, slackBusResults,
+                5);
+        static LoadFlowResult.ComponentResult componentResult2 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED,
+                null, Collections.emptyMap(), 3,
+                null, slackBusResults,
+                5);
         static List<LoadFlowResult.ComponentResult> componentResults = List.of(componentResult1, componentResult2);
         static final LoadFlowResult RESULT = new LoadFlowResultImpl(true, new HashMap<>(), null, componentResults);
     }
@@ -149,8 +156,9 @@ public class LoadFlowControllerTest {
             assertEquals(componentResultsDto.get(i).getSynchronousComponentNum(), componentResults.get(i).getSynchronousComponentNum());
             assertEquals(componentResultsDto.get(i).getStatus(), componentResults.get(i).getStatus());
             assertEquals(componentResultsDto.get(i).getIterationCount(), componentResults.get(i).getIterationCount());
-            assertEquals(componentResultsDto.get(i).getSlackBusId(), componentResults.get(i).getSlackBusId());
-            assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);
+            // assertEquals(componentResultsDto.get(i).getSlackBusId(), componentResults.get(i).getSlackBusId());
+            assertEquals(componentResultsDto.get(i).getSlackBusResults().size(), componentResults.get(i).getSlackBusResults().size());
+           // assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);
             assertEquals(componentResultsDto.get(i).getDistributedActivePower(), componentResults.get(i).getDistributedActivePower(), 0.01);
         }
     }
@@ -167,6 +175,7 @@ public class LoadFlowControllerTest {
             assertEquals(limitViolationsDto.get(i).getLimitType(), limitViolations.get(i).getLimitType());
             assertEquals(limitViolationsDto.get(i).getActualOverloadDuration(), LoadFlowWorkerService.calculateActualOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i)), network));
             assertEquals(limitViolationsDto.get(i).getUpComingOverloadDuration(), LoadFlowWorkerService.calculateUpcomingOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i))));
+            assertEquals(limitViolationsDto.get(i).getOverload(), (limitViolations.get(i).getValue() / limitViolations.get(i).getLimit()) * 100, 0.01);
         }
     }
 
@@ -336,7 +345,7 @@ public class LoadFlowControllerTest {
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
             // get loadflow limit violations with filter
-            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + buildFilterUrl()))
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + buildFilterUrl(false)))
                     .andExpectAll(
                             status().isOk(),
                             content().contentType(MediaType.APPLICATION_JSON)
@@ -350,7 +359,53 @@ public class LoadFlowControllerTest {
 
     }
 
-    private String buildFilterUrl() {
+    @Test
+    public void testComponentResultWithFilters() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+            loadFlowParameters.setDc(true);
+            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
+                    .commonParameters(loadFlowParameters)
+                    .specificParameters(Collections.emptyMap())
+                    .build();
+            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get loadflow component result with filter
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "?" + buildFilterUrl(true)))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString = mvcResult.getResponse().getContentAsString();
+            org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(resultAsString, org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
+            assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
+
+        }
+
+    }
+
+    private String buildFilterUrl(boolean hasChildFilter) {
         String filterUrl = "";
         try {
             List<ResourceFilter> filters = List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "NHV1_NHV2", ResourceFilter.Column.SUBJECT_ID),
@@ -359,8 +414,13 @@ public class LoadFlowControllerTest {
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200", ResourceFilter.Column.VALUE),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
             );
+            List<ResourceFilter> childFilters = List.of(
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ACTIVE_POWER_MISMATCH),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "slackBusId1", ResourceFilter.Column.ID),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ITERATION_COUNT)
+            );
 
-            String jsonFilters = new ObjectMapper().writeValueAsString(filters);
+            String jsonFilters = new ObjectMapper().writeValueAsString(hasChildFilter ? childFilters : filters);
 
             filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
 
