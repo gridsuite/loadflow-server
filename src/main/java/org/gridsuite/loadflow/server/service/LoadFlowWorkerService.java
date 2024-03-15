@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.reporter.ReporterModel;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -44,15 +45,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultRepository resultRepository,
-                                 ExecutionService executionService, LoadFlowObserver loadflowObserver,
+                                 ExecutionService executionService, LoadFlowObserver observer,
                                  ObjectMapper objectMapper) {
-        super(networkStoreService, notificationService, reportService, executionService, loadflowObserver, objectMapper);
+        super(networkStoreService, notificationService, reportService, executionService, observer, objectMapper);
         this.resultRepository = resultRepository;
     }
 
     public Consumer<Message<String>> consumeRun() {
         return message -> {
-            LoadFlowResultContext resultContext = fromMessage(message);
+            LoadFlowResultContext resultContext = LoadFlowResultContext.fromMessage(message, objectMapper);
             try {
                 runRequests.add(resultContext.getResultUuid());
                 AtomicReference<Long> startTime = new AtomicReference<>();
@@ -111,14 +112,28 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return COMPUTATION_TYPE;
     }
 
-    @Override
-    protected LoadFlowResultContext fromMessage(Message<String> message) {
-        return LoadFlowResultContext.fromMessage(message, objectMapper);
-    }
-
-    @Override
     protected LoadFlowResult run(Network network, AbstractResultContext<LoadFlowRunContext> resultContext) throws Exception {
-        LoadFlowResult result = super.run(network, resultContext);
+        LOGGER.info("Run {} computation ...", getComputationType());
+
+        LoadFlowRunContext context = resultContext.getRunContext();
+        String provider = context.getProvider();
+        AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
+        Reporter reporter = Reporter.NO_OP;
+        if (context.getReportContext().getReportId() != null) {
+            final String reportType = context.getReportContext().getReportType();
+            String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
+            rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
+            reporter = rootReporter.get().createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);
+            // Delete any previous computation logs
+            observer.observe("report.delete", context, () -> reportService.deleteReport(context.getReportContext().getReportId(), reportType));
+        }
+
+        CompletableFuture<LoadFlowResult> future = runAsync(network, context, provider, reporter, resultContext.getResultUuid());
+
+        LoadFlowResult result = future == null ? null : observer.observeRun("run", context, future::get);
+        if (context.getReportContext().getReportId() != null) {
+            observer.observe("report.send", context, () -> reportService.sendReport(context.getReportContext().getReportId(), rootReporter.get()));
+        }
         if (result != null && !result.isFailed()) {
             // flush each network in the network store
             observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(network));
@@ -126,7 +141,27 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return result;
     }
 
-    @Override
+    protected CompletableFuture<LoadFlowResult> runAsync(
+            Network network,
+            LoadFlowRunContext runContext,
+            String provider,
+            Reporter reporter,
+            UUID resultUuid) {
+        lockRunAndCancel.lock();
+        try {
+            if (resultUuid != null && cancelComputationRequests.get(resultUuid) != null) {
+                return null;
+            }
+            CompletableFuture<LoadFlowResult> future = getCompletableFuture(network, runContext, provider, reporter);
+            if (resultUuid != null) {
+                futures.put(resultUuid, future);
+            }
+            return future;
+        } finally {
+            lockRunAndCancel.unlock();
+        }
+    }
+
     protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, Reporter reporter) {
         LoadFlowParameters params = runContext.buildParameters();
         LoadFlow.Runner runner = LoadFlow.find(provider);
@@ -138,7 +173,6 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 reporter);
     }
 
-    @Override
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
