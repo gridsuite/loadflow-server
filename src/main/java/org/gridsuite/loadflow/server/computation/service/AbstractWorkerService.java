@@ -16,7 +16,6 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -27,10 +26,8 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -53,14 +50,12 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
     protected final ExecutionService executionService;
     protected final NotificationService notificationService;
     protected final AbstractComputationObserver<S, P> observer;
-    protected final LoadFlowResultRepository resultRepository;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
     protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
                                     NotificationService notificationService,
                                     ReportService reportService,
-                                    LoadFlowResultRepository resultRepository,
                                     ExecutionService executionService,
                                     AbstractComputationObserver<S, P> observer,
                                     ObjectMapper objectMapper) {
@@ -70,7 +65,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         this.executionService = executionService;
         this.observer = observer;
         this.objectMapper = objectMapper;
-        this.resultRepository = resultRepository;
     }
 
     protected Network getNetwork(AbstractComputationRunContext<P> runContext) {
@@ -87,15 +81,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         return network;
     }
 
-    protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
-        resultRepository.delete(resultUuid);
-        notificationService.publishStop(resultUuid, receiver, getComputationType());
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("{} (resultUuid='{}')",
-                    NotificationService.getCancelMessage(getComputationType()),
-                    resultUuid);
-        }
-    }
+    protected abstract void cleanResultsAndPublishCancel(UUID resultUuid, String receiver);
 
     private void cancelAsync(CancelContext cancelContext) {
         lockRunAndCancel.lock();
@@ -116,51 +102,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
     protected abstract AbstractResultContext<R> fromMessage(Message<String> message);
 
     @Bean
-    public Consumer<Message<String>> consumeRun() {
-        return message -> {
-            AbstractResultContext<R> resultContext = fromMessage(message);
-            try {
-                runRequests.add(resultContext.getResultUuid());
-                AtomicReference<Long> startTime = new AtomicReference<>();
-                startTime.set(System.nanoTime());
-
-                Network network = getNetwork(resultContext.getRunContext());
-
-                S result = run(network, resultContext);
-
-                long nanoTime = System.nanoTime();
-                LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
-
-                observer.observe("results.save", resultContext.getRunContext(), () -> saveResult(network, resultContext, result));
-
-                long finalNanoTime = System.nanoTime();
-                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
-
-                if (result != null) {  // result available
-                    notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
-                    LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
-                } else {  // result not available : stop computation request
-                    if (cancelComputationRequests.get(resultContext.getResultUuid()) != null) {
-                        cleanResultsAndPublishCancel(resultContext.getResultUuid(), cancelComputationRequests.get(resultContext.getResultUuid()).getReceiver());
-                    }
-                }
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } catch (Exception e) {
-                if (!(e instanceof CancellationException)) {
-                    LOGGER.error(NotificationService.getFailedMessage(getComputationType()), e);
-                    notificationService.publishFail(
-                            resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
-                            e.getMessage(), resultContext.getRunContext().getUserId(), getComputationType());
-                    resultRepository.delete(resultContext.getResultUuid());
-                }
-            } finally {
-                futures.remove(resultContext.getResultUuid());
-                cancelComputationRequests.remove(resultContext.getResultUuid());
-                runRequests.remove(resultContext.getResultUuid());
-            }
-        };
-    }
+    public abstract Consumer<Message<String>> consumeRun();
 
     @Bean
     public Consumer<Message<String>> consumeCancel() {

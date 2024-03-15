@@ -25,7 +25,12 @@ import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
+import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
@@ -35,15 +40,70 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
 @Service
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues> {
 
+    protected final LoadFlowResultRepository resultRepository;
+
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultRepository resultRepository,
                                  ExecutionService executionService, LoadFlowObserver loadflowObserver,
                                  ObjectMapper objectMapper) {
-        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper);
+        super(networkStoreService, notificationService, reportService, executionService, loadflowObserver, objectMapper);
+        this.resultRepository = resultRepository;
     }
 
-    private LoadFlowResultRepository getResultRepository() {
-        return (LoadFlowResultRepository) resultRepository;
+    public Consumer<Message<String>> consumeRun() {
+        return message -> {
+            LoadFlowResultContext resultContext = fromMessage(message);
+            try {
+                runRequests.add(resultContext.getResultUuid());
+                AtomicReference<Long> startTime = new AtomicReference<>();
+                startTime.set(System.nanoTime());
+
+                Network network = getNetwork(resultContext.getRunContext());
+
+                LoadFlowResult result = run(network, resultContext);
+
+                long nanoTime = System.nanoTime();
+                LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
+
+                observer.observe("results.save", resultContext.getRunContext(), () -> saveResult(network, resultContext, result));
+
+                long finalNanoTime = System.nanoTime();
+                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
+
+                if (result != null) {  // result available
+                    notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
+                    LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
+                } else {  // result not available : stop computation request
+                    if (cancelComputationRequests.get(resultContext.getResultUuid()) != null) {
+                        cleanResultsAndPublishCancel(resultContext.getResultUuid(), cancelComputationRequests.get(resultContext.getResultUuid()).getReceiver());
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            } catch (Exception e) {
+                if (!(e instanceof CancellationException)) {
+                    LOGGER.error(NotificationService.getFailedMessage(getComputationType()), e);
+                    notificationService.publishFail(
+                            resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
+                            e.getMessage(), resultContext.getRunContext().getUserId(), getComputationType());
+                    resultRepository.delete(resultContext.getResultUuid());
+                }
+            } finally {
+                futures.remove(resultContext.getResultUuid());
+                cancelComputationRequests.remove(resultContext.getResultUuid());
+                runRequests.remove(resultContext.getResultUuid());
+            }
+        };
+    }
+
+    protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
+        resultRepository.delete(resultUuid);
+        notificationService.publishStop(resultUuid, receiver, getComputationType());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("{} (resultUuid='{}')",
+                    NotificationService.getCancelMessage(getComputationType()),
+                    resultUuid);
+        }
     }
 
     @Override
@@ -82,7 +142,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-        getResultRepository().insert(resultContext.getResultUuid(), result,
+        resultRepository.insert(resultContext.getResultUuid(), result,
                 LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
     }
 
