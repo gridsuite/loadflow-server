@@ -16,7 +16,7 @@ import com.powsybl.iidm.network.VariantManagerConstants;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
-import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
+import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.annotation.Bean;
@@ -53,14 +53,14 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
     protected final ExecutionService executionService;
     protected final NotificationService notificationService;
     protected final AbstractComputationObserver<S, P> observer;
-    protected final ComputationResultRepository resultRepository;
+    protected final LoadFlowResultRepository resultRepository;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
     protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
                                     NotificationService notificationService,
                                     ReportService reportService,
-                                    ComputationResultRepository resultRepository,
+                                    LoadFlowResultRepository resultRepository,
                                     ExecutionService executionService,
                                     AbstractComputationObserver<S, P> observer,
                                     ObjectMapper objectMapper) {

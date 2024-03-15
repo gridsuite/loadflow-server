@@ -12,7 +12,6 @@ import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.gridsuite.loadflow.server.entities.*;
-import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
 import org.gridsuite.loadflow.server.repositories.parameters.SlackBusResultRepository;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.data.domain.Sort;
@@ -29,7 +28,7 @@ import java.util.*;
  */
 @AllArgsConstructor
 @Repository
-public class LoadFlowResultRepository implements ComputationResultRepository {
+public class LoadFlowResultRepository {
 
     private GlobalStatusRepository globalStatusRepository;
 
@@ -106,7 +105,6 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
 
     }
 
-    @Override
     @Transactional
     public void delete(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
@@ -120,7 +118,6 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         return resultRepository.findByResultUuid(resultUuid);
     }
 
-    @Override
     @Transactional
     public void deleteAll() {
         globalStatusRepository.deleteAll();

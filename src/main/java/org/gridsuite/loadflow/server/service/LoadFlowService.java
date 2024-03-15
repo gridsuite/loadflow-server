@@ -49,6 +49,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
     private final LoadFlowParametersService parametersService;
     private final LimitViolationRepository limitViolationRepository;
+    protected LoadFlowResultRepository resultRepository;
 
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultRepository resultRepository,
@@ -57,13 +58,10 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            LoadFlowParametersService parametersService,
                            LimitViolationRepository limitViolationRepository,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
-        super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
+        super(notificationService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
         this.limitViolationRepository = limitViolationRepository;
-    }
-
-    private LoadFlowResultRepository getResultRepository() {
-        return (LoadFlowResultRepository) resultRepository;
+        this.resultRepository = Objects.requireNonNull(resultRepository);
     }
 
     @Override
@@ -74,7 +72,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public void setStatus(List<UUID> resultUuids, LoadFlowStatus status) {
-        getResultRepository().insertStatus(resultUuids, status);
+        resultRepository.insertStatus(resultUuids, status);
     }
 
     public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
@@ -88,9 +86,25 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
+    public void deleteResult(UUID resultUuid) {
+        resultRepository.delete(resultUuid);
+    }
+
+    public void deleteResults(List<UUID> resultUuids) {
+        if (resultUuids != null && !resultUuids.isEmpty()) {
+            resultUuids.forEach(resultRepository::delete);
+        } else {
+            deleteResults();
+        }
+    }
+
+    public void deleteResults() {
+        resultRepository.deleteAll();
+    }
+
     @Override
-    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, UUID parametersUuid) {
-        LoadFlowParametersValues params = parametersService.getParametersValues(parametersUuid);
+    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
+        LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
         loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
@@ -143,16 +157,16 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         startTime.set(System.nanoTime());
         Objects.requireNonNull(resultUuid);
         LoadFlowResult loadFlowResult;
-        LoadFlowResultEntity loadFlowResultEntity = getResultRepository().findResults(resultUuid).orElse(null);
+        LoadFlowResultEntity loadFlowResultEntity = resultRepository.findResults(resultUuid).orElse(null);
         if (loadFlowResultEntity == null) {
             return null;
         }
         List<ResourceFilter> resourceFilters = fromStringFiltersToDTO(stringFilters);
-        List<ComponentResultEntity> componentResults = getResultRepository().findComponentResults(resultUuid, resourceFilters, sort);
+        List<ComponentResultEntity> componentResults = resultRepository.findComponentResults(resultUuid, resourceFilters, sort);
         boolean hasChildFilter = resourceFilters.stream().anyMatch(resourceFilter -> !SpecificationBuilder.isParentFilter(resourceFilter));
         List<SlackBusResultEntity> slackBusResultEntities = new ArrayList<>();
         if (hasChildFilter) {
-            slackBusResultEntities.addAll(getResultRepository().findSlackBusResults(componentResults, resourceFilters));
+            slackBusResultEntities.addAll(resultRepository.findSlackBusResults(componentResults, resourceFilters));
         }
         loadFlowResultEntity.setComponentResults(componentResults);
         loadFlowResult = fromEntity(loadFlowResultEntity, slackBusResultEntities, hasChildFilter);
@@ -161,7 +175,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public LoadFlowStatus getStatus(UUID resultUuid) {
-        return getResultRepository().findStatus(resultUuid);
+        return resultRepository.findStatus(resultUuid);
     }
 
     public static LoadFlowStatus computeLoadFlowStatus(com.powsybl.loadflow.LoadFlowResult result) {
