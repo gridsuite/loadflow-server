@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.computation.service;
 
 import lombok.Getter;
+import org.gridsuite.loadflow.server.computation.utils.ContextUtils;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
@@ -34,7 +35,7 @@ public class CancelContext {
     public static CancelContext fromMessage(Message<String> message) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
-        UUID resultUuid = UUID.fromString(AbstractComputationService.getNonNullHeader(headers, HEADER_RESULT_UUID));
+        UUID resultUuid = UUID.fromString(ContextUtils.getNonNullHeader(headers, HEADER_RESULT_UUID));
         String receiver = (String) headers.get(HEADER_RECEIVER);
         return new CancelContext(resultUuid, receiver);
     }

@@ -7,11 +7,9 @@
 package org.gridsuite.loadflow.server.computation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.PowsyblException;
 import lombok.Getter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.messaging.MessageHeaders;
 
 import java.util.List;
 import java.util.Objects;
@@ -53,12 +51,4 @@ public abstract class AbstractComputationService<R> {
     public abstract void deleteResult(UUID resultUuid);
 
     public abstract void deleteResults();
-
-    public static String getNonNullHeader(MessageHeaders headers, String name) {
-        String header = (String) headers.get(name);
-        if (header == null) {
-            throw new PowsyblException("Header '" + name + "' not found");
-        }
-        return header;
-    }
 }

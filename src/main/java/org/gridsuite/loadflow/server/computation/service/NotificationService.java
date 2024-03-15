@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server.computation.service;
 
+import org.gridsuite.loadflow.server.computation.utils.ContextUtils;
 import org.gridsuite.loadflow.server.computation.utils.annotations.PostCompletion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -90,7 +91,7 @@ public class NotificationService {
                 .withPayload("")
                 .setHeader(HEADER_RESULT_UUID, resultUuid.toString())
                 .setHeader(HEADER_RECEIVER, receiver)
-                .setHeader(HEADER_MESSAGE, shortenMessage(
+                .setHeader(HEADER_MESSAGE, ContextUtils.shortenMessage(
                         getFailedMessage(computationLabel) + " : " + causeMessage))
                 .setHeader(HEADER_USER_ID, userId)
                 .build();
@@ -104,17 +105,5 @@ public class NotificationService {
 
     public static String getFailedMessage(String computationLabel) {
         return computationLabel + " has failed";
-    }
-
-    // prevent the message from being too long for rabbitmq
-    // the beginning and ending are both kept, it should make it easier to identify
-    public String shortenMessage(String msg) {
-        if (msg == null) {
-            return msg;
-        }
-
-        return msg.length() > MSG_MAX_LENGTH ?
-                msg.substring(0, MSG_MAX_LENGTH / 2) + " ... " + msg.substring(msg.length() - MSG_MAX_LENGTH / 2, msg.length() - 1)
-                : msg;
     }
 }
