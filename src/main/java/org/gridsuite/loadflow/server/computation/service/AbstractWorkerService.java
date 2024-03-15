@@ -176,7 +176,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         String provider = context.getProvider();
         AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
         Reporter reporter = Reporter.NO_OP;
-        if (context.getReportContext() != null) {
+        if (context.getReportContext().getReportId() != null) {
             final String reportType = context.getReportContext().getReportType();
             String rootReporterId = context.getReportContext().getReportName() == null ? reportType : context.getReportContext().getReportName() + "@" + reportType;
             rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
