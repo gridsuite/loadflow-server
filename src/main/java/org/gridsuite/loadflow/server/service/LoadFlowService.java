@@ -17,9 +17,6 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
-import org.gridsuite.loadflow.server.dto.filters.ExpertFilter;
-import org.gridsuite.loadflow.server.dto.filters.Filter;
-import org.gridsuite.loadflow.server.dto.filters.Rule;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
@@ -30,6 +27,7 @@ import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
 import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
 import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
+import org.gridsuite.loadflow.server.service.filters.FilterCreatorService;
 import org.gridsuite.loadflow.server.service.filters.FilterService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
@@ -41,7 +39,6 @@ import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -58,6 +55,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
     private final LoadFlowParametersService parametersService;
     private final FilterService filterService;
+    private final FilterCreatorService filterCreatorService;
     private final LimitViolationRepository limitViolationRepository;
 
     public LoadFlowService(NotificationService notificationService,
@@ -66,11 +64,13 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
                            FilterService filterService,
+                           FilterCreatorService filterCreatorService,
                            LimitViolationRepository limitViolationRepository,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
         this.filterService = filterService;
+        this.filterCreatorService = filterCreatorService;
         this.limitViolationRepository = limitViolationRepository;
     }
 
@@ -196,6 +196,15 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             return List.of();
         }
+        List<String> SubjectIdsfromEvaluateFilter = new ArrayList<>();
+        List<String> equipmentTypes =List.of("VOLTAGE_LEVEL");
+        for (String equipmentType : equipmentTypes) {
+            //TODO: use library filter to create expert filter instead of filterCreatorService
+            String createdFilter = filterCreatorService.createFilterFromGlobalFilter(fromStringGlobalFiltersToDTO(stringGlobalFilters),equipmentType);
+            //TODO: use library filter to evaluate expert filter instead of endpoint
+            String resultFromEvaluateFilters = filterService.evaluateFilter(networkUuid,variantId, createdFilter);
+            SubjectIdsfromEvaluateFilter.addAll(extractIds(resultFromEvaluateFilters));
+        }
 
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
@@ -222,49 +231,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
         }
     }
-    public static String createExpertFilterFromGlobalFilters(List<GlobalFilter> list) {
-        StringBuilder stringBuilder = new StringBuilder();
-        stringBuilder.append("{\"type\":\"EXPERT\",\"equipmentType\":\"LINE\",\"rules\":{\"combinator\":\"OR\",\"dataType\":\"COMBINATOR\",\"rules\":[");
 
-        for (int i = 0; i < list.size(); i++) {
-            GlobalFilter filter = list.get(i);
-            stringBuilder.append("{\"field\":\"COUNTRY_1").append("\",\"operator\":\"EQUALS\",\"value\":\"").append(filter.getCountryCode()).append("\",\"dataType\":\"ENUM\"},");
-            stringBuilder.append("{\"field\":\"COUNTRY_2").append("\",\"operator\":\"EQUALS\",\"value\":\"").append(filter.getCountryCode()).append("\",\"dataType\":\"ENUM\"},");
-            stringBuilder.append("{\"field\":\"NOMINAL_VOLTAGE_1").append("\",\"operator\":\"EQUALS\",\"value\":\"").append(filter.getNominalV()).append("\",\"dataType\":\"NUMBER\"}");
-            stringBuilder.append("{\"field\":\"NOMINAL_VOLTAGE_2").append("\",\"operator\":\"EQUALS\",\"value\":\"").append(filter.getNominalV()).append("\",\"dataType\":\"NUMBER\"}");
-            if (i < list.size() - 1) {
-                stringBuilder.append(",");
-            }
-        }
-
-        stringBuilder.append("]}}");
-        return stringBuilder.toString();
-    }
-/*    public String createExpertFilterFromGlobalFilters(List<GlobalFilter> globalFilters, String variantId, UUID networkUUID, String equipmentType){
-        ObjectMapper objectMapper = new ObjectMapper();
-
-        // Creating the rules
-        Rule rule1 = new Rule("NOMINAL_VOLTAGE_1", "EQUALS", "22", "NUMBER");
-        Rule rule2 = new Rule("NOMINAL_VOLTAGE_2", "EQUALS", "22", "NUMBER");
-        Rule rule3 = new Rule("COUNTRY", "EQUALS", "AU", "ENUM");
-
-        // Creating the filters
-        Filter filter1 = new Filter("OR", "COMBINATOR", List.of(rule1, rule2));
-        Filter filter2 = new Filter("OR", "COMBINATOR", List.of(rule3));
-
-        // Creating the global filter
-        GlobalFilter globalFilter = new ExpertFilter("EXPERT", "TWO_WINDINGS_TRANSFORMER", new Filter("AND", "COMBINATOR", List.of(filter1, filter2)));
-
-        // Convert the GlobalFilter to JSON
-        String json = objectMapper.writeValueAsString(globalFilter);
-        System.out.println(json);
-        );
-
-        // Convert the List<GlobalFilter> to JSON
-        String json = objectMapper.writeValueAsString(expertFilterss);
-        System.out.println(json);
-        return  json;
-    }*/
     public List<GlobalFilter> fromStringGlobalFiltersToDTO(String stringFilters) {
         if (StringUtils.isEmpty(stringFilters)) {
             return List.of();
