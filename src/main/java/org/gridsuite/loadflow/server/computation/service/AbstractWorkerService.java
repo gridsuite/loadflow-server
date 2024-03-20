@@ -35,8 +35,9 @@ import java.util.function.Consumer;
  * @param <S> powsybl Result class specific to the computation
  * @param <R> Run context specific to a computation, including parameters
  * @param <P> powsybl and gridsuite Parameters specifics to the computation
+ * @param <T> result service specific to the computation
  */
-public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P> {
+public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P, T extends AbstractComputationResultService> {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractWorkerService.class);
 
     protected final Lock lockRunAndCancel = new ReentrantLock();
@@ -49,16 +50,19 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
     protected final AbstractComputationObserver<S, P> observer;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
     protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
+    protected final T resultService;
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
                                     NotificationService notificationService,
                                     ReportService reportService,
+                                    T resultService,
                                     ExecutionService executionService,
                                     AbstractComputationObserver<S, P> observer,
                                     ObjectMapper objectMapper) {
         this.networkStoreService = networkStoreService;
         this.notificationService = notificationService;
         this.reportService = reportService;
+        this.resultService = resultService;
         this.executionService = executionService;
         this.observer = observer;
         this.objectMapper = objectMapper;
@@ -78,7 +82,15 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         return network;
     }
 
-    protected abstract void cleanResultsAndPublishCancel(UUID resultUuid, String receiver);
+    protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
+        resultService.delete(resultUuid);
+        notificationService.publishStop(resultUuid, receiver, getComputationType());
+        if (LOGGER.isInfoEnabled()) {
+            LOGGER.info("{} (resultUuid='{}')",
+                    NotificationService.getCancelMessage(getComputationType()),
+                    resultUuid);
+        }
+    }
 
     private void cancelAsync(CancelContext cancelContext) {
         lockRunAndCancel.lock();

@@ -19,7 +19,7 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import org.gridsuite.loadflow.server.computation.service.*;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
@@ -39,16 +39,13 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Service
-public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues> {
-
-    protected final LoadFlowResultRepository resultRepository;
+public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
-                                 ReportService reportService, LoadFlowResultRepository resultRepository,
+                                 ReportService reportService, LoadFlowResultService resultService,
                                  ExecutionService executionService, LoadFlowObserver observer,
                                  ObjectMapper objectMapper) {
-        super(networkStoreService, notificationService, reportService, executionService, observer, objectMapper);
-        this.resultRepository = resultRepository;
+        super(networkStoreService, notificationService, reportService, resultService, executionService, observer, objectMapper);
     }
 
     public Consumer<Message<String>> consumeRun() {
@@ -87,7 +84,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                     notificationService.publishFail(
                             resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
                             e.getMessage(), resultContext.getRunContext().getUserId(), getComputationType());
-                    resultRepository.delete(resultContext.getResultUuid());
+                    resultService.delete(resultContext.getResultUuid());
                 }
             } finally {
                 futures.remove(resultContext.getResultUuid());
@@ -95,16 +92,6 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 runRequests.remove(resultContext.getResultUuid());
             }
         };
-    }
-
-    protected void cleanResultsAndPublishCancel(UUID resultUuid, String receiver) {
-        resultRepository.delete(resultUuid);
-        notificationService.publishStop(resultUuid, receiver, getComputationType());
-        if (LOGGER.isInfoEnabled()) {
-            LOGGER.info("{} (resultUuid='{}')",
-                    NotificationService.getCancelMessage(getComputationType()),
-                    resultUuid);
-        }
     }
 
     @Override
@@ -176,7 +163,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-        resultRepository.insert(resultContext.getResultUuid(), result,
+        resultService.insert(resultContext.getResultUuid(), result,
                 LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
     }
 
