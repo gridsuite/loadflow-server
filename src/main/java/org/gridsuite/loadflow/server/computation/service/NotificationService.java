@@ -40,10 +40,7 @@ public class NotificationService {
     public static final String HEADER_PROVIDER = "provider";
     public static final String HEADER_MESSAGE = "message";
     public static final String HEADER_USER_ID = "userId";
-
     public static final String SENDING_MESSAGE = "Sending message : {}";
-
-    public static final int MSG_MAX_LENGTH = 256;
 
     private final StreamBridge publisher;
 
