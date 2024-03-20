@@ -196,17 +196,40 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             return List.of();
         }
-        List<String> SubjectIdsfromEvaluateFilter = new ArrayList<>();
-        List<String> equipmentTypes =List.of("VOLTAGE_LEVEL");
-        for (String equipmentType : equipmentTypes) {
-            //TODO: use library filter to create expert filter instead of filterCreatorService
-            String createdFilter = filterCreatorService.createFilterFromGlobalFilter(fromStringGlobalFiltersToDTO(stringGlobalFilters),equipmentType);
-            //TODO: use library filter to evaluate expert filter instead of endpoint
-            String resultFromEvaluateFilters = filterService.evaluateFilter(networkUuid,variantId, createdFilter);
-            SubjectIdsfromEvaluateFilter.addAll(extractIds(resultFromEvaluateFilters));
+        GlobalFilter globalFilter = fromStringGlobalFiltersToDTO(stringGlobalFilters);
+        List<String> subjectIdsfromEvaluateFilter = new ArrayList<>();
+        List<ResourceFilter> ressourceFilters = new ArrayList<>();
+        List<String> equipmentTypes;
+        if(!fromStringFiltersToDTO(stringFilters).isEmpty()){
+            ressourceFilters.addAll(fromStringFiltersToDTO(stringFilters));
+        }
+        if (globalFilter.getLimitViolationsType() != null) {
+            if (globalFilter.getLimitViolationsType().equals("CURRENT")) {
+                equipmentTypes = List.of("LINE"); //TODO : add tie line , and HVDC cases
+            } else {
+                equipmentTypes = List.of("VOLTAGE_LEVEL");
+            }
+
+            for (String equipmentType : equipmentTypes) {
+                //TODO: use library filter to create expert filter instead of filterCreatorService
+                String createdFilter = filterCreatorService.createExpertFilterFromGlobalFilter(globalFilter, equipmentType);
+                //TODO: use library filter to evaluate expert filter instead of endpoint
+                if(createdFilter != null){
+                    String resultFromEvaluateFilters = filterService.evaluateFilter(networkUuid, variantId, createdFilter);
+                    List<String> subjectIdsByEquipmentType = extractIds(resultFromEvaluateFilters);
+                    if (!subjectIdsByEquipmentType.isEmpty()) {
+                        subjectIdsfromEvaluateFilter.addAll(subjectIdsByEquipmentType);
+                    }
+                }
+
+            }
+            if (!ressourceFilters.isEmpty() && !subjectIdsfromEvaluateFilter.isEmpty()) {
+                ResourceFilter testRessourceFilter = new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, subjectIdsfromEvaluateFilter, ResourceFilter.Column.SUBJECT_ID);
+                ressourceFilters.add(testRessourceFilter);
+            }
         }
 
-        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
+        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, ressourceFilters, sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
     }
 
@@ -221,18 +244,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public List<ResourceFilter> fromStringFiltersToDTO(String stringFilters) {
-        if (StringUtils.isEmpty(stringFilters)) {
-            return List.of();
-        }
-        try {
-            return objectMapper.readValue(stringFilters, new TypeReference<>() {
-            });
-        } catch (JsonProcessingException e) {
-            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
-        }
-    }
-
-    public List<GlobalFilter> fromStringGlobalFiltersToDTO(String stringFilters) {
         if (StringUtils.isEmpty(stringFilters)) {
             return List.of();
         }
@@ -259,5 +270,18 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             throw new UncheckedIOException(e);
         }
         return ids;
+    }
+
+    public GlobalFilter fromStringGlobalFiltersToDTO(String stringFilters) {
+        if (StringUtils.isEmpty(stringFilters)) {
+            return null;
+        }
+
+        try {
+            ObjectMapper objectMapper = new ObjectMapper();
+            return objectMapper.readValue(stringFilters, GlobalFilter.class);
+        } catch (JsonProcessingException e) {
+            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
+        }
     }
 }

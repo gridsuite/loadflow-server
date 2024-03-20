@@ -5,6 +5,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
+
 /**
  * @author maissa Souissi <maissa.souissi at rte-france.com>
  */
@@ -13,6 +15,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @NoArgsConstructor
 public class GlobalFilter {
-    String nominalV;
-    String countryCode;
+    List<String> nominalV;
+    List<String> countryCode;
+    String limitViolationsType;
 }

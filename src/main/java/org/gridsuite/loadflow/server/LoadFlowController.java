@@ -163,8 +163,7 @@ public class LoadFlowController {
                                                                         @Parameter(description = "network Uuid") @RequestParam(name = "networkUuid", required = false) UUID networkUuid) {
         String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
         String decodedStringGlobalFilters = globalFilters != null ? URLDecoder.decode(globalFilters, StandardCharsets.UTF_8) : null;
-        String stringGlobalFilter = "[{\"nominalV\":\"92\",\"countryCode\":\"FR\"}\n,{\"nominalV\":\"150\",\"countryCode\":\"FR\"}\n]";
-        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(resultUuid, decodedStringFilters, stringGlobalFilter, sort, variantId, networkUuid);
+        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(resultUuid, decodedStringFilters, decodedStringGlobalFilters, sort, variantId, networkUuid);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 

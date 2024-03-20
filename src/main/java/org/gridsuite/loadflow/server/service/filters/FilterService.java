@@ -13,6 +13,7 @@ import org.springframework.web.util.UriComponentsBuilder;
 import java.util.Objects;
 import java.util.UUID;
 
+//TODO: to delete after merging filter library
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
@@ -27,7 +28,6 @@ public class FilterService {
 
     private final RestTemplate restTemplate;
 
-
     public FilterService(
             @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri,
             RestTemplate restTemplate) {
@@ -38,6 +38,7 @@ public class FilterService {
     private String getFilterServerURI() {
         return this.filterServerBaseUri + DELIMITER + FILTER_API_VERSION + FILTER_END_POINT_EVALUATE;
     }
+
     public String evaluateFilter(UUID networkUuid, String variantId, String filter) {
         Objects.requireNonNull(networkUuid);
 
@@ -53,7 +54,6 @@ public class FilterService {
         headers.setContentType(MediaType.APPLICATION_JSON);
         HttpEntity<String> request = new HttpEntity<>(filter, headers);
 
-        // call filter-server REST API
         try {
             return restTemplate.postForObject(uriComponent.toUriString(), request, String.class);
         } catch (HttpStatusCodeException e) {
