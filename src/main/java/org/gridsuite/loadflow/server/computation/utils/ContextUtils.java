@@ -9,6 +9,9 @@ package org.gridsuite.loadflow.server.computation.utils;
 import com.powsybl.commons.PowsyblException;
 import org.springframework.messaging.MessageHeaders;
 
+/**
+ * @author Thang PHAM <quyet-thang.pham at rte-france.com>
+ */
 public final class ContextUtils {
     public static final int MSG_MAX_LENGTH = 256;
 

@@ -80,14 +80,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
     }
 
-    public void deleteResults(List<UUID> resultUuids) {
-        if (resultUuids != null && !resultUuids.isEmpty()) {
-            resultUuids.forEach(resultService::delete);
-        } else {
-            deleteResults();
-        }
-    }
-
     @Override
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());

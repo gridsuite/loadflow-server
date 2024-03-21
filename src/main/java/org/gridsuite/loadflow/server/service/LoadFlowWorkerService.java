@@ -50,6 +50,34 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
+    protected LoadFlowResultContext fromMessage(Message<String> message) {
+        return LoadFlowResultContext.fromMessage(message, objectMapper);
+    }
+
+    @Override
+    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
+        LoadFlowResult result = super.run(runContext, resultUuid);
+        if (result != null && result.isOk()) {
+            // flush each network in the network store
+            Network network = getNetwork(runContext.getNetworkUuid(), runContext.getVariantId());
+            observer.observe("network.save", runContext, () -> networkStoreService.flush(network));
+        }
+        return result;
+    }
+
+    @Override
+    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, Reporter reporter) {
+        LoadFlowParameters params = runContext.buildParameters();
+        LoadFlow.Runner runner = LoadFlow.find(provider);
+        return runner.runAsync(
+                network,
+                runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
+                executionService.getComputationManager(),
+                params,
+                reporter);
+    }
+
+    @Override
     public PreloadingStrategy getNetworkPreloadingStrategy() {
         return PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW;
     }
@@ -140,33 +168,5 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         }
         return violations.stream()
                 .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
-    }
-
-    @Override
-    protected LoadFlowResultContext fromMessage(Message<String> message) {
-        return LoadFlowResultContext.fromMessage(message, objectMapper);
-    }
-
-    @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
-        LoadFlowResult result = super.run(runContext, resultUuid);
-        if (result != null && result.isOk()) {
-            // flush each network in the network store
-            Network network = getNetwork(runContext.getNetworkUuid(), runContext.getVariantId());
-            observer.observe("network.save", runContext, () -> networkStoreService.flush(network));
-        }
-        return result;
-    }
-
-    @Override
-    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, Reporter reporter) {
-        LoadFlowParameters params = runContext.buildParameters();
-        LoadFlow.Runner runner = LoadFlow.find(provider);
-        return runner.runAsync(
-                network,
-                runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
-                executionService.getComputationManager(),
-                params,
-                reporter);
     }
 }

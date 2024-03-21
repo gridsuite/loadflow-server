@@ -53,16 +53,24 @@ public abstract class AbstractComputationService<R extends AbstractComputationRu
 
     public abstract UUID runAndSaveResult(R runContext);
 
-    public void setStatus(List<UUID> resultUuids, S status) {
-        resultService.insertStatus(resultUuids, status);
-    }
-
     public void deleteResult(UUID resultUuid) {
         resultService.delete(resultUuid);
     }
 
+    public void deleteResults(List<UUID> resultUuids) {
+        if (resultUuids != null && !resultUuids.isEmpty()) {
+            resultUuids.forEach(resultService::delete);
+        } else {
+            deleteResults();
+        }
+    }
+
     public void deleteResults() {
         resultService.deleteAll();
+    }
+
+    public void setStatus(List<UUID> resultUuids, S status) {
+        resultService.insertStatus(resultUuids, status);
     }
 
     public S getStatus(UUID resultUuid) {
