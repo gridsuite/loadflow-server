@@ -1,67 +1,114 @@
 package org.gridsuite.loadflow.server.service.filters;
-
-import org.gridsuite.loadflow.server.utils.LoadflowException;
+import org.gridsuite.filter.expertfilter.ExpertFilter;
+import org.gridsuite.filter.expertfilter.expertrule.*;
+import org.gridsuite.filter.utils.EquipmentType;
+import org.gridsuite.filter.utils.expertfilter.CombinatorType;
+import org.gridsuite.filter.utils.expertfilter.FieldType;
+import org.gridsuite.filter.utils.expertfilter.OperatorType;
+import org.gridsuite.loadflow.server.dto.GlobalFilter;
 import org.springframework.stereotype.Service;
 
-import lombok.Setter;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.*;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.util.UriComponentsBuilder;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.stream.Collectors;
 
-import java.util.Objects;
-import java.util.UUID;
-
-//TODO: to delete after merging filter library
 /**
- * @author Anis Touri <anis.touri at rte-france.com>
+ * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
 public class FilterService {
-    public static final String FILTER_END_POINT_EVALUATE = "/filters/evaluate";
-    static final String FILTER_API_VERSION = "v1";
-    private static final String DELIMITER = "/";
+    public ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
+        ExpertFilter expertFilter = new ExpertFilter();
+        expertFilter.setEquipmentType(equipmentType);
 
-    @Setter
-    private String filterServerBaseUri;
+        CombinatorExpertRule combinatorExpertRule = buildCombinedRules(globalFilter, equipmentType);
+        expertFilter.setRules(combinatorExpertRule);
 
-    private final RestTemplate restTemplate;
-
-    public FilterService(
-            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri,
-            RestTemplate restTemplate) {
-        this.filterServerBaseUri = filterServerBaseUri;
-        this.restTemplate = restTemplate;
+        return expertFilter;
     }
 
-    private String getFilterServerURI() {
-        return this.filterServerBaseUri + DELIMITER + FILTER_API_VERSION + FILTER_END_POINT_EVALUATE;
-    }
+    private CombinatorExpertRule buildCombinedRules(GlobalFilter globalFilter, EquipmentType equipmentType) {
+        List<AbstractExpertRule> rules = new ArrayList<>();
 
-    public String evaluateFilter(UUID networkUuid, String variantId, String filter) {
-        Objects.requireNonNull(networkUuid);
-
-        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.fromHttpUrl(getFilterServerURI());
-        uriComponentsBuilder.queryParam("networkUuid", networkUuid);
-        if (variantId != null && !variantId.isBlank()) {
-            uriComponentsBuilder.queryParam("variantId", variantId);
+        // build nominal voltage rules
+        if (globalFilter.getNominalV() != null) {
+            rules.add(buildNominalVoltageRules(globalFilter.getNominalV(), equipmentType));
         }
-        var uriComponent = uriComponentsBuilder
+
+        // build country code rules
+        if (globalFilter.getCountryCode() != null) {
+            rules.add(buildCountryCodeRules(globalFilter.getCountryCode(), equipmentType));
+        }
+
+        // Combine rules with AND operator
+        return CombinatorExpertRule.builder()
+                .combinator(CombinatorType.AND)
+                .rules(rules)
                 .build();
+    }
 
-        var headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_JSON);
-        HttpEntity<String> request = new HttpEntity<>(filter, headers);
+    private CombinatorExpertRule buildNominalVoltageRules(List<String> nominalVoltages, EquipmentType equipmentType) {
+        List<AbstractExpertRule> voltageRules = nominalVoltages.stream()
+                .map(voltage -> buildNominalVoltageRule(equipmentType, voltage))
+                .collect(Collectors.toList());
 
-        try {
-            return restTemplate.postForObject(uriComponent.toUriString(), request, String.class);
-        } catch (HttpStatusCodeException e) {
-            if (HttpStatus.NOT_FOUND.equals(e.getStatusCode())) {
-                throw new LoadflowException(LoadflowException.Type.NETWORK_NOT_FOUND);
-            } else {
-                throw new LoadflowException(LoadflowException.Type.EVALUATE_FILTER_FAILED);
-            }
+        return CombinatorExpertRule.builder()
+                .combinator(CombinatorType.OR)
+                .rules(voltageRules)
+                .build();
+    }
+
+    private AbstractExpertRule buildNominalVoltageRule(EquipmentType equipmentType, String voltage) {
+        double voltageValue = Double.parseDouble(voltage);
+        switch (equipmentType) {
+            case VOLTAGE_LEVEL:
+                return NumberExpertRule.builder()
+                        .value(voltageValue)
+                        .field(FieldType.NOMINAL_VOLTAGE)
+                        .operator(OperatorType.EQUALS)
+                        .build();
+            case LINE:
+            case TWO_WINDINGS_TRANSFORMER:
+                return CombinatorExpertRule.builder()
+                        .combinator(CombinatorType.OR)
+                        .rules(Arrays.asList(
+                                NumberExpertRule.builder()
+                                        .value(voltageValue)
+                                        .field(FieldType.NOMINAL_VOLTAGE_1)
+                                        .operator(OperatorType.EQUALS)
+                                        .build(),
+                                NumberExpertRule.builder()
+                                        .value(voltageValue)
+                                        .field(FieldType.NOMINAL_VOLTAGE_2)
+                                        .operator(OperatorType.EQUALS)
+                                        .build()))
+                        .build();
+            default:
+                throw new IllegalArgumentException("Unsupported equipment type: " + equipmentType);
         }
+    }
+
+    private CombinatorExpertRule buildCountryCodeRules(List<String> countryCodes, EquipmentType equipmentType) {
+        List<AbstractExpertRule> countryRules = new ArrayList<>();
+        countryRules.add(EnumExpertRule.builder()
+                .values(new HashSet<>(countryCodes))
+                .field(equipmentType == EquipmentType.LINE ? FieldType.COUNTRY_1 : FieldType.COUNTRY)
+                .operator(OperatorType.IN)
+                .build());
+
+        if (equipmentType == EquipmentType.LINE) {
+            countryRules.add(EnumExpertRule.builder()
+                    .values(new HashSet<>(countryCodes))
+                    .field(FieldType.COUNTRY_2)
+                    .operator(OperatorType.IN)
+                    .build());
+        }
+
+        return CombinatorExpertRule.builder()
+                .combinator(CombinatorType.OR)
+                .rules(countryRules)
+                .build();
     }
 }

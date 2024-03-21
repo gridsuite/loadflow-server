@@ -34,9 +34,3 @@ powsybl-ws:
 # default values for loadflow providers "DynaFlow" or "OpenLoadFlow"
 loadflow:
   default-provider: OpenLoadFlow
-
-gridsuite:
-  services:
-    -
-      name: filter-server
-      base-uri: http://filter-server/
