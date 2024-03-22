@@ -214,11 +214,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public List<String> createFilterFromGlobalFilter(String stringGlobalFilters, UUID networkUuid) {
-        GlobalFilter globalFilter = fromStringGlobalFiltersToDTO(
-                "{\n" +
-                        "  \"nominalV\": [\"90\"],\n" +
-                        "\"limitViolationsType\": \"CURRENT\"}"
-        );
+        GlobalFilter globalFilter = fromStringGlobalFiltersToDTO(stringGlobalFilters);
         List<String> subjectIds = new ArrayList<>();
         List<EquipmentType> equipmentTypes = new ArrayList<>();
         if (globalFilter.getLimitViolationsType().equals("CURRENT")) {

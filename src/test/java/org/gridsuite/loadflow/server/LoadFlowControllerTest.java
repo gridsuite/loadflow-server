@@ -190,7 +190,7 @@ public class LoadFlowControllerTest {
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
 
         given(networkStoreService.getNetwork(NETWORK_UUID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(network);
-
+        given(networkStoreService.getNetwork(NETWORK_UUID)).willReturn(network);
         network1 = EurostagTutorialExample1Factory.createWithMoreGenerators(new NetworkFactoryImpl());
         network1.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
 
@@ -358,7 +358,72 @@ public class LoadFlowControllerTest {
         }
 
     }
+    @Test
+    public void testGetLimitViolationsWithGlobalFilters() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+            loadFlowParameters.setDc(true);
+            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
+                    .commonParameters(loadFlowParameters)
+                    .specificParameters(Collections.emptyMap())
+                    .build();
+            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get loadflow limit violations with filter
+            // get loadflow limit violations with global filters
+            String filterUrl = buildCurrentViolationFilterUrl();
+            String stringGlobalFilter = "{\n" +
+                    "  \"nominalV\": [\"380\",],\n" +
+                    "  \"countryCode\": [\"DE\"],\n" +
+                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
+            String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID,stringGlobalFilter);
+
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString = mvcResult.getResponse().getContentAsString();
+            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
+            });
+            assertEquals(4, limitViolationInfos.size());
+
+        }
+
+    }
+    private String buildGlobalFilterUrl(UUID networkUuid, String stringGlobalFilter) {
+        StringBuilder filterUrl = new StringBuilder();
+        if (stringGlobalFilter != null) {
+            // URL-encode the global filter string
+            String encodedGlobalFilter = URLEncoder.encode(stringGlobalFilter, StandardCharsets.UTF_8);
+            filterUrl.append("&globalFilters=").append(encodedGlobalFilter);
+        }
+        if (networkUuid != null) {
+            filterUrl.append("&networkUuid=").append(networkUuid);
+        }
+        return filterUrl.toString();
+    }
     @Test
     public void testComponentResultWithFilters() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
@@ -404,7 +469,21 @@ public class LoadFlowControllerTest {
         }
 
     }
+    private String buildCurrentViolationFilterUrl() {
+        String filterUrl = "";
+        try {
+            List<ResourceFilter> filters = List.of(
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE)            );
 
+            String jsonFilters = new ObjectMapper().writeValueAsString(filters);
+
+            filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
+
+            return filterUrl;
+        } catch (Exception ignored) {
+        }
+        return filterUrl;
+    }
     private String buildFilterUrl(boolean hasChildFilter) {
         String filterUrl = "";
         try {
