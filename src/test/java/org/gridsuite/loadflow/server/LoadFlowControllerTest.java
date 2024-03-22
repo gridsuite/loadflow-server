@@ -365,7 +365,7 @@ public class LoadFlowControllerTest {
             // get loadflow limit violations with global filters
             String filterUrl = buildCurrentViolationFilterUrl();
             String stringGlobalFilter = "{\n" +
-                    "  \"nominalV\": [\"380\",],\n" +
+                    "  \"nominalV\": [\"380\"],\n" +
                     "  \"countryCode\": [\"DE\"],\n" +
                     "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
             String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
