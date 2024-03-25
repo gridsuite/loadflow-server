@@ -7,7 +7,6 @@
 package org.gridsuite.loadflow.server.computation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.common.collect.Sets;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.commons.reporter.ReporterModel;
@@ -24,7 +23,6 @@ import org.springframework.messaging.Message;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CancellationException;
 import java.util.concurrent.CompletableFuture;
@@ -45,16 +43,15 @@ import java.util.function.Consumer;
 public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P, T extends AbstractComputationResultService> {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractWorkerService.class);
 
-    protected final Lock lockRunAndCancel = new ReentrantLock();
+    private final Lock lockRunAndCancel = new ReentrantLock();
     protected final ObjectMapper objectMapper;
-    protected final Set<UUID> runRequests = Sets.newConcurrentHashSet();
     protected final NetworkStoreService networkStoreService;
     protected final ReportService reportService;
     protected final ExecutionService executionService;
     protected final NotificationService notificationService;
     protected final AbstractComputationObserver<S, P> observer;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
-    protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
+    private final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
     protected final T resultService;
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
@@ -122,23 +119,23 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         return message -> {
             AbstractResultContext<R> resultContext = fromMessage(message);
             try {
-                runRequests.add(resultContext.getResultUuid());
                 AtomicReference<Long> startTime = new AtomicReference<>();
                 startTime.set(System.nanoTime());
 
-                S result = run(resultContext.getRunContext(), resultContext.getResultUuid());
+                Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(),
+                        resultContext.getRunContext().getVariantId());
+
+                S result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
 
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
 
-                Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(),
-                        resultContext.getRunContext().getVariantId());
-                observer.observe("results.save", resultContext.getRunContext(), () -> saveResult(network, resultContext, result));
-
-                long finalNanoTime = System.nanoTime();
-                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
-
                 if (result != null) {  // result available
+                    observer.observe("results.save", resultContext.getRunContext(), () -> saveResult(network, resultContext, result));
+
+                    long finalNanoTime = System.nanoTime();
+                    LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
+
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
                     LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
                 } else {  // result not available : stop computation request
@@ -159,7 +156,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
             } finally {
                 futures.remove(resultContext.getResultUuid());
                 cancelComputationRequests.remove(resultContext.getResultUuid());
-                runRequests.remove(resultContext.getResultUuid());
             }
         };
     }
@@ -171,24 +167,19 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     protected abstract void saveResult(Network network, AbstractResultContext<R> resultContext, S result);
 
-    protected void logOnRun(R runContext) {
+    /**
+     * Do some extra task before run the computation, e.g. print log or init extra data for the run context
+     */
+    protected void onBeforeRunAsync(R runContext, Reporter reporter) {
         LOGGER.info("Run {} computation ...", getComputationType());
     }
 
     /**
-     * if this computation needs extra run data, add them to the run context here
+     * Do some extra task after run the computation, e.g. do some operations on report
      */
-    protected void enrichRunContext(R runContext) { }
+    protected void onAfterRunAsync(R runContext, Reporter reporter) { }
 
-    /**
-     * if this computation needs extra report operations, override this function and do them here
-     */
-    protected void reportSpecificOperations(R runContext, Reporter reporter) { }
-
-    protected S run(R runContext, UUID resultUuid) throws Exception {
-        logOnRun(runContext);
-
-        enrichRunContext(runContext);
+    protected S run(Network network, R runContext, UUID resultUuid) throws Exception {
 
         String provider = runContext.getProvider();
         AtomicReference<Reporter> rootReporter = new AtomicReference<>(Reporter.NO_OP);
@@ -204,12 +195,13 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
                     runContext, () -> reportService.deleteReport(runContext.getReportContext().getReportId(), reportType));
         }
 
-        Network network = getNetwork(runContext.getNetworkUuid(), runContext.getVariantId());
+        onBeforeRunAsync(runContext, reporter);
         CompletableFuture<S> future = runAsync(network, runContext, provider, reporter, resultUuid);
 
         S result = future == null ? null : observer.observeRun("run", runContext, future::get);
+        onAfterRunAsync(runContext, reporter);
+
         if (runContext.getReportContext().getReportId() != null) {
-            reportSpecificOperations(runContext, reporter);
             observer.observe("report.send", runContext, () -> reportService.sendReport(runContext.getReportContext().getReportId(), rootReporter.get()));
         }
         return result;
