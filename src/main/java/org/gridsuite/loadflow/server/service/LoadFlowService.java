@@ -206,6 +206,8 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
             if (!subjectIds.isEmpty()) {
                 resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIds, ResourceFilter.Column.SUBJECT_ID));
+            } else {
+                return null;
             }
         }
 
