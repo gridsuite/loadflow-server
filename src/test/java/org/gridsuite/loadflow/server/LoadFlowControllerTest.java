@@ -13,6 +13,7 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -160,7 +161,7 @@ public class LoadFlowControllerTest {
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
 
         given(networkStoreService.getNetwork(NETWORK_UUID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(network);
-        given(networkStoreService.getNetwork(NETWORK_UUID)).willReturn(network);
+
         network1 = EurostagTutorialExample1Factory.createWithMoreGenerators(new NetworkFactoryImpl());
         network1.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
 
@@ -328,6 +329,21 @@ public class LoadFlowControllerTest {
         }
 
     }
+    private void assertLimitViolationsWithFilters(String limitViolationsType, int expectedSize, String globalFilter) throws Exception {
+        // Build filter URLs
+        String filterUrl = buildCurrentViolationFilterUrl(limitViolationsType);
+        String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, globalFilter);
+
+        // Perform request
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        String resultAsString = mvcResult.getResponse().getContentAsString();
+        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {});
+        assertEquals(expectedSize, limitViolationInfos.size());
+    }
 
     @Test
     public void testGetLimitViolationsWithGlobalFilters() throws Exception {
@@ -361,26 +377,14 @@ public class LoadFlowControllerTest {
             assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
-            // get loadflow limit violations with filter and globalfilters
-            String filterUrl = buildCurrentViolationFilterUrl();
-            String stringGlobalFilter = "{\n" +
-                    "  \"nominalV\": [\"380\",\"150\"],\n" +
-                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
-            String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
+            // current violations
+            assertLimitViolationsWithFilters("CURRENT", 4, "{\"nominalV\":[\"380\",\"150\"],\"countryCode\":[\"FR\",\"IT\"]}");
+            assertLimitViolationsWithFilters("CURRENT", 4, "{\"countryCode\":[\"FR\"]}");
+            assertLimitViolationsWithFilters("CURRENT", 4, "{\"nominalV\":[\"380\"]}");
 
-            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl))
-                    .andExpectAll(
-                            status().isOk(),
-                            content().contentType(MediaType.APPLICATION_JSON)
-                    ).andReturn();
-            String resultAsString = mvcResult.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
-            });
-            assertEquals(4, limitViolationInfos.size());
-
+            // voltage violations
+            assertLimitViolationsWithFilters("VOLTAGE", 0, "{\"nominalV\":[\"24\"],\"countryCode\":[\"FR\",\"DE\"]}");
         }
-
     }
 
     private String buildGlobalFilterUrl(UUID networkUuid, String stringGlobalFilter) {
@@ -442,11 +446,21 @@ public class LoadFlowControllerTest {
 
     }
 
-    private String buildCurrentViolationFilterUrl() {
+    private String buildCurrentViolationFilterUrl(String limitViolationType) {
         String filterUrl = "";
+        List<ResourceFilter> filters = new ArrayList<>();
         try {
-            List<ResourceFilter> filters = List.of(
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
+            if(limitViolationType.equals("CURRENT")){
+                  filters = List.of(
+                        new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
+
+            }
+
+            if(limitViolationType.equals("VOLTAGE")){
+                filters = List.of(
+                        new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"HIGH_VOLTAGE","LOW_VOLTAGE"}, ResourceFilter.Column.LIMIT_TYPE));
+
+            }
 
             String jsonFilters = new ObjectMapper().writeValueAsString(filters);
 
