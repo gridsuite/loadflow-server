@@ -418,7 +418,7 @@ public class LoadFlowControllerTest {
                     "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
             String buildGlobalFilterUrl4 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter3);
 
-            MvcResult mvcResult4 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl3))
+            MvcResult mvcResult4 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + stringGlobalFilter4))
                     .andExpectAll(
                             status().isOk(),
                             content().contentType(MediaType.APPLICATION_JSON)
