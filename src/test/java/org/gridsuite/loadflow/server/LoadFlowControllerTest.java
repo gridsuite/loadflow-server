@@ -378,6 +378,7 @@ public class LoadFlowControllerTest {
             List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
             });
             assertEquals(4, limitViolationInfos.size());
+
             // get loadflowresult from current violations with filters and globalFilters
             String stringGlobalFilter2 = "{\n" +
                     "  \"nominalV\": [\"24\"],\n" +
@@ -394,8 +395,39 @@ public class LoadFlowControllerTest {
             List<LimitViolationInfos> limitViolationInfos2 = mapper.readValue(resultAsString2, new TypeReference<List<LimitViolationInfos>>() {
             });
             assertEquals(0, limitViolationInfos2.size());
-        }
 
+            // get loadflowresult from current violations with filters and globalFilters
+            String stringGlobalFilter3 = "{\n" +
+                    "  \"nominalV\": [\"380\"],\n" +
+                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
+            String buildGlobalFilterUrl3 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter3);
+
+            MvcResult mvcResult3 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl3))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString3 = mvcResult3.getResponse().getContentAsString();
+            List<LimitViolationInfos> limitViolationInfos3 = mapper.readValue(resultAsString3, new TypeReference<List<LimitViolationInfos>>() {
+            });
+            assertEquals(4, limitViolationInfos3.size());
+
+            // get loadflowresult from current violations with filters and globalFilters
+            String stringGlobalFilter4 = "{\n" +
+                    "  \"countryCode\": [\"FR\"],\n" +
+                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
+            String buildGlobalFilterUrl4 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter3);
+
+            MvcResult mvcResult4 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl3))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString4 = mvcResult4.getResponse().getContentAsString();
+            List<LimitViolationInfos> limitViolationInfos4 = mapper.readValue(resultAsString4, new TypeReference<List<LimitViolationInfos>>() {
+            });
+            assertEquals(4, limitViolationInfos4.size());
+        }
     }
 
     private String buildGlobalFilterUrl(UUID networkUuid, String stringGlobalFilter) {
