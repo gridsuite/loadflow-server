@@ -13,7 +13,6 @@ import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.VariantManagerConstants;
-import com.powsybl.iidm.network.VoltageLevel;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -329,6 +328,7 @@ public class LoadFlowControllerTest {
         }
 
     }
+
     private void assertLimitViolationsWithFilters(String limitViolationsType, int expectedSize, String globalFilter) throws Exception {
         // Build filter URLs
         String filterUrl = buildCurrentViolationFilterUrl(limitViolationsType);
@@ -341,7 +341,8 @@ public class LoadFlowControllerTest {
                         content().contentType(MediaType.APPLICATION_JSON)
                 ).andReturn();
         String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {});
+        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
+        });
         assertEquals(expectedSize, limitViolationInfos.size());
     }
 
@@ -450,15 +451,15 @@ public class LoadFlowControllerTest {
         String filterUrl = "";
         List<ResourceFilter> filters = new ArrayList<>();
         try {
-            if(limitViolationType.equals("CURRENT")){
-                  filters = List.of(
+            if (limitViolationType.equals("CURRENT")) {
+                filters = List.of(
                         new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
 
             }
 
-            if(limitViolationType.equals("VOLTAGE")){
+            if (limitViolationType.equals("VOLTAGE")) {
                 filters = List.of(
-                        new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"HIGH_VOLTAGE","LOW_VOLTAGE"}, ResourceFilter.Column.LIMIT_TYPE));
+                        new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"HIGH_VOLTAGE", "LOW_VOLTAGE"}, ResourceFilter.Column.LIMIT_TYPE));
 
             }
 
