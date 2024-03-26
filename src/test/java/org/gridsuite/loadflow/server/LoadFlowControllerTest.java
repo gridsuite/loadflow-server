@@ -382,7 +382,7 @@ public class LoadFlowControllerTest {
             String stringGlobalFilter2 = "{\n" +
                     "  \"nominalV\": [\"24\"],\n" +
                     "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
+                    "\"limitViolationsType\": \"VOLTAGE\"}"; // Include global filters and networkUuid
             String buildGlobalFilterUrl2 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter2);
 
             MvcResult mvcResult2 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl2))
@@ -394,22 +394,6 @@ public class LoadFlowControllerTest {
             List<LimitViolationInfos> limitViolationInfos2 = mapper.readValue(resultAsString2, new TypeReference<List<LimitViolationInfos>>() {
             });
             assertEquals(0, limitViolationInfos2.size());
-            // get loadflowresult from voltage violations if exists with filters and globalFilters
-            String stringGlobalFilter3 = "{\n" +
-                    "  \"nominalV\": [\"24\"],\n" +
-                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
-            String buildGlobalFilterUrl3 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter3);
-
-            MvcResult mvcResult3 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + buildVoltageFilterUrl() + buildGlobalFilterUrl3))
-                    .andExpectAll(
-                            status().isOk(),
-                            content().contentType(MediaType.APPLICATION_JSON)
-                    ).andReturn();
-            String resultAsString3 = mvcResult3.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos3 = mapper.readValue(resultAsString3, new TypeReference<List<LimitViolationInfos>>() {
-            });
-            assertEquals(0, limitViolationInfos3.size());
         }
 
     }
@@ -479,22 +463,6 @@ public class LoadFlowControllerTest {
             List<ResourceFilter> filters = List.of(
                     new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
 
-            String jsonFilters = new ObjectMapper().writeValueAsString(filters);
-
-            filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
-
-            return filterUrl;
-        } catch (Exception ignored) {
-        }
-        return filterUrl;
-    }
-
-    private String buildVoltageFilterUrl() {
-        String filterUrl = "";
-        try {
-            List<ResourceFilter> filters = List.of(
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"HIGH_VOLTAGE", "LOW_VOLTAGE"}, ResourceFilter.Column.LIMIT_TYPE)
-            );
             String jsonFilters = new ObjectMapper().writeValueAsString(filters);
 
             filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
