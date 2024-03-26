@@ -361,12 +361,11 @@ public class LoadFlowControllerTest {
             assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
-            // get loadflow limit violations with filter
-            // get loadflow limit violations with global filters
+            // get loadflow limit violations with filter and globalfilters
             String filterUrl = buildCurrentViolationFilterUrl();
             String stringGlobalFilter = "{\n" +
-                    "  \"nominalV\": [\"380\"],\n" +
-                    "  \"countryCode\": [\"DE\"],\n" +
+                    "  \"nominalV\": [\"380\",\"150\"],\n" +
+                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
                     "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
             String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
 

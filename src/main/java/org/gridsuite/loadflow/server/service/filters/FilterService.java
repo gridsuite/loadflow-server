@@ -78,7 +78,7 @@ public class FilterService {
         if (isLVoltageLevelOrTwoWT) {
             return List.of(FieldType.COUNTRY);
         }
-        if (equipmentType.equals(EquipmentType.VOLTAGE_LEVEL)) {
+        if (equipmentType.equals(EquipmentType.LINE)) {
             return List.of(FieldType.COUNTRY_1, FieldType.COUNTRY_2);
 
         }
