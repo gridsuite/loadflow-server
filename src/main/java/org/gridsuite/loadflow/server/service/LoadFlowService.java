@@ -15,14 +15,12 @@ import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.filter.utils.FilterServiceUtils;
-import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
-import org.gridsuite.loadflow.server.computation.service.NotificationService;
-import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
@@ -31,6 +29,9 @@ import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
+import org.gridsuite.loadflow.server.computation.service.NotificationService;
+import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.filters.FilterService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
@@ -71,8 +72,8 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
-        this.filterService = filterService;
         this.networkStoreService = networkStoreService;
+        this.filterService = filterService;
         this.limitViolationRepository = limitViolationRepository;
     }
 
@@ -201,11 +202,28 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
         List<ResourceFilter> resourceFilters = new ArrayList<>();
         resourceFilters.addAll(fromStringFiltersToDTO(stringFilters));
-        if (stringGlobalFilters != null) {
-            List<String> subjectIds = createFilterFromGlobalFilter(stringGlobalFilters, networkUuid);
+        GlobalFilter globalFilter = fromStringGlobalFiltersToDTO(stringGlobalFilters);
+        List<EquipmentType> equipmentTypes = null;
+        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+        if (globalFilter != null && (globalFilter.getCountryCode() != null || globalFilter.getNominalV() != null) && globalFilter.getLimitViolationsType() != null) {
+            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW);
 
-            if (!subjectIds.isEmpty()) {
-                resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIds, ResourceFilter.Column.SUBJECT_ID));
+            if (globalFilter.getLimitViolationsType().equals("CURRENT")) {
+                equipmentTypes = List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
+            }
+            if (globalFilter.getLimitViolationsType().equals("VOLTAGE")) {
+                equipmentTypes = List.of(EquipmentType.VOLTAGE_LEVEL);
+
+            }
+            for (EquipmentType equipmentType : equipmentTypes) {
+                ExpertFilter expertFilter = filterService.buildExpertFilter(globalFilter, equipmentType);
+                if (expertFilter != null) {
+                    subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(e -> e.getId()).collect(Collectors.toList()));
+                }
+            }
+
+            if (subjectIdsFromEvalFilter.size() != 0 && globalFilter != null) {
+                resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
             } else {
                 return null;
             }
@@ -213,27 +231,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
-    }
-
-    public List<String> createFilterFromGlobalFilter(String stringGlobalFilters, UUID networkUuid) {
-        GlobalFilter globalFilter = fromStringGlobalFiltersToDTO(stringGlobalFilters);
-        List<String> subjectIds = new ArrayList<>();
-        List<EquipmentType> equipmentTypes = new ArrayList<>();
-        if (globalFilter.getLimitViolationsType().equals("CURRENT")) {
-            equipmentTypes.add(EquipmentType.LINE);
-            equipmentTypes.add(EquipmentType.TWO_WINDINGS_TRANSFORMER);
-        } else {
-            equipmentTypes.add(EquipmentType.VOLTAGE_LEVEL);
-        }
-        if (globalFilter.getCountryCode() != null || globalFilter.getNominalV() != null) {
-            Network network = networkStoreService.getNetwork(networkUuid);
-
-            for (EquipmentType equipmentType : equipmentTypes) {
-                ExpertFilter expertFilter = filterService.buildExpertFilter(globalFilter, equipmentType);
-                subjectIds.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(e -> e.getId()).collect(Collectors.toList()));
-            }
-        }
-        return subjectIds;
     }
 
     public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
@@ -258,14 +255,25 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         }
     }
 
-    public GlobalFilter fromStringGlobalFiltersToDTO(String stringFilters) {
-        if (StringUtils.isEmpty(stringFilters)) {
+    public ExpertFilter fromStringExpertFilterToDTO(String stringGlobalFilters) {
+        if (StringUtils.isEmpty(stringGlobalFilters)) {
             return null;
         }
-
         try {
-            ObjectMapper objectMapper = new ObjectMapper();
-            return objectMapper.readValue(stringFilters, GlobalFilter.class);
+            return objectMapper.readValue(stringGlobalFilters, new TypeReference<>() {
+            });
+        } catch (JsonProcessingException e) {
+            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
+        }
+    }
+
+    public GlobalFilter fromStringGlobalFiltersToDTO(String stringGlobalFilters) {
+        if (StringUtils.isEmpty(stringGlobalFilters)) {
+            return null;
+        }
+        try {
+            return objectMapper.readValue(stringGlobalFilters, new TypeReference<>() {
+            });
         } catch (JsonProcessingException e) {
             throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
         }
