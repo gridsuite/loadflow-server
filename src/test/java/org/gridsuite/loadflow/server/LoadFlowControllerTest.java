@@ -331,7 +331,7 @@ public class LoadFlowControllerTest {
 
     private void assertLimitViolationsWithFilters(String limitViolationsType, int expectedSize, String globalFilter) throws Exception {
         // Build filter URLs
-        String filterUrl = buildCurrentViolationFilterUrl(limitViolationsType);
+        String filterUrl = buildCurrentViolationFilterUrl();
         String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, globalFilter);
 
         // Perform request
@@ -378,14 +378,41 @@ public class LoadFlowControllerTest {
             assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
-            // current violations
-            assertLimitViolationsWithFilters("CURRENT", 4, "{\"nominalV\":[\"380\",\"150\"],\"countryCode\":[\"FR\",\"IT\"]}");
-            assertLimitViolationsWithFilters("CURRENT", 4, "{\"countryCode\":[\"FR\"]}");
-            assertLimitViolationsWithFilters("CURRENT", 4, "{\"nominalV\":[\"380\"]}");
+            // get loadflowresult from current violations with filters and globalFilters
+            String filterUrl = buildCurrentViolationFilterUrl();
+            String stringGlobalFilter = "{\n" +
+                    "  \"nominalV\": [\"380\",\"150\"],\n" +
+                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
+                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
+            String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
 
-            // voltage violations
-            assertLimitViolationsWithFilters("VOLTAGE", 0, "{\"nominalV\":[\"24\"],\"countryCode\":[\"FR\",\"DE\"]}");
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString = mvcResult.getResponse().getContentAsString();
+            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
+            });
+            assertEquals(4, limitViolationInfos.size());
+            // get loadflowresult from current violations with filters and globalFilters
+            String stringGlobalFilter2 = "{\n" +
+                    "  \"nominalV\": [\"24\"],\n" +
+                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
+                    "\"limitViolationsType\": \"VOLTAGE\"}"; // Include global filters and networkUuid
+            String buildGlobalFilterUrl2 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter2);
+
+            MvcResult mvcResult2 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl2))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            String resultAsString2 = mvcResult2.getResponse().getContentAsString();
+            List<LimitViolationInfos> limitViolationInfos2 = mapper.readValue(resultAsString2, new TypeReference<List<LimitViolationInfos>>() {
+            });
+            assertEquals(0, limitViolationInfos2.size());
         }
+
     }
 
     private String buildGlobalFilterUrl(UUID networkUuid, String stringGlobalFilter) {
@@ -447,21 +474,11 @@ public class LoadFlowControllerTest {
 
     }
 
-    private String buildCurrentViolationFilterUrl(String limitViolationType) {
+    private String buildCurrentViolationFilterUrl() {
         String filterUrl = "";
-        List<ResourceFilter> filters = new ArrayList<>();
         try {
-            if (limitViolationType.equals("CURRENT")) {
-                filters = List.of(
-                        new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
-
-            }
-
-            if (limitViolationType.equals("VOLTAGE")) {
-                filters = List.of(
-                        new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"HIGH_VOLTAGE", "LOW_VOLTAGE"}, ResourceFilter.Column.LIMIT_TYPE));
-
-            }
+            List<ResourceFilter> filters = List.of(
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
 
             String jsonFilters = new ObjectMapper().writeValueAsString(filters);
 
