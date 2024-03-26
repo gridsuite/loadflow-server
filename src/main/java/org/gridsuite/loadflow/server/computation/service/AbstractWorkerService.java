@@ -138,10 +138,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
                     notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
                     LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
-                } else {  // result not available : stop computation request
-                    if (cancelComputationRequests.get(resultContext.getResultUuid()) != null) {
-                        cleanResultsAndPublishCancel(resultContext.getResultUuid(), cancelComputationRequests.get(resultContext.getResultUuid()).getReceiver());
-                    }
                 }
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
