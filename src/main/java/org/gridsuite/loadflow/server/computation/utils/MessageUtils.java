@@ -12,10 +12,10 @@ import org.springframework.messaging.MessageHeaders;
 /**
  * @author Thang PHAM <quyet-thang.pham at rte-france.com>
  */
-public final class ContextUtils {
+public final class MessageUtils {
     public static final int MSG_MAX_LENGTH = 256;
 
-    private ContextUtils() { }
+    private MessageUtils() { }
 
     public static String getNonNullHeader(MessageHeaders headers, String name) {
         String header = (String) headers.get(name);

@@ -55,11 +55,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
-        LoadFlowResult result = super.run(runContext, resultUuid);
+    protected LoadFlowResult run(Network network, LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
+        LoadFlowResult result = super.run(network, runContext, resultUuid);
         if (result != null && result.isOk()) {
-            // flush each network in the network store
-            Network network = getNetwork(runContext.getNetworkUuid(), runContext.getVariantId());
+            // flush network in the network store
             observer.observe("network.save", runContext, () -> networkStoreService.flush(network));
         }
         return result;
@@ -78,7 +77,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    public PreloadingStrategy getNetworkPreloadingStrategy() {
+    protected PreloadingStrategy getNetworkPreloadingStrategy() {
         return PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW;
     }
 
