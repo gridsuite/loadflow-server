@@ -89,7 +89,7 @@ public final class SpecificationUtils {
             return switch (filter.type()) {
                 case CONTAINS -> criteriaBuilder.like(criteriaBuilder.upper(stringExpression), "%" + escapedFilterValue.toUpperCase() + "%", EscapeCharacter.DEFAULT.getEscapeCharacter());
                 case STARTS_WITH -> criteriaBuilder.like(criteriaBuilder.upper(stringExpression), escapedFilterValue.toUpperCase() + "%", EscapeCharacter.DEFAULT.getEscapeCharacter());
-                case EQUALS -> criteriaBuilder.equal(criteriaBuilder.upper(stringExpression), stringValue.toUpperCase());
+                case EQUALS, IN -> criteriaBuilder.equal(criteriaBuilder.upper(stringExpression), stringValue.toUpperCase());
                 default ->
                         throw new UnsupportedOperationException("This type of filter is not supported for text data type");
             };

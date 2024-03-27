@@ -17,7 +17,10 @@ public class LoadflowException extends RuntimeException {
         RESULT_NOT_FOUND,
         INVALID_FILTER_FORMAT,
         INVALID_SORT_FORMAT,
-        INVALID_FILTER
+        INVALID_FILTER,
+        NETWORK_NOT_FOUND,
+        EVALUATE_FILTER_FAILED
+
     }
 
     private final Type type;
