@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import com.powsybl.security.LimitViolationType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
@@ -206,9 +207,9 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         List<EquipmentType> equipmentTypes = null;
         List<String> subjectIdsFromEvalFilter = new ArrayList<>();
         if (globalFilter != null && (globalFilter.getCountryCode() != null || globalFilter.getNominalV() != null) && globalFilter.getLimitViolationsType() != null) {
-            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW);
+            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
 
-            if (globalFilter.getLimitViolationsType().equals("CURRENT")) {
+            if (globalFilter.getLimitViolationsType().equals(LimitViolationType.CURRENT.name())) {
                 equipmentTypes = List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
             }
             if (globalFilter.getLimitViolationsType().equals("VOLTAGE")) {
@@ -225,7 +226,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             if (subjectIdsFromEvalFilter.size() != 0 && globalFilter != null) {
                 resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
             } else {
-                return null;
+                  resourceFilters = null ;
             }
         }
 
