@@ -367,17 +367,9 @@ public class LoadFlowControllerTest {
                     "  \"nominalV\": [\"380\",\"150\"],\n" +
                     "  \"countryCode\": [\"FR\",\"IT\"],\n" +
                     "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
-            String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
 
-            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl))
-                    .andExpectAll(
-                            status().isOk(),
-                            content().contentType(MediaType.APPLICATION_JSON)
-                    ).andReturn();
-            String resultAsString = mvcResult.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
-            });
-            assertEquals(4, limitViolationInfos.size());
+            String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
+            assertLimitViolations(filterUrl, buildGlobalFilterUrl, 4);
 
             // get loadflowresult from current violations with filters and globalFilters
             String stringGlobalFilter2 = "{\n" +
@@ -441,6 +433,19 @@ public class LoadFlowControllerTest {
             filterUrl.append("&networkUuid=").append(networkUuid);
         }
         return filterUrl.toString();
+    }
+
+    private void assertLimitViolations(String filterUrl, String globalFilterUrl, int expectedCount) throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + globalFilterUrl))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                )
+                .andReturn();
+        String limitViolationInfosJson = mvcResult.getResponse().getContentAsString();
+        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(limitViolationInfosJson, new TypeReference<List<LimitViolationInfos>>() {
+        });
+        assertEquals(expectedCount, limitViolationInfos.size());
     }
 
     @Test
