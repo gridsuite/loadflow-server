@@ -59,7 +59,7 @@ final class Networks {
                 .add();
         Substation p2 = network.newSubstation()
                 .setId(prefix + "P2")
-                .setCountry(Country.DE)
+                .setCountry(Country.FR)
                 .setTso("RTE")
                 .setGeographicalTags("B")
                 .add();
@@ -70,7 +70,7 @@ final class Networks {
                 .add();
         VoltageLevel vlhv1 = p1.newVoltageLevel()
                 .setId(prefix + "VLHV1")
-                .setNominalV(320.0)
+                .setNominalV(380.0)
                 .setTopologyKind(TopologyKind.BUS_BREAKER)
                 .add();
         VoltageLevel vlhv2 = p2.newVoltageLevel()

@@ -361,64 +361,34 @@ public class LoadFlowControllerTest {
             assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
-            // get loadflowresult from current violations with filters and globalFilters
+            // get limit violations with filters and different globalFilters
             String filterUrl = buildCurrentViolationFilterUrl();
             String stringGlobalFilter = "{\n" +
                     "  \"nominalV\": [\"380\",\"150\"],\n" +
                     "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
-
+                    "\"limitViolationsType\": \"CURRENT\"}";
             String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
             assertLimitViolations(filterUrl, buildGlobalFilterUrl, 4);
 
-            // get loadflowresult from current violations with filters and globalFilters
             String stringGlobalFilter2 = "{\n" +
                     "  \"nominalV\": [\"24\"],\n" +
                     "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"VOLTAGE\"}"; // Include global filters and networkUuid
+                    "\"limitViolationsType\": \"VOLTAGE\"}";
             String buildGlobalFilterUrl2 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter2);
+            assertLimitViolations(filterUrl, buildGlobalFilterUrl2, 0);
 
-            MvcResult mvcResult2 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl2))
-                    .andExpectAll(
-                            status().isOk(),
-                            content().contentType(MediaType.APPLICATION_JSON)
-                    ).andReturn();
-            String resultAsString2 = mvcResult2.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos2 = mapper.readValue(resultAsString2, new TypeReference<List<LimitViolationInfos>>() {
-            });
-            assertEquals(0, limitViolationInfos2.size());
-
-            // get loadflowresult from current violations with filters and globalFilters
             String stringGlobalFilter3 = "{\n" +
                     "  \"nominalV\": [\"380\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
+                    "\"limitViolationsType\": \"CURRENT\"}";
             String buildGlobalFilterUrl3 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter3);
+            assertLimitViolations(filterUrl, buildGlobalFilterUrl3, 4);
 
-            MvcResult mvcResult3 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl3))
-                    .andExpectAll(
-                            status().isOk(),
-                            content().contentType(MediaType.APPLICATION_JSON)
-                    ).andReturn();
-            String resultAsString3 = mvcResult3.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos3 = mapper.readValue(resultAsString3, new TypeReference<List<LimitViolationInfos>>() {
-            });
-            assertEquals(4, limitViolationInfos3.size());
-
-            // get loadflowresult from current violations with filters and globalFilters
             String stringGlobalFilter4 = "{\n" +
                     "  \"countryCode\": [\"FR\"],\n" +
                     "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
             String buildGlobalFilterUrl4 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter4);
+            assertLimitViolations(filterUrl, buildGlobalFilterUrl4, 4);
 
-            MvcResult mvcResult4 = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + buildGlobalFilterUrl4))
-                    .andExpectAll(
-                            status().isOk(),
-                            content().contentType(MediaType.APPLICATION_JSON)
-                    ).andReturn();
-            String resultAsString4 = mvcResult4.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos4 = mapper.readValue(resultAsString4, new TypeReference<List<LimitViolationInfos>>() {
-            });
-            assertEquals(4, limitViolationInfos4.size());
         }
     }
 
