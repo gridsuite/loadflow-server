@@ -70,7 +70,7 @@ public abstract class AbstractResultContext<R extends AbstractComputationRunCont
             .build();
     }
 
-    public Map<String, String> getSpecificMsgHeaders() {
+    protected Map<String, String> getSpecificMsgHeaders() {
         return Map.of();
     }
 }

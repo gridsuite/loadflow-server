@@ -10,8 +10,6 @@ import lombok.AllArgsConstructor;
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,7 +20,6 @@ import org.springframework.stereotype.Component;
 @Component
 public class PostCompletionAnnotationAspect {
 
-    private static final Logger LOGGER = LoggerFactory.getLogger(PostCompletionAnnotationAspect.class);
     private final PostCompletionAdapter postCompletionAdapter;
 
     @Around("@annotation(org.gridsuite.loadflow.server.computation.utils.annotations.PostCompletion)")
@@ -43,8 +40,7 @@ public class PostCompletionAnnotationAspect {
             try {
                 pjp.proceed(pjp.getArgs());
             } catch (Throwable e) {
-                LOGGER.error(e.getMessage());
-                throw new RuntimeException(e);
+                throw new PostCompletionException(e);
             }
         }
     }

@@ -66,7 +66,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
     }
 
     @Override
-    public Map<String, String> getSpecificMsgHeaders() {
+    protected Map<String, String> getSpecificMsgHeaders() {
         return Map.of(
                 HEADER_LIMIT_REDUCTION,
                 runContext.getLimitReduction() != null ?

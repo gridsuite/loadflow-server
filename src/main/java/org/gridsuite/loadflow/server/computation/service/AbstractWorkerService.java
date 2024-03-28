@@ -40,7 +40,7 @@ import java.util.function.Consumer;
  * @param <P> powsybl and gridsuite Parameters specifics to the computation
  * @param <T> result service specific to the computation
  */
-public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P, T extends AbstractComputationResultService> {
+public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P, T extends AbstractComputationResultService<?>> {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractWorkerService.class);
 
     private final Lock lockRunAndCancel = new ReentrantLock();
@@ -164,8 +164,10 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     /**
      * Do some extra task before running the computation, e.g. print log or init extra data for the run context
+     * @param ignoredRunContext This context may be used for further computation in overriding classes
+     * @param ignoredReporter This reporter may be used for further computation in overriding classes
      */
-    protected void preRun(R runContext, Reporter reporter) {
+    protected void preRun(R ignoredRunContext, Reporter ignoredReporter) {
         LOGGER.info("Run {} computation ...", getComputationType());
     }
 
@@ -195,7 +197,12 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         return result;
     }
 
-    protected void postRun(R runContext, Reporter reporter) { }
+    /**
+     * Do some extra task after running the computation
+     * @param ignoredRunContext This context may be used for extra task in overriding classes
+     * @param ignoredReporter This reporter may be used for extra task in overriding classes
+     */
+    protected void postRun(R ignoredRunContext, Reporter ignoredReporter) { }
 
     protected CompletableFuture<S> runAsync(
             Network network,
