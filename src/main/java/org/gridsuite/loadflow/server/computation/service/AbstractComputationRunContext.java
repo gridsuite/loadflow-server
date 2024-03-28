@@ -25,7 +25,6 @@ public abstract class AbstractComputationRunContext<P> {
     private final String receiver;
     private final ReportContext reportContext;
     private final String userId;
-    private final Float limitReduction;
     @Setter protected String provider;
     @Setter protected P parameters;
 }

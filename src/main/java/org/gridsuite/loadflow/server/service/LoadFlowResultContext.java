@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.gridsuite.loadflow.server.computation.utils.MessageUtils;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.computation.service.AbstractResultContext;
 import org.gridsuite.loadflow.server.computation.utils.ReportContext;
@@ -15,12 +16,14 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.UncheckedIOException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
+    public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
 
     public LoadFlowResultContext(UUID resultUuid, LoadFlowRunContext runContext) {
         super(resultUuid, runContext);
@@ -29,8 +32,8 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
     public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
-        UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, RESULT_UUID_HEADER));
-        UUID networkUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, NETWORK_UUID_HEADER));
+        UUID resultUuid = UUID.fromString(MessageUtils.getNonNullHeader(headers, RESULT_UUID_HEADER));
+        UUID networkUuid = UUID.fromString(MessageUtils.getNonNullHeader(headers, NETWORK_UUID_HEADER));
         String variantId = (String) headers.get(VARIANT_ID_HEADER);
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
@@ -38,10 +41,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
 
         LoadFlowParametersValues parameters;
         try {
-            // can't use 'withRootName(MESSAGE_ROOT_NAME).writeValueAsString' because jackson doesn't wrap null in the rootname
-            // -> '{"parameters": null}' throws instead returning null
-            //     MismatchedInputException: Cannot deserialize value of type `LoadFlowParametersInfos` from Null value (token `JsonToken.VALUE_NULL`)
-            parameters = objectMapper.treeToValue(objectMapper.readTree(message.getPayload()).get(MESSAGE_ROOT_NAME), LoadFlowParametersValues.class);
+            parameters = objectMapper.readValue(message.getPayload(), LoadFlowParametersValues.class);
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
@@ -63,5 +63,14 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .build();
 
         return new LoadFlowResultContext(resultUuid, runContext);
+    }
+
+    @Override
+    protected Map<String, String> getSpecificMsgHeaders() {
+        return Map.of(
+                HEADER_LIMIT_REDUCTION,
+                runContext.getLimitReduction() != null ?
+                        runContext.getLimitReduction().toString() :
+                        null);
     }
 }

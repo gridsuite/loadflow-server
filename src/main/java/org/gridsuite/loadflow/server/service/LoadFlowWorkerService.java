@@ -13,18 +13,20 @@ import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import org.gridsuite.loadflow.server.computation.service.*;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
@@ -33,17 +35,13 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Service
-public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues> {
+public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
-                                 ReportService reportService, LoadFlowResultRepository resultRepository,
-                                 ExecutionService executionService, LoadFlowObserver loadflowObserver,
+                                 ReportService reportService, LoadFlowResultService resultService,
+                                 ExecutionService executionService, LoadFlowObserver observer,
                                  ObjectMapper objectMapper) {
-        super(networkStoreService, notificationService, reportService, resultRepository, executionService, loadflowObserver, objectMapper);
-    }
-
-    private LoadFlowResultRepository getResultRepository() {
-        return (LoadFlowResultRepository) resultRepository;
+        super(networkStoreService, notificationService, reportService, resultService, executionService, observer, objectMapper);
     }
 
     @Override
@@ -57,11 +55,11 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(Network network, AbstractResultContext<LoadFlowRunContext> resultContext) throws Exception {
-        LoadFlowResult result = super.run(network, resultContext);
+    protected LoadFlowResult run(Network network, LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
+        LoadFlowResult result = super.run(network, runContext, resultUuid);
         if (result != null && !result.isFailed()) {
-            // flush each network in the network store
-            observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(network));
+            // flush network in the network store
+            observer.observe("network.save", runContext, () -> networkStoreService.flush(network));
         }
         return result;
     }
@@ -79,10 +77,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
+    protected PreloadingStrategy getNetworkPreloadingStrategy() {
+        return PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW;
+    }
+
+    @Override
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-        getResultRepository().insert(resultContext.getResultUuid(), result,
+        resultService.insert(resultContext.getResultUuid(), result,
                 LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
     }
 
