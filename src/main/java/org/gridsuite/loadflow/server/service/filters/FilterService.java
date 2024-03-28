@@ -6,28 +6,46 @@
  */
 package org.gridsuite.loadflow.server.service.filters;
 
+import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
+import com.powsybl.security.LimitViolationType;
+import lombok.NonNull;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.CombinatorExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.EnumExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.NumberExpertRule;
 import org.gridsuite.filter.utils.EquipmentType;
+import org.gridsuite.filter.utils.FilterServiceUtils;
 import org.gridsuite.filter.utils.expertfilter.CombinatorType;
 import org.gridsuite.filter.utils.expertfilter.FieldType;
 import org.gridsuite.filter.utils.expertfilter.OperatorType;
 import org.gridsuite.loadflow.server.dto.GlobalFilter;
+import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
 public class FilterService {
+    private final NetworkStoreService networkStoreService;
+
+    public FilterService(
+            NetworkStoreService networkStoreService) {
+        this.networkStoreService = networkStoreService;
+    }
+
     private List<AbstractExpertRule> createNumberExpertRules(List<String> values, FieldType fieldType) {
         List<AbstractExpertRule> rules = new ArrayList<>();
         for (String value : values) {
@@ -140,6 +158,48 @@ public class FilterService {
 
     private AbstractExpertRule createOrCombinator(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
         return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
+    }
+
+    private Network getNetwork(UUID networkUuid, PreloadingStrategy strategy, String variantId) {
+        try {
+            Network network = networkStoreService.getNetwork(networkUuid, strategy);
+            if (variantId != null) {
+                network.getVariantManager().setWorkingVariant(variantId);
+            }
+            return network;
+        } catch (PowsyblException e) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
+        }
+    }
+
+    public List<ResourceFilter> getResourceFilters(UUID networkUuid, String variantId, @NonNull GlobalFilter globalFilter) {
+        List<ResourceFilter> resourceFilters = new ArrayList<>();
+        List<EquipmentType> equipmentTypes = new ArrayList<>();
+        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+
+        Network network = getNetwork(networkUuid, PreloadingStrategy.COLLECTION, variantId);
+
+        if (globalFilter.getLimitViolationsType().equals(LimitViolationType.CURRENT.name())) {
+            equipmentTypes = List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
+        }
+        if (globalFilter.getLimitViolationsType().equals("VOLTAGE")) {
+            equipmentTypes = List.of(EquipmentType.VOLTAGE_LEVEL);
+
+        }
+        for (EquipmentType equipmentType : equipmentTypes) {
+            ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
+            if (expertFilter != null) {
+                subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(e -> e.getId()).collect(Collectors.toList()));
+            }
+        }
+
+        if (!subjectIdsFromEvalFilter.isEmpty()) {
+            resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
+        } else {
+            return List.of();
+        }
+        //     }
+        return resourceFilters;
     }
 
 }

@@ -12,16 +12,14 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
-import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.PreloadingStrategy;
-import com.powsybl.security.LimitViolationType;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
-import org.gridsuite.filter.utils.EquipmentType;
-import org.gridsuite.filter.utils.FilterServiceUtils;
+import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
+import org.gridsuite.loadflow.server.computation.service.NotificationService;
+import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
@@ -30,11 +28,9 @@ import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
-import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
-import org.gridsuite.loadflow.server.computation.service.NotificationService;
-import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.filters.FilterService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.utils.FilterUtils;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -196,40 +192,23 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     @Transactional(readOnly = true)
-    public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, String stringGlobalFilters, Sort sort, UUID networkUuid) {
+    public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, String stringGlobalFilters, Sort sort, UUID networkUuid, String variantId) {
         if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             return List.of();
         }
 
-        List<ResourceFilter> resourceFilters = new ArrayList<>();
-        resourceFilters.addAll(fromStringFiltersToDTO(stringFilters));
-        GlobalFilter globalFilter = fromStringGlobalFiltersToDTO(stringGlobalFilters);
-        List<EquipmentType> equipmentTypes = null;
-        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
-        if (globalFilter != null && (globalFilter.getCountryCode() != null || globalFilter.getNominalV() != null) && globalFilter.getLimitViolationsType() != null) {
-            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+        // get resource filters and global filters
+        List<ResourceFilter> resourceFilters = FilterUtils.fromStringFiltersToDTO(stringFilters, objectMapper);
+        GlobalFilter globalFilter = FilterUtils.fromStringGlobalFiltersToDTO(stringGlobalFilters, objectMapper);
 
-            if (globalFilter.getLimitViolationsType().equals(LimitViolationType.CURRENT.name())) {
-                equipmentTypes = List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
-            }
-            if (globalFilter.getLimitViolationsType().equals("VOLTAGE")) {
-                equipmentTypes = List.of(EquipmentType.VOLTAGE_LEVEL);
-
-            }
-            for (EquipmentType equipmentType : equipmentTypes) {
-                ExpertFilter expertFilter = filterService.buildExpertFilter(globalFilter, equipmentType);
-                if (expertFilter != null) {
-                    subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(e -> e.getId()).collect(Collectors.toList()));
-                }
-            }
-
-            if (subjectIdsFromEvalFilter.size() != 0 && globalFilter != null) {
-                resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
+        if (globalFilter != null) {
+            List<ResourceFilter> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
+            if (!resourceGlobalFilters.isEmpty()) {
+                resourceFilters.addAll(resourceGlobalFilters);
             } else {
-                  resourceFilters = null ;
+                return null;
             }
         }
-
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
     }

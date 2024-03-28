@@ -17,7 +17,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
@@ -25,13 +26,35 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 class LoadFlowServiceTest {
 
+    private static final UUID RESULT_UUID = UUID.randomUUID();
     @MockBean
     private LimitViolationRepository limitViolationRepository;
-
     @Autowired
     private LoadFlowService loadFlowService;
 
-    private static final UUID RESULT_UUID = UUID.randomUUID();
+    @Test
+    void assertResultExistsWhenResultDoesNotExistShouldReturnEmptyResult() {
+        UUID nonExistingUuid = UUID.randomUUID();
+        when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(nonExistingUuid)).thenReturn(false);
+        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(nonExistingUuid, null, null, null, null, null);
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    void getLimitViolationsInfosWhenCalledReturnsCorrectData() {
+
+        String stringFilters = "[{\"column\":\"subjectId\",\"dataType\":\"text\",\"type\":\"startsWith\",\"value\":\"Sub\"}]";
+        Sort sort = Sort.unsorted();
+
+        when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(RESULT_UUID)).thenReturn(true);
+        when(limitViolationRepository.findAll(any(Specification.class), eq(sort)))
+                .thenReturn(LimitViolationsMock.limitViolationEntities);
+        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(RESULT_UUID, stringFilters, null, sort, null, null);
+
+        assertNotNull(result);
+        assertEquals(LimitViolationsMock.limitViolationEntities.size(), result.size());
+        verify(limitViolationRepository, times(1)).findAll(any(Specification.class), eq(sort));
+    }
 
     private static final class LimitViolationsMock {
         static List<LimitViolationEntity> limitViolationEntities = Arrays.asList(
@@ -62,29 +85,5 @@ class LoadFlowServiceTest {
                         .limitType(LimitViolationType.CURRENT)
                         .build()
         );
-    }
-
-    @Test
-    void assertResultExistsWhenResultDoesNotExistShouldReturnEmptyResult() {
-        UUID nonExistingUuid = UUID.randomUUID();
-        when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(nonExistingUuid)).thenReturn(false);
-        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(nonExistingUuid, null, null, null, null);
-        assertEquals(0, result.size());
-    }
-
-    @Test
-    void getLimitViolationsInfosWhenCalledReturnsCorrectData() {
-
-        String stringFilters = "[{\"column\":\"subjectId\",\"dataType\":\"text\",\"type\":\"startsWith\",\"value\":\"Sub\"}]";
-        Sort sort = Sort.unsorted();
-
-        when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(RESULT_UUID)).thenReturn(true);
-        when(limitViolationRepository.findAll(any(Specification.class), eq(sort)))
-                .thenReturn(LimitViolationsMock.limitViolationEntities);
-        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(RESULT_UUID, stringFilters, null, sort, null);
-
-        assertNotNull(result);
-        assertEquals(LimitViolationsMock.limitViolationEntities.size(), result.size());
-        verify(limitViolationRepository, times(1)).findAll(any(Specification.class), eq(sort));
     }
 }
