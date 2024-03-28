@@ -10,7 +10,6 @@ import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
-import com.powsybl.security.LimitViolationType;
 import lombok.NonNull;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
@@ -70,7 +69,7 @@ public class FilterService {
         return rules;
     }
 
-    List<AbstractExpertRule> createNominalVoltageRules(List<String> nominalVoltageList, List<FieldType> nominalFieldTypes) {
+    private List<AbstractExpertRule> createNominalVoltageRules(List<String> nominalVoltageList, List<FieldType> nominalFieldTypes) {
         List<AbstractExpertRule> nominalVoltageRules = new ArrayList<>();
         for (FieldType fieldType : nominalFieldTypes) {
             nominalVoltageRules.addAll(createNumberExpertRules(nominalVoltageList, fieldType));
@@ -78,7 +77,7 @@ public class FilterService {
         return nominalVoltageRules;
     }
 
-    List<AbstractExpertRule> createCountryCodeRules(List<String> countryCodeList, List<FieldType> countryCodeFieldTypes) {
+    private List<AbstractExpertRule> createCountryCodeRules(List<String> countryCodeList, List<FieldType> countryCodeFieldTypes) {
         List<AbstractExpertRule> countryCodeRules = new ArrayList<>();
         for (FieldType fieldType : countryCodeFieldTypes) {
             countryCodeRules.addAll(createEnumExpertRules(countryCodeList, fieldType));
@@ -86,7 +85,7 @@ public class FilterService {
         return countryCodeRules;
     }
 
-    List<FieldType> getNominalVoltageFieldType(EquipmentType equipmentType) {
+    private List<FieldType> getNominalVoltageFieldType(EquipmentType equipmentType) {
         boolean isLineOrTwoWT = equipmentType.equals(EquipmentType.LINE) || equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER);
         if (isLineOrTwoWT) {
             return List.of(FieldType.NOMINAL_VOLTAGE_1, FieldType.NOMINAL_VOLTAGE_2);
@@ -97,7 +96,7 @@ public class FilterService {
         return List.of();
     }
 
-    List<FieldType> getCountryCodeFieldType(EquipmentType equipmentType) {
+    private List<FieldType> getCountryCodeFieldType(EquipmentType equipmentType) {
         boolean isLVoltageLevelOrTwoWT = equipmentType.equals(EquipmentType.VOLTAGE_LEVEL) || equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER);
         if (isLVoltageLevelOrTwoWT) {
             return List.of(FieldType.COUNTRY);
@@ -172,20 +171,20 @@ public class FilterService {
         }
     }
 
-    public List<ResourceFilter> getResourceFilters(UUID networkUuid, String variantId, @NonNull GlobalFilter globalFilter) {
+    public List<ResourceFilter> getResourceFilters(@NonNull UUID networkUuid, String variantId, @NonNull GlobalFilter globalFilter) {
         List<ResourceFilter> resourceFilters = new ArrayList<>();
         List<EquipmentType> equipmentTypes = new ArrayList<>();
         List<String> subjectIdsFromEvalFilter = new ArrayList<>();
 
         Network network = getNetwork(networkUuid, PreloadingStrategy.COLLECTION, variantId);
 
-        if (globalFilter.getLimitViolationsType().equals(LimitViolationType.CURRENT.name())) {
+        if (globalFilter.getLimitViolationsType().equals(GlobalFilter.LimitViolationsType.CURRENT.name())) {
             equipmentTypes = List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
         }
-        if (globalFilter.getLimitViolationsType().equals("VOLTAGE")) {
+        if (globalFilter.getLimitViolationsType().equals(GlobalFilter.LimitViolationsType.VOLTAGE.name())) {
             equipmentTypes = List.of(EquipmentType.VOLTAGE_LEVEL);
-
         }
+
         for (EquipmentType equipmentType : equipmentTypes) {
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
@@ -198,7 +197,6 @@ public class FilterService {
         } else {
             return List.of();
         }
-        //     }
         return resourceFilters;
     }
 

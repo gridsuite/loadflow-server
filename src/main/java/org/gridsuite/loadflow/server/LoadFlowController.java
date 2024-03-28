@@ -155,12 +155,14 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}/limit-violations")
     @Operation(summary = "Get limit violations")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The limit violations")})
-    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid,
-                                                                        @Parameter(description = "Filters") @RequestParam(name = "filters", required = false) String stringFilters,
-                                                                        @Parameter(description = "Global Filters") @RequestParam(name = "globalFilters", required = false) String globalFilters,
-                                                                        @Parameter(description = "Sort parameters") Sort sort,
-                                                                        @Parameter(description = "network Uuid") @RequestParam(name = "networkUuid", required = false) UUID networkUuid,
-                                                                        @Parameter(description = "variant Id") @RequestParam(name = "variantId", required = false) String variantId) {
+    public ResponseEntity<List<LimitViolationInfos>> getLimitViolations(
+            @Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid,
+            @Parameter(description = "Filters") @RequestParam(name = "filters", required = false) String stringFilters,
+            @Parameter(description = "Global Filters") @RequestParam(name = "globalFilters", required = false) String globalFilters,
+            @Parameter(description = "Sort parameters") Sort sort,
+            @Parameter(description = "network Uuid") @RequestParam(name = "networkUuid", required = false) UUID networkUuid,
+            @Parameter(description = "variant Id") @RequestParam(name = "variantId", required = false) String variantId
+    ) {
         String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
         String decodedStringGlobalFilters = globalFilters != null ? URLDecoder.decode(globalFilters, StandardCharsets.UTF_8) : null;
         List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(resultUuid, decodedStringFilters, decodedStringGlobalFilters, sort, networkUuid, variantId);
