@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service.filters;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
@@ -57,11 +58,11 @@ public class FilterService {
         return rules;
     }
 
-    private List<AbstractExpertRule> createEnumExpertRules(List<String> values, FieldType fieldType) {
+    private List<AbstractExpertRule> createEnumExpertRules(List<Country> values, FieldType fieldType) {
         List<AbstractExpertRule> rules = new ArrayList<>();
-        for (String value : values) {
+        for (Country value : values) {
             rules.add(EnumExpertRule.builder()
-                    .value(value)
+                    .value(value.toString())
                     .field(fieldType)
                     .operator(OperatorType.EQUALS)
                     .build());
@@ -77,7 +78,7 @@ public class FilterService {
         return nominalVoltageRules;
     }
 
-    private List<AbstractExpertRule> createCountryCodeRules(List<String> countryCodeList, List<FieldType> countryCodeFieldTypes) {
+    private List<AbstractExpertRule> createCountryCodeRules(List<Country> countryCodeList, List<FieldType> countryCodeFieldTypes) {
         List<AbstractExpertRule> countryCodeRules = new ArrayList<>();
         for (FieldType fieldType : countryCodeFieldTypes) {
             countryCodeRules.addAll(createEnumExpertRules(countryCodeList, fieldType));

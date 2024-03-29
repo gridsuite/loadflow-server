@@ -183,7 +183,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             }
         }
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);
-        return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
+        return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).toList();
     }
 
     public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {

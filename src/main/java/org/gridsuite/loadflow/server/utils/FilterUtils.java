@@ -1,3 +1,9 @@
+/**
+ * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package org.gridsuite.loadflow.server.utils;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -18,27 +24,24 @@ public final class FilterUtils {
     private FilterUtils() {
     }
 
-    public static List<ResourceFilter> fromStringFiltersToDTO(String stringFilters, ObjectMapper objectMapper) {
-        if (StringUtils.isEmpty(stringFilters)) {
-            return List.of();
+    private static <T> T fromStringToDTO(String jsonString, ObjectMapper objectMapper, TypeReference<T> typeReference, T defaultValue) {
+        if (StringUtils.isEmpty(jsonString)) {
+            return defaultValue;
         }
         try {
-            return objectMapper.readValue(stringFilters, new TypeReference<>() {
-            });
+            return objectMapper.readValue(jsonString, typeReference);
         } catch (JsonProcessingException e) {
             throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
         }
     }
 
+    public static List<ResourceFilter> fromStringFiltersToDTO(String stringFilters, ObjectMapper objectMapper) {
+        return fromStringToDTO(stringFilters, objectMapper, new TypeReference<List<ResourceFilter>>() {
+        }, List.of());
+    }
+
     public static GlobalFilter fromStringGlobalFiltersToDTO(String stringGlobalFilters, ObjectMapper objectMapper) {
-        if (StringUtils.isEmpty(stringGlobalFilters)) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(stringGlobalFilters, new TypeReference<>() {
-            });
-        } catch (JsonProcessingException e) {
-            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
-        }
+        return fromStringToDTO(stringGlobalFilters, objectMapper, new TypeReference<GlobalFilter>() {
+        }, null);
     }
 }

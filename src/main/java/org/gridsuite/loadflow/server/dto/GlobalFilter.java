@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.powsybl.iidm.network.Country;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -29,6 +30,8 @@ public class GlobalFilter {
         VOLTAGE,
     }
     List<String> nominalV;
-    List<String> countryCode;
+
+    @JsonProperty
+    List<Country> countryCode;
     String limitViolationsType;
 }
