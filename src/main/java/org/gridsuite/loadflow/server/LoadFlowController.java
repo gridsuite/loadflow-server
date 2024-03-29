@@ -69,8 +69,9 @@ public class LoadFlowController {
                 .reportContext(ReportContext.builder().reportId(reportId).reportName(reportName).reportType(reportType).build())
                 .userId(userId)
                 .limitReduction(limitReduction)
+                .parametersUuid(parametersUuid)
                 .build();
-        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext, parametersUuid);
+        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
     }
 

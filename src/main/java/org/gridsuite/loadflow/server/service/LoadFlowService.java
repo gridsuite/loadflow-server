@@ -9,17 +9,11 @@ package org.gridsuite.loadflow.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
-import com.powsybl.network.store.client.NetworkStoreService;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
-import org.gridsuite.filter.expertfilter.ExpertFilter;
-import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
-import org.gridsuite.loadflow.server.computation.service.NotificationService;
-import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
@@ -27,7 +21,10 @@ import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultRepository;
+import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
+import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
+import org.gridsuite.loadflow.server.computation.service.NotificationService;
+import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.service.filters.FilterService;
 import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.FilterUtils;
@@ -36,7 +33,6 @@ import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.messaging.MessageHeaders;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -49,29 +45,33 @@ import java.util.stream.Collectors;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Service
-public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext> {
+public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext, LoadFlowResultService, LoadFlowStatus> {
 
     public static final String COMPUTATION_TYPE = "loadflow";
 
     private final LoadFlowParametersService parametersService;
     private final FilterService filterService;
-    private final NetworkStoreService networkStoreService;
     private final LimitViolationRepository limitViolationRepository;
 
     public LoadFlowService(NotificationService notificationService,
-                           LoadFlowResultRepository resultRepository,
+                           LoadFlowResultService resultService,
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
                            FilterService filterService,
-                           NetworkStoreService networkStoreService,
                            LimitViolationRepository limitViolationRepository,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
-        super(notificationService, resultRepository, objectMapper, uuidGeneratorService, defaultProvider);
+        super(notificationService, resultService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
-        this.networkStoreService = networkStoreService;
         this.filterService = filterService;
         this.limitViolationRepository = limitViolationRepository;
+    }
+
+    @Override
+    public List<String> getProviders() {
+        return LoadFlowProvider.findAll().stream()
+                .map(LoadFlowProvider::getName)
+                .toList();
     }
 
     public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
@@ -83,6 +83,20 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                             .toList();
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+    }
+
+    @Override
+    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
+        LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
+        // set provider and parameters
+        loadFlowRunContext.setParameters(params);
+        loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
+        UUID resultUuid = uuidGeneratorService.generate();
+
+        // update status to running status
+        setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
+        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, loadFlowRunContext).toMessage(objectMapper));
+        return resultUuid;
     }
 
     private static LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
@@ -105,8 +119,8 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 .build();
     }
 
-    private static List<SlackBusResult> getSlackBusResult(boolean hasChildFilter, List<SlackBusResultEntity> slackBusResultEntities, ComponentResultEntity componentResultEntity) {
-        List<SlackBusResultEntity> slackBusResults = new ArrayList<>();
+    private static List<SlackBusResult> getSlackBusResult(boolean hasChildFilter, List <SlackBusResultEntity> slackBusResultEntities, ComponentResultEntity componentResultEntity) {
+        List <SlackBusResultEntity> slackBusResults = new ArrayList<>();
         if (!hasChildFilter) {
             slackBusResults.addAll(componentResultEntity.getSlackBusResults());
         } else {
@@ -121,65 +135,21 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         return slackBusResults.stream().map(slackBusResultEntity -> new SlackBusResult(slackBusResultEntity.getId(), slackBusResultEntity.getActivePowerMismatch())).toList();
     }
 
-    public static String getNonNullHeader(MessageHeaders headers, String name) {
-        String header = (String) headers.get(name);
-        if (header == null) {
-            throw new PowsyblException("Header '" + name + "' not found");
-        }
-        return header;
-    }
-
-    public static LoadFlowStatus computeLoadFlowStatus(com.powsybl.loadflow.LoadFlowResult result) {
-        return result.getComponentResults().stream()
-                .filter(cr -> cr.getConnectedComponentNum() == 0 && cr.getSynchronousComponentNum() == 0
-                        && cr.getStatus() == com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status.CONVERGED)
-                .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
-    }
-
-    private LoadFlowResultRepository getResultRepository() {
-        return (LoadFlowResultRepository) resultRepository;
-    }
-
-    @Override
-    public List<String> getProviders() {
-        return LoadFlowProvider.findAll().stream()
-                .map(LoadFlowProvider::getName)
-                .toList();
-    }
-
-    public void setStatus(List<UUID> resultUuids, LoadFlowStatus status) {
-        getResultRepository().insertStatus(resultUuids, status);
-    }
-
-    @Override
-    public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext, UUID parametersUuid) {
-        LoadFlowParametersValues params = parametersService.getParametersValues(parametersUuid);
-        // set provider and parameters
-        loadFlowRunContext.setParameters(params);
-        loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
-        UUID resultUuid = uuidGeneratorService.generate();
-
-        // update status to running status
-        setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
-        notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, loadFlowRunContext).toMessage(objectMapper));
-        return resultUuid;
-    }
-
     public LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
         Objects.requireNonNull(resultUuid);
         LoadFlowResult loadFlowResult;
-        LoadFlowResultEntity loadFlowResultEntity = getResultRepository().findResults(resultUuid).orElse(null);
+        LoadFlowResultEntity loadFlowResultEntity = resultService.findResults(resultUuid).orElse(null);
         if (loadFlowResultEntity == null) {
             return null;
         }
         List<ResourceFilter> resourceFilters = fromStringFiltersToDTO(stringFilters);
-        List<ComponentResultEntity> componentResults = getResultRepository().findComponentResults(resultUuid, resourceFilters, sort);
+        List<ComponentResultEntity> componentResults = resultService.findComponentResults(resultUuid, resourceFilters, sort);
         boolean hasChildFilter = resourceFilters.stream().anyMatch(resourceFilter -> !SpecificationBuilder.isParentFilter(resourceFilter));
         List<SlackBusResultEntity> slackBusResultEntities = new ArrayList<>();
         if (hasChildFilter) {
-            slackBusResultEntities.addAll(getResultRepository().findSlackBusResults(componentResults, resourceFilters));
+            slackBusResultEntities.addAll(resultService.findSlackBusResults(componentResults, resourceFilters));
         }
         loadFlowResultEntity.setComponentResults(componentResults);
         loadFlowResult = fromEntity(loadFlowResultEntity, slackBusResultEntities, hasChildFilter);
@@ -187,8 +157,11 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         return loadFlowResult;
     }
 
-    public LoadFlowStatus getStatus(UUID resultUuid) {
-        return getResultRepository().findStatus(resultUuid);
+    public static LoadFlowStatus computeLoadFlowStatus(com.powsybl.loadflow.LoadFlowResult result) {
+        return result.getComponentResults().stream()
+                .filter(cr -> cr.getConnectedComponentNum() == 0 && cr.getSynchronousComponentNum() == 0
+                        && cr.getStatus() == com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status.CONVERGED)
+                .toList().isEmpty() ? LoadFlowStatus.DIVERGED : LoadFlowStatus.CONVERGED;
     }
 
     @Transactional(readOnly = true)
@@ -229,30 +202,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         }
         try {
             return objectMapper.readValue(stringFilters, new TypeReference<>() {
-            });
-        } catch (JsonProcessingException e) {
-            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
-        }
-    }
-
-    public ExpertFilter fromStringExpertFilterToDTO(String stringGlobalFilters) {
-        if (StringUtils.isEmpty(stringGlobalFilters)) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(stringGlobalFilters, new TypeReference<>() {
-            });
-        } catch (JsonProcessingException e) {
-            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
-        }
-    }
-
-    public GlobalFilter fromStringGlobalFiltersToDTO(String stringGlobalFilters) {
-        if (StringUtils.isEmpty(stringGlobalFilters)) {
-            return null;
-        }
-        try {
-            return objectMapper.readValue(stringGlobalFilters, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
             throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);

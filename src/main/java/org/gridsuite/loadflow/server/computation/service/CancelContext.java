@@ -7,13 +7,15 @@
 package org.gridsuite.loadflow.server.computation.service;
 
 import lombok.Getter;
-import org.gridsuite.loadflow.server.service.LoadFlowService;
+import org.gridsuite.loadflow.server.computation.utils.MessageUtils;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 import org.springframework.messaging.support.MessageBuilder;
 
 import java.util.Objects;
 import java.util.UUID;
+
+import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
@@ -33,15 +35,15 @@ public class CancelContext {
     public static CancelContext fromMessage(Message<String> message) {
         Objects.requireNonNull(message);
         MessageHeaders headers = message.getHeaders();
-        UUID resultUuid = UUID.fromString(LoadFlowService.getNonNullHeader(headers, "resultUuid"));
-        String receiver = (String) headers.get("receiver");
+        UUID resultUuid = UUID.fromString(MessageUtils.getNonNullHeader(headers, HEADER_RESULT_UUID));
+        String receiver = (String) headers.get(HEADER_RECEIVER);
         return new CancelContext(resultUuid, receiver);
     }
 
     public Message<String> toMessage() {
         return MessageBuilder.withPayload("")
-                .setHeader("resultUuid", resultUuid.toString())
-                .setHeader("receiver", receiver)
+                .setHeader(HEADER_RESULT_UUID, resultUuid.toString())
+                .setHeader(HEADER_RECEIVER, receiver)
                 .build();
     }
 }
