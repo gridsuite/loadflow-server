@@ -6,12 +6,10 @@
  */
 package org.gridsuite.loadflow.server.dto;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
 import com.powsybl.iidm.network.Country;
-import lombok.AllArgsConstructor;
+import com.powsybl.security.LimitViolationType;
 import lombok.Builder;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -20,18 +18,10 @@ import java.util.List;
  */
 @Getter
 @Builder
-@AllArgsConstructor
-@NoArgsConstructor
 public class GlobalFilter {
-    public enum LimitViolationsType {
-        @JsonProperty("current")
-        CURRENT,
-        @JsonProperty("voltage")
-        VOLTAGE,
-    }
     List<String> nominalV;
 
-    @JsonProperty
     List<Country> countryCode;
-    String limitViolationsType;
+
+    List<LimitViolationType> limitViolationsTypes;
 }

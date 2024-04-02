@@ -179,7 +179,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             if (!resourceGlobalFilters.isEmpty()) {
                 resourceFilters.addAll(resourceGlobalFilters);
             } else {
-                return null;
+                return List.of();
             }
         }
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);

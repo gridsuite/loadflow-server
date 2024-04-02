@@ -11,12 +11,14 @@ import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import com.powsybl.security.LimitViolationType;
 import lombok.NonNull;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.CombinatorExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.EnumExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.NumberExpertRule;
+import org.gridsuite.filter.identifierlistfilter.IdentifiableAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.filter.utils.FilterServiceUtils;
 import org.gridsuite.filter.utils.expertfilter.CombinatorType;
@@ -32,7 +34,6 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
@@ -109,96 +110,76 @@ public class FilterService {
         return List.of();
     }
 
-    public ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
-        UUID filterId = UUID.randomUUID();
-        Date modificationDate = new Date();
-        List<AbstractExpertRule> andRules = new ArrayList<>();
-
-        List<AbstractExpertRule> nominalVRules = new ArrayList<>();
-        List<AbstractExpertRule> countryCodRules = new ArrayList<>();
-
-        if (globalFilter != null) {
-            if (globalFilter.getNominalV() != null) {
-                nominalVRules.addAll(createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType)));
-            }
-            if (globalFilter.getCountryCode() != null) {
-                countryCodRules.addAll(createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType)));
-            }
-
-            if (globalFilter.getNominalV() != null && globalFilter.getCountryCode() != null) {
-                if (!countryCodRules.isEmpty() && !nominalVRules.isEmpty()) {
-                    if (nominalVRules.size() > 1) {
-                        andRules.add(createOrCombinator(CombinatorType.OR, nominalVRules));
-                    } else {
-                        andRules.addAll(nominalVRules);
-                    }
-                }
-                if (!countryCodRules.isEmpty()) {
-                    if (countryCodRules.size() > 1) {
-                        andRules.add(createOrCombinator(CombinatorType.OR, countryCodRules));
-                    } else {
-                        andRules.addAll(countryCodRules);
-                    }
-                }
-                CombinatorExpertRule andCombination = CombinatorExpertRule.builder().combinator(CombinatorType.AND).rules(andRules).build();
-                return new ExpertFilter(filterId, modificationDate, equipmentType, andCombination);
-            } else {
-                if (globalFilter.getNominalV() != null) {
-                    return new ExpertFilter(filterId, modificationDate, equipmentType, createOrCombinator(CombinatorType.OR, nominalVRules));
-                }
-                if (globalFilter.getCountryCode() != null) {
-                    return new ExpertFilter(filterId, modificationDate, equipmentType, createOrCombinator(CombinatorType.OR, countryCodRules));
-
-                }
-            }
-
+    private ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
+        List<AbstractExpertRule> nominalVRules = List.of();
+        if (globalFilter.getNominalV() != null) {
+            nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
         }
-        return null;
+
+        List<AbstractExpertRule> countryCodRules = List.of();
+        if (globalFilter.getCountryCode() != null) {
+            countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
+        }
+
+        if (nominalVRules.isEmpty() && countryCodRules.isEmpty()) {
+            return null;
+        }
+
+        if (countryCodRules.isEmpty()) {
+            return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, nominalVRules));
+        }
+
+        if (nominalVRules.isEmpty()) {
+            return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, countryCodRules));
+        }
+
+        List<AbstractExpertRule> andRules = new ArrayList<>();
+        andRules.addAll(nominalVRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, nominalVRules)) : nominalVRules);
+        andRules.addAll(countryCodRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, countryCodRules)) : countryCodRules);
+        AbstractExpertRule andCombination = createOrCombinator(CombinatorType.AND, andRules);
+
+        return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
     }
 
     private AbstractExpertRule createOrCombinator(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
         return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
     }
 
-    private Network getNetwork(UUID networkUuid, PreloadingStrategy strategy, String variantId) {
+    private Network getNetwork(UUID networkUuid, String variantId) {
         try {
-            Network network = networkStoreService.getNetwork(networkUuid, strategy);
-            if (variantId != null) {
-                network.getVariantManager().setWorkingVariant(variantId);
-            }
+            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+            network.getVariantManager().setWorkingVariant(variantId);
             return network;
         } catch (PowsyblException e) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
         }
     }
 
-    public List<ResourceFilter> getResourceFilters(@NonNull UUID networkUuid, String variantId, @NonNull GlobalFilter globalFilter) {
-        List<ResourceFilter> resourceFilters = new ArrayList<>();
-        List<EquipmentType> equipmentTypes = new ArrayList<>();
-        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+    public List<ResourceFilter> getResourceFilters(@NonNull UUID networkUuid, @NonNull String variantId, @NonNull GlobalFilter globalFilter) {
 
-        Network network = getNetwork(networkUuid, PreloadingStrategy.COLLECTION, variantId);
+        Network network = getNetwork(networkUuid, variantId);
 
-        if (globalFilter.getLimitViolationsType().equals(GlobalFilter.LimitViolationsType.CURRENT.name())) {
-            equipmentTypes = List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
-        }
-        if (globalFilter.getLimitViolationsType().equals(GlobalFilter.LimitViolationsType.VOLTAGE.name())) {
-            equipmentTypes = List.of(EquipmentType.VOLTAGE_LEVEL);
-        }
-
-        for (EquipmentType equipmentType : equipmentTypes) {
+        List<String> subjectIdsFromEvalFilter = List.of();
+        for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
-                subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(e -> e.getId()).collect(Collectors.toList()));
+                subjectIdsFromEvalFilter = FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(IdentifiableAttributes::getId).toList();
             }
         }
 
-        if (!subjectIdsFromEvalFilter.isEmpty()) {
-            resourceFilters.add(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
-        } else {
-            return List.of();
-        }
-        return resourceFilters;
+        return (!subjectIdsFromEvalFilter.isEmpty()) ?
+            List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID)) : List.of();
     }
 
+    private List<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
+        List<EquipmentType> equipmentTypes = new ArrayList<>();
+        violationTypes.forEach(violationType -> equipmentTypes.addAll(
+            switch (violationType) {
+                case CURRENT -> List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
+                case LOW_VOLTAGE, HIGH_VOLTAGE -> List.of(EquipmentType.VOLTAGE_LEVEL);
+                default -> List.of();
+            }
+        ));
+        return equipmentTypes;
+    }
 }
