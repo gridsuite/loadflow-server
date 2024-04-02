@@ -36,12 +36,12 @@ public final class FilterUtils {
     }
 
     public static List<ResourceFilter> fromStringFiltersToDTO(String stringFilters, ObjectMapper objectMapper) {
-        return fromStringToDTO(stringFilters, objectMapper, new TypeReference<List<ResourceFilter>>() {
+        return fromStringToDTO(stringFilters, objectMapper, new TypeReference<>() {
         }, List.of());
     }
 
     public static GlobalFilter fromStringGlobalFiltersToDTO(String stringGlobalFilters, ObjectMapper objectMapper) {
-        return fromStringToDTO(stringGlobalFilters, objectMapper, new TypeReference<GlobalFilter>() {
+        return fromStringToDTO(stringGlobalFilters, objectMapper, new TypeReference<>() {
         }, null);
     }
 }

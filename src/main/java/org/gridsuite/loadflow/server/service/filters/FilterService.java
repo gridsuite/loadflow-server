@@ -30,10 +30,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
@@ -159,11 +156,11 @@ public class FilterService {
 
         Network network = getNetwork(networkUuid, variantId);
 
-        List<String> subjectIdsFromEvalFilter = List.of();
+        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
-                subjectIdsFromEvalFilter = FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(IdentifiableAttributes::getId).toList();
+                subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(IdentifiableAttributes::getId).toList());
             }
         }
 
@@ -171,8 +168,8 @@ public class FilterService {
             List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID)) : List.of();
     }
 
-    private List<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
-        List<EquipmentType> equipmentTypes = new ArrayList<>();
+    private Set<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
+        Set<EquipmentType> equipmentTypes = new HashSet<>();
         violationTypes.forEach(violationType -> equipmentTypes.addAll(
             switch (violationType) {
                 case CURRENT -> List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);

@@ -322,7 +322,7 @@ public class LoadFlowControllerTest {
                             content().contentType(MediaType.APPLICATION_JSON)
                     ).andReturn();
             String resultAsString = mvcResult.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
+            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<>() {
             });
             assertEquals(1, limitViolationInfos.size());
 
@@ -364,44 +364,41 @@ public class LoadFlowControllerTest {
 
             // get limit violations with filters and different globalFilters
             String filterUrl = buildCurrentViolationFilterUrl();
-            String stringGlobalFilter = "{\n" +
-                    "  \"nominalV\": [\"380\",\"150\"],\n" +
-                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}";
-            String buildGlobalFilterUrl = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter);
+            String stringGlobalFilter = """
+                    {"nominalV": ["380","150"],
+                     "countryCode": ["FR","IT"],
+                     "limitViolationsTypes": ["CURRENT"]}""";
+            String buildGlobalFilterUrl = buildGlobalFilterUrl(stringGlobalFilter);
             assertLimitViolations(filterUrl, buildGlobalFilterUrl, 4);
 
-            String stringGlobalFilter2 = "{\n" +
-                    "  \"nominalV\": [\"24\"],\n" +
-                    "  \"countryCode\": [\"FR\",\"IT\"],\n" +
-                    "\"limitViolationsType\": \"VOLTAGE\"}";
-            String buildGlobalFilterUrl2 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter2);
+            String stringGlobalFilter2 = """
+                    {"nominalV": ["24"],
+                     "countryCode": ["FR","IT"],
+                     "limitViolationsTypes": ["HIGH_VOLTAGE","LOW_VOLTAGE"]}""";
+            String buildGlobalFilterUrl2 = buildGlobalFilterUrl(stringGlobalFilter2);
             assertLimitViolations(filterUrl, buildGlobalFilterUrl2, 0);
 
-            String stringGlobalFilter3 = "{\n" +
-                    "  \"nominalV\": [\"380\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}";
-            String buildGlobalFilterUrl3 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter3);
+            String stringGlobalFilter3 = """
+                    {"nominalV": ["380"],
+                    "limitViolationsTypes": ["CURRENT"]}""";
+            String buildGlobalFilterUrl3 = buildGlobalFilterUrl(stringGlobalFilter3);
             assertLimitViolations(filterUrl, buildGlobalFilterUrl3, 4);
 
-            String stringGlobalFilter4 = "{\n" +
-                    "  \"countryCode\": [\"FR\"],\n" +
-                    "\"limitViolationsType\": \"CURRENT\"}"; // Include global filters and networkUuid
-            String buildGlobalFilterUrl4 = buildGlobalFilterUrl(NETWORK_UUID, stringGlobalFilter4);
+            String stringGlobalFilter4 = """
+                    {"countryCode": ["FR"], "limitViolationsTypes": ["CURRENT"]}""";
+            String buildGlobalFilterUrl4 = buildGlobalFilterUrl(stringGlobalFilter4);
             assertLimitViolations(filterUrl, buildGlobalFilterUrl4, 4);
 
         }
     }
 
-    private String buildGlobalFilterUrl(UUID networkUuid, String stringGlobalFilter) {
+    private String buildGlobalFilterUrl(String stringGlobalFilter) {
         StringBuilder filterUrl = new StringBuilder();
         if (stringGlobalFilter != null) {
-            // URL-encode the global filter string
             String encodedGlobalFilter = URLEncoder.encode(stringGlobalFilter, StandardCharsets.UTF_8);
             filterUrl.append("&globalFilters=").append(encodedGlobalFilter);
-        }
-        if (networkUuid != null) {
-            filterUrl.append("&networkUuid=").append(networkUuid);
+            filterUrl.append("&networkUuid=").append(NETWORK_UUID);
+            filterUrl.append("&variantId=").append(VARIANT_2_ID);
         }
         return filterUrl.toString();
     }
@@ -414,7 +411,7 @@ public class LoadFlowControllerTest {
                 )
                 .andReturn();
         String limitViolationInfosJson = mvcResult.getResponse().getContentAsString();
-        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(limitViolationInfosJson, new TypeReference<List<LimitViolationInfos>>() {
+        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(limitViolationInfosJson, new TypeReference<>() {
         });
         assertEquals(expectedCount, limitViolationInfos.size());
     }

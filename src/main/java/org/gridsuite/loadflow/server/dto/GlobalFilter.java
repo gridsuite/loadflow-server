@@ -8,8 +8,8 @@ package org.gridsuite.loadflow.server.dto;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.security.LimitViolationType;
-import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
 
@@ -17,7 +17,7 @@ import java.util.List;
  * @author maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Getter
-@Builder
+@NoArgsConstructor
 public class GlobalFilter {
     List<String> nominalV;
 
