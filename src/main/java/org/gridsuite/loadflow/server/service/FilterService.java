@@ -4,7 +4,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.gridsuite.loadflow.server.service.filters;
+package org.gridsuite.loadflow.server.service;
 
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
@@ -164,8 +164,8 @@ public class FilterService {
             }
         }
 
-        return (!subjectIdsFromEvalFilter.isEmpty()) ?
-            List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID)) : List.of();
+        return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
+            List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
     }
 
     private Set<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {

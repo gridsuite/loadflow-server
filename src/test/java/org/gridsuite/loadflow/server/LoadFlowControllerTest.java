@@ -6,10 +6,12 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -26,17 +28,15 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.computation.service.ExecutionService;
 import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.ReportService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -58,6 +58,7 @@ import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -96,7 +97,7 @@ public class LoadFlowControllerTest {
     private static final String VARIANT_3_ID = "variant_3";
 
     private static final int TIMEOUT = 1000;
-    private final RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
+
     @Autowired
     private OutputDestination output;
     @Autowired
@@ -126,9 +127,7 @@ public class LoadFlowControllerTest {
             assertEquals(componentResultsDto.get(i).getSynchronousComponentNum(), componentResults.get(i).getSynchronousComponentNum());
             assertEquals(componentResultsDto.get(i).getStatus(), componentResults.get(i).getStatus());
             assertEquals(componentResultsDto.get(i).getIterationCount(), componentResults.get(i).getIterationCount());
-            // assertEquals(componentResultsDto.get(i).getSlackBusId(), componentResults.get(i).getSlackBusId());
             assertEquals(componentResultsDto.get(i).getSlackBusResults().size(), componentResults.get(i).getSlackBusResults().size());
-            // assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);
             assertEquals(componentResultsDto.get(i).getDistributedActivePower(), componentResults.get(i).getDistributedActivePower(), 0.01);
         }
     }
@@ -363,48 +362,44 @@ public class LoadFlowControllerTest {
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
             // get limit violations with filters and different globalFilters
-            String filterUrl = buildCurrentViolationFilterUrl();
-            String stringGlobalFilter = """
-                    {"nominalV": ["380","150"],
-                     "countryCode": ["FR","IT"],
-                     "limitViolationsTypes": ["CURRENT"]}""";
-            String buildGlobalFilterUrl = buildGlobalFilterUrl(stringGlobalFilter);
-            assertLimitViolations(filterUrl, buildGlobalFilterUrl, 4);
-
-            String stringGlobalFilter2 = """
-                    {"nominalV": ["24"],
-                     "countryCode": ["FR","IT"],
-                     "limitViolationsTypes": ["HIGH_VOLTAGE","LOW_VOLTAGE"]}""";
-            String buildGlobalFilterUrl2 = buildGlobalFilterUrl(stringGlobalFilter2);
-            assertLimitViolations(filterUrl, buildGlobalFilterUrl2, 0);
-
-            String stringGlobalFilter3 = """
-                    {"nominalV": ["380"],
-                    "limitViolationsTypes": ["CURRENT"]}""";
-            String buildGlobalFilterUrl3 = buildGlobalFilterUrl(stringGlobalFilter3);
-            assertLimitViolations(filterUrl, buildGlobalFilterUrl3, 4);
-
-            String stringGlobalFilter4 = """
-                    {"countryCode": ["FR"], "limitViolationsTypes": ["CURRENT"]}""";
-            String buildGlobalFilterUrl4 = buildGlobalFilterUrl(stringGlobalFilter4);
-            assertLimitViolations(filterUrl, buildGlobalFilterUrl4, 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
+            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(LimitViolationType.CURRENT)), 4);
 
         }
     }
 
-    private String buildGlobalFilterUrl(String stringGlobalFilter) {
-        StringBuilder filterUrl = new StringBuilder();
-        if (stringGlobalFilter != null) {
-            String encodedGlobalFilter = URLEncoder.encode(stringGlobalFilter, StandardCharsets.UTF_8);
-            filterUrl.append("&globalFilters=").append(encodedGlobalFilter);
-            filterUrl.append("&networkUuid=").append(NETWORK_UUID);
-            filterUrl.append("&variantId=").append(VARIANT_2_ID);
-        }
-        return filterUrl.toString();
+    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
+        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).limitViolationsTypes(limitViolationTypes).build();
+        return new ObjectMapper().writeValueAsString(globalFilter);
     }
 
-    private void assertLimitViolations(String filterUrl, String globalFilterUrl, int expectedCount) throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + filterUrl + globalFilterUrl))
+    private String buildGlobalFilterUrl(String stringGlobalFilter) throws JsonProcessingException {
+        var uriComponentsBuilder = UriComponentsBuilder.fromPath("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations");
+
+        // Creating a list of resource filters
+        List<ResourceFilter> resourceFilters = List.of(
+                new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
+        String stringFilters = new ObjectMapper().writeValueAsString(resourceFilters);
+
+        if (!StringUtils.isEmpty(stringFilters)) {
+            String encodedFilters = URLEncoder.encode(stringFilters, StandardCharsets.UTF_8);
+            uriComponentsBuilder.queryParam("filters", encodedFilters);
+        }
+
+        if (!StringUtils.isEmpty(stringGlobalFilter)) {
+            String encodedGlobalFilters = URLEncoder.encode(stringGlobalFilter, StandardCharsets.UTF_8);
+            uriComponentsBuilder.queryParam("globalFilters", encodedGlobalFilters);
+            uriComponentsBuilder.queryParam("networkUuid", NETWORK_UUID);
+            uriComponentsBuilder.queryParam("variantId", VARIANT_2_ID);
+        }
+
+        return uriComponentsBuilder.build().toUriString();
+    }
+
+    private void assertLimitViolations(String stringGlobalFilter, int expectedCount) throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get(buildGlobalFilterUrl(stringGlobalFilter)))
                 .andExpectAll(
                         status().isOk(),
                         content().contentType(MediaType.APPLICATION_JSON)
@@ -460,22 +455,6 @@ public class LoadFlowControllerTest {
 
         }
 
-    }
-
-    private String buildCurrentViolationFilterUrl() {
-        String filterUrl = "";
-        try {
-            List<ResourceFilter> filters = List.of(
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
-
-            String jsonFilters = new ObjectMapper().writeValueAsString(filters);
-
-            filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
-
-            return filterUrl;
-        } catch (Exception ignored) {
-        }
-        return filterUrl;
     }
 
     private String buildFilterUrl(boolean hasChildFilter) {

@@ -25,8 +25,6 @@ import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
 import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
-import org.gridsuite.loadflow.server.service.filters.FilterService;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.utils.FilterUtils;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
