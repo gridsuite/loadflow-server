@@ -25,7 +25,7 @@ import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import org.gridsuite.loadflow.server.computation.service.AbstractComputationService;
 import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.utils.FilterUtils;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.beans.factory.annotation.Value;
@@ -48,6 +48,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public static final String COMPUTATION_TYPE = "loadflow";
 
     private final LoadFlowParametersService parametersService;
+    private final FilterService filterService;
     private final LimitViolationRepository limitViolationRepository;
 
     public LoadFlowService(NotificationService notificationService,
@@ -55,10 +56,12 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
+                           FilterService filterService,
                            LimitViolationRepository limitViolationRepository,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
+        this.filterService = filterService;
         this.limitViolationRepository = limitViolationRepository;
     }
 
@@ -160,12 +163,25 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     @Transactional(readOnly = true)
-    public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, Sort sort) {
+    public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, String stringGlobalFilters, Sort sort, UUID networkUuid, String variantId) {
         if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             return List.of();
         }
-        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
-        return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
+
+        // get resource filters and global filters
+        List<ResourceFilter> resourceFilters = FilterUtils.fromStringFiltersToDTO(stringFilters, objectMapper);
+        GlobalFilter globalFilter = FilterUtils.fromStringGlobalFiltersToDTO(stringGlobalFilters, objectMapper);
+
+        if (globalFilter != null) {
+            List<ResourceFilter> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
+            if (!resourceGlobalFilters.isEmpty()) {
+                resourceFilters.addAll(resourceGlobalFilters);
+            } else {
+                return List.of();
+            }
+        }
+        List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);
+        return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).toList();
     }
 
     public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {

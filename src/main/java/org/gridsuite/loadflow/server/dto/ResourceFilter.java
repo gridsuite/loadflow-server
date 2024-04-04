@@ -34,6 +34,8 @@ public record ResourceFilter(DataType dataType, Type type, Object value, Column 
         EQUALS,
         @JsonProperty("contains")
         CONTAINS,
+        @JsonProperty("in")
+        IN,
         @JsonProperty("startsWith")
         STARTS_WITH,
         @JsonProperty("notEqual")

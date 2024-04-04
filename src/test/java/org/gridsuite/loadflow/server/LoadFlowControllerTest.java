@@ -6,10 +6,12 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.computation.local.LocalComputationManager;
+import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.iidm.network.VariantManagerConstants;
@@ -26,18 +28,15 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
-import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
+import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.computation.service.ExecutionService;
 import org.gridsuite.loadflow.server.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.computation.service.ReportService;
 import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
-
+import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
+import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -59,6 +58,7 @@ import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
@@ -66,8 +66,8 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.gridsuite.loadflow.server.computation.service.NotificationService.HEADER_USER_ID;
+import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
@@ -98,49 +98,20 @@ public class LoadFlowControllerTest {
 
     private static final int TIMEOUT = 1000;
 
-    private static final class LoadFlowResultMock {
-        static List<LoadFlowResult.SlackBusResult> slackBusResults = List.of(new LoadFlowResultImpl.SlackBusResultImpl("slackBusId1", 4));
-        static LoadFlowResult.ComponentResult componentResult1 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED,
-                null, Collections.emptyMap(), 3,
-                null, slackBusResults,
-                5);
-        static LoadFlowResult.ComponentResult componentResult2 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED,
-                null, Collections.emptyMap(), 3,
-                null, slackBusResults,
-                5);
-        static List<LoadFlowResult.ComponentResult> componentResults = List.of(componentResult1, componentResult2);
-        static final LoadFlowResult RESULT = new LoadFlowResultImpl(true, new HashMap<>(), null, componentResults);
-    }
-
-    private static final class LimitViolationsMock {
-        static List<LimitViolation> limitViolations = List.of(
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.ONE),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
-    }
-
     @Autowired
     private OutputDestination output;
-
     @Autowired
     private MockMvc mockMvc;
-
     @MockBean
     private NetworkStoreService networkStoreService;
-
     @MockBean
     private ReportService reportService;
-
     @Autowired
     private ExecutionService executionService;
-
     @SpyBean
     private LoadFlowParametersService loadFlowParametersService;
-
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
-    private final RestTemplateConfig restTemplateConfig = new RestTemplateConfig();
     @Autowired
     private ObjectMapper mapper;
     private Network network;
@@ -156,9 +127,7 @@ public class LoadFlowControllerTest {
             assertEquals(componentResultsDto.get(i).getSynchronousComponentNum(), componentResults.get(i).getSynchronousComponentNum());
             assertEquals(componentResultsDto.get(i).getStatus(), componentResults.get(i).getStatus());
             assertEquals(componentResultsDto.get(i).getIterationCount(), componentResults.get(i).getIterationCount());
-            // assertEquals(componentResultsDto.get(i).getSlackBusId(), componentResults.get(i).getSlackBusId());
             assertEquals(componentResultsDto.get(i).getSlackBusResults().size(), componentResults.get(i).getSlackBusResults().size());
-           // assertEquals(componentResultsDto.get(i).getSlackBusActivePowerMismatch(), componentResults.get(i).getSlackBusActivePowerMismatch(), 0.01);
             assertEquals(componentResultsDto.get(i).getDistributedActivePower(), componentResults.get(i).getDistributedActivePower(), 0.01);
         }
     }
@@ -190,6 +159,7 @@ public class LoadFlowControllerTest {
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
 
         given(networkStoreService.getNetwork(NETWORK_UUID, PreloadingStrategy.ALL_COLLECTIONS_NEEDED_FOR_BUS_VIEW)).willReturn(network);
+        given(networkStoreService.getNetwork(NETWORK_UUID, PreloadingStrategy.COLLECTION)).willReturn(network);
 
         network1 = EurostagTutorialExample1Factory.createWithMoreGenerators(new NetworkFactoryImpl());
         network1.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
@@ -204,10 +174,10 @@ public class LoadFlowControllerTest {
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
         loadFlowParameters.setDc(true);
         LoadFlowParametersValues loadFlowParametersValues = LoadFlowParametersValues.builder()
-            .provider("LFProvider")
-            .commonParameters(loadFlowParameters)
-            .specificParameters(Collections.emptyMap())
-            .build();
+                .provider("LFProvider")
+                .commonParameters(loadFlowParameters)
+                .specificParameters(Collections.emptyMap())
+                .build();
         doReturn(loadFlowParametersValues).when(loadFlowParametersService).getParametersValues(any());
 
         // purge messages
@@ -285,15 +255,15 @@ public class LoadFlowControllerTest {
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                    any(LoadFlowParameters.class), any(Reporter.class)))
-                .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                    "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
-                    .header(HEADER_USER_ID, "userId"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
             assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
 
             Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
@@ -302,10 +272,10 @@ public class LoadFlowControllerTest {
 
             // get loadflow limit violations
             result = mockMvc.perform(get(
-                    "/" + VERSION + "/results/{resultUuid}/limit-violations", RESULT_UUID))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                .andReturn();
+                            "/" + VERSION + "/results/{resultUuid}/limit-violations", RESULT_UUID))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
             List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
             });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations, network);
@@ -351,12 +321,94 @@ public class LoadFlowControllerTest {
                             content().contentType(MediaType.APPLICATION_JSON)
                     ).andReturn();
             String resultAsString = mvcResult.getResponse().getContentAsString();
-            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
+            List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<>() {
             });
             assertEquals(1, limitViolationInfos.size());
 
         }
 
+    }
+
+    @Test
+    public void testGetLimitViolationsWithGlobalFilters() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyFloat(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
+                            any(LoadFlowParameters.class), any(Reporter.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+            loadFlowParameters.setDc(true);
+            LoadFlowParametersValues loadFlowParametersInfos = LoadFlowParametersValues.builder()
+                    .commonParameters(loadFlowParameters)
+                    .specificParameters(Collections.emptyMap())
+                    .build();
+            doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get limit violations with filters and different globalFilters
+            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
+            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(LimitViolationType.CURRENT)), 4);
+
+        }
+    }
+
+    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
+        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).limitViolationsTypes(limitViolationTypes).build();
+        return new ObjectMapper().writeValueAsString(globalFilter);
+    }
+
+    private String buildGlobalFilterUrl(String stringGlobalFilter) throws JsonProcessingException {
+        var uriComponentsBuilder = UriComponentsBuilder.fromPath("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations");
+
+        // Creating a list of resource filters
+        List<ResourceFilter> resourceFilters = List.of(
+                new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
+        String stringFilters = new ObjectMapper().writeValueAsString(resourceFilters);
+
+        if (!StringUtils.isEmpty(stringFilters)) {
+            String encodedFilters = URLEncoder.encode(stringFilters, StandardCharsets.UTF_8);
+            uriComponentsBuilder.queryParam("filters", encodedFilters);
+        }
+
+        if (!StringUtils.isEmpty(stringGlobalFilter)) {
+            String encodedGlobalFilters = URLEncoder.encode(stringGlobalFilter, StandardCharsets.UTF_8);
+            uriComponentsBuilder.queryParam("globalFilters", encodedGlobalFilters);
+            uriComponentsBuilder.queryParam("networkUuid", NETWORK_UUID);
+            uriComponentsBuilder.queryParam("variantId", VARIANT_2_ID);
+        }
+
+        return uriComponentsBuilder.build().toUriString();
+    }
+
+    private void assertLimitViolations(String stringGlobalFilter, int expectedCount) throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get(buildGlobalFilterUrl(stringGlobalFilter)))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                )
+                .andReturn();
+        String limitViolationInfosJson = mvcResult.getResponse().getContentAsString();
+        List<LimitViolationInfos> limitViolationInfos = mapper.readValue(limitViolationInfosJson, new TypeReference<>() {
+        });
+        assertEquals(expectedCount, limitViolationInfos.size());
     }
 
     @Test
@@ -621,7 +673,8 @@ public class LoadFlowControllerTest {
                 ).andReturn();
 
         String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() { });
+        List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
         assertEquals(2, limitTypes.size());
         assertTrue(limitTypes.contains(LimitViolationType.HIGH_VOLTAGE));
         assertTrue(limitTypes.contains(LimitViolationType.LOW_VOLTAGE));
@@ -637,7 +690,8 @@ public class LoadFlowControllerTest {
                 ).andReturn();
 
         String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<TwoSides> sides = mapper.readValue(resultAsString, new TypeReference<>() { });
+        List<TwoSides> sides = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
         assertEquals(2, sides.size());
         assertTrue(sides.contains(TwoSides.ONE));
         assertTrue(sides.contains(TwoSides.TWO));
@@ -652,7 +706,30 @@ public class LoadFlowControllerTest {
                 ).andReturn();
 
         String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(resultAsString, new TypeReference<>() { });
+        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(resultAsString, new TypeReference<>() {
+        });
         assertEquals(status, Arrays.asList(LoadFlowResult.ComponentResult.Status.values()));
+    }
+
+    private static final class LoadFlowResultMock {
+        static List<LoadFlowResult.SlackBusResult> slackBusResults = List.of(new LoadFlowResultImpl.SlackBusResultImpl("slackBusId1", 4));
+        static LoadFlowResult.ComponentResult componentResult1 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED,
+                null, Collections.emptyMap(), 3,
+                null, slackBusResults,
+                5);
+        static LoadFlowResult.ComponentResult componentResult2 = new LoadFlowResultImpl.ComponentResultImpl(1, 2, LoadFlowResult.ComponentResult.Status.CONVERGED,
+                null, Collections.emptyMap(), 3,
+                null, slackBusResults,
+                5);
+        static List<LoadFlowResult.ComponentResult> componentResults = List.of(componentResult1, componentResult2);
+        static final LoadFlowResult RESULT = new LoadFlowResultImpl(true, new HashMap<>(), null, componentResults);
+    }
+
+    private static final class LimitViolationsMock {
+        static List<LimitViolation> limitViolations = List.of(
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.ONE),
+                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
     }
 }
