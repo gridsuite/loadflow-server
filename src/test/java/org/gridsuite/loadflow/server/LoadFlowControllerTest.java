@@ -500,6 +500,7 @@ public class LoadFlowControllerTest {
                     new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1499.99999", ResourceFilter.Column.LIMIT),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200.00001", ResourceFilter.Column.VALUE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "66.66665", ResourceFilter.Column.OVERLOAD),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
             );
             List<ResourceFilter> childFilters = List.of(
