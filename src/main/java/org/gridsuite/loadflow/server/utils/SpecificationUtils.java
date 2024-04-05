@@ -23,8 +23,6 @@ import java.util.List;
  */
 public final class SpecificationUtils {
 
-    public static final double TOLERANCE = 0.00001; // tolerance for double comparison
-
     // Utility class, so no constructor
     private SpecificationUtils() {
     }
@@ -123,17 +121,19 @@ public final class SpecificationUtils {
     }
 
     private static Predicate createDoublePredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
+        final double tolerance = 0.00001; // tolerance for double comparison
         Double valueDouble = Double.valueOf(value);
         Expression<Double> doubleExpression = expression.as(Double.class);
+
         return switch (filter.type()) {
             case NOT_EQUAL -> {
-                Double upperBound = valueDouble + TOLERANCE;
-                Double lowerBound = valueDouble - TOLERANCE;
+                Double upperBound = valueDouble + tolerance;
+                Double lowerBound = valueDouble - tolerance;
                 yield criteriaBuilder.or(criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound), criteriaBuilder.lessThanOrEqualTo(doubleExpression, lowerBound));
             }
-            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble + TOLERANCE);
+            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble + tolerance);
             case GREATER_THAN_OR_EQUAL ->
-                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, valueDouble - TOLERANCE);
+                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, valueDouble - tolerance);
             default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
         };
     }
