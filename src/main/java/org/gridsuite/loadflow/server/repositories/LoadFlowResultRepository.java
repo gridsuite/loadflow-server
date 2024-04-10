@@ -148,4 +148,9 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         return slackBusResultRepository.findAll(specificationSlack);
     }
 
+    public List<LoadFlowResult.ComponentResult.Status> findComputingStatus(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return componentResultRepository.findComputingStatus(resultUuid);
+    }
+
 }

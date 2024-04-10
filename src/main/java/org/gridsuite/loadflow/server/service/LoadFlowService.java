@@ -12,7 +12,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowProvider;
+import com.powsybl.security.LimitViolationType;
+import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
@@ -188,6 +191,21 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         }
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, fromStringFiltersToDTO(stringFilters), sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).collect(Collectors.toList());
+    }
+
+    public List<LimitViolationType> getLimitTypes(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return limitViolationRepository.findLimitTypes(resultUuid);
+    }
+
+    public List<TwoSides> getBranchSides(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return limitViolationRepository.findBranchSides(resultUuid);
+    }
+
+    public List<Status> getComputationStatus(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return getResultRepository().findComputingStatus(resultUuid);
     }
 
     public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {

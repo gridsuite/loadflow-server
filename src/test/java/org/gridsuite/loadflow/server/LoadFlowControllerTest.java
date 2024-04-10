@@ -310,6 +310,37 @@ public class LoadFlowControllerTest {
             });
             assertLimitViolationsEquals(LimitViolationsMock.limitViolations, limitViolations, network);
         }
+
+        // get loadflow limit types
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/limit-types", RESULT_UUID))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        List<LimitViolationType> limitTypes = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(1, limitTypes.size());
+        assertTrue(limitTypes.contains(LimitViolationType.CURRENT));
+
+        // get loadflow branch sides
+        mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/branch-sides", RESULT_UUID))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        List<TwoSides> sides = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(2, sides.size());
+        assertTrue(sides.contains(TwoSides.ONE));
+        assertTrue(sides.contains(TwoSides.TWO));
+
+        // get loadflow computing status
+        mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/computation-status", RESULT_UUID))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(1, status.size());
+        assertTrue(status.contains(LoadFlowResult.ComponentResult.Status.CONVERGED));
     }
 
     @Test
@@ -354,7 +385,6 @@ public class LoadFlowControllerTest {
             List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<List<LimitViolationInfos>>() {
             });
             assertEquals(1, limitViolationInfos.size());
-
         }
 
     }
@@ -610,49 +640,5 @@ public class LoadFlowControllerTest {
         assertEquals(Set.of("OpenLoadFlow", "DynaFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
-    }
-
-    @Test
-    public void geLimitTypesTest() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/limit-types"))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() { });
-        assertEquals(2, limitTypes.size());
-        assertTrue(limitTypes.contains(LimitViolationType.HIGH_VOLTAGE));
-        assertTrue(limitTypes.contains(LimitViolationType.LOW_VOLTAGE));
-        assertFalse(limitTypes.contains(LimitViolationType.CURRENT));
-    }
-
-    @Test
-    public void geBranchSidesTest() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/branch-sides"))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<TwoSides> sides = mapper.readValue(resultAsString, new TypeReference<>() { });
-        assertEquals(2, sides.size());
-        assertTrue(sides.contains(TwoSides.ONE));
-        assertTrue(sides.contains(TwoSides.TWO));
-    }
-
-    @Test
-    public void getComputationStatus() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/computation-status"))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(resultAsString, new TypeReference<>() { });
-        assertEquals(status, Arrays.asList(LoadFlowResult.ComponentResult.Status.values()));
     }
 }
