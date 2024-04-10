@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server.computation.service;
 
-import org.gridsuite.loadflow.server.computation.utils.MessageUtils;
 import org.gridsuite.loadflow.server.computation.utils.annotations.PostCompletion;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -17,6 +16,8 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
 
 import java.util.UUID;
+
+import static org.gridsuite.loadflow.server.computation.utils.MessageUtils.shortenMessage;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com
@@ -42,7 +43,8 @@ public class NotificationService {
     public static final String HEADER_USER_ID = "userId";
     public static final String SENDING_MESSAGE = "Sending message : {}";
 
-    private final StreamBridge publisher;
+    protected final StreamBridge publisher;
+    protected String publishPrefix = "publish";
 
     @Autowired
     public NotificationService(StreamBridge publisher) {
@@ -51,12 +53,12 @@ public class NotificationService {
 
     public void sendRunMessage(Message<String> message) {
         RUN_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
-        publisher.send("publishRun-out-0", message);
+        publisher.send(publishPrefix + "Run-out-0", message);
     }
 
     public void sendCancelMessage(Message<String> message) {
         CANCEL_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
-        publisher.send("publishCancel-out-0", message);
+        publisher.send(publishPrefix + "Cancel-out-0", message);
     }
 
     @PostCompletion
@@ -67,7 +69,7 @@ public class NotificationService {
                 .setHeader(HEADER_RECEIVER, receiver)
                 .build();
         RESULT_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
-        publisher.send("publishResult-out-0", message);
+        publisher.send(publishPrefix + "Result-out-0", message);
     }
 
     @PostCompletion
@@ -79,7 +81,7 @@ public class NotificationService {
                 .setHeader(HEADER_MESSAGE, getCancelMessage(computationLabel))
                 .build();
         STOP_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
-        publisher.send("publishStopped-out-0", message);
+        publisher.send(publishPrefix + "Stopped-out-0", message);
     }
 
     @PostCompletion
@@ -88,12 +90,12 @@ public class NotificationService {
                 .withPayload("")
                 .setHeader(HEADER_RESULT_UUID, resultUuid.toString())
                 .setHeader(HEADER_RECEIVER, receiver)
-                .setHeader(HEADER_MESSAGE, MessageUtils.shortenMessage(
+                .setHeader(HEADER_MESSAGE, shortenMessage(
                         getFailedMessage(computationLabel) + " : " + causeMessage))
                 .setHeader(HEADER_USER_ID, userId)
                 .build();
         FAILED_MESSAGE_LOGGER.debug(SENDING_MESSAGE, message);
-        publisher.send("publishFailed-out-0", message);
+        publisher.send(publishPrefix + "Failed-out-0", message);
     }
 
     public static String getCancelMessage(String computationLabel) {

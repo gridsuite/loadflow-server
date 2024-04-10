@@ -63,11 +63,11 @@ public abstract class AbstractResultContext<R extends AbstractComputationRunCont
                 .setHeader(HEADER_RECEIVER, runContext.getReceiver())
                 .setHeader(HEADER_PROVIDER, runContext.getProvider())
                 .setHeader(HEADER_USER_ID, runContext.getUserId())
-                .setHeader(REPORT_UUID_HEADER, runContext.getReportContext().getReportId() != null ? runContext.getReportContext().getReportId().toString() : null)
-                .setHeader(REPORTER_ID_HEADER, runContext.getReportContext().getReportName())
-                .setHeader(REPORT_TYPE_HEADER, runContext.getReportContext().getReportType())
+                .setHeader(REPORT_UUID_HEADER, runContext.getReportInfos().reportUuid() != null ? runContext.getReportInfos().reportUuid().toString() : null)
+                .setHeader(REPORTER_ID_HEADER, runContext.getReportInfos().reporterId())
+                .setHeader(REPORT_TYPE_HEADER, runContext.getReportInfos().reportType())
                 .copyHeaders(getSpecificMsgHeaders())
-            .build();
+                .build();
     }
 
     protected Map<String, String> getSpecificMsgHeaders() {
