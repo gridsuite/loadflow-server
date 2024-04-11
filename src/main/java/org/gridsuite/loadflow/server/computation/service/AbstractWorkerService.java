@@ -17,7 +17,6 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.web.server.ResponseStatusException;
@@ -114,7 +113,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     protected abstract AbstractResultContext<R> fromMessage(Message<String> message);
 
-    @Bean
     public Consumer<Message<String>> consumeRun() {
         return message -> {
             AbstractResultContext<R> resultContext = fromMessage(message);
@@ -155,7 +153,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         };
     }
 
-    @Bean
     public Consumer<Message<String>> consumeCancel() {
         return message -> cancelAsync(CancelContext.fromMessage(message));
     }
@@ -176,7 +173,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         Reporter reporter = Reporter.NO_OP;
 
         if (runContext.getReportInfos().reportUuid() != null) {
-            final String reportType = runContext.getReportInfos().reportType();
+            final String reportType = runContext.getReportInfos().computationType();
             String rootReporterId = runContext.getReportInfos().reporterId() == null ? reportType : runContext.getReportInfos().reporterId() + "@" + reportType;
             rootReporter.set(new ReporterModel(rootReporterId, rootReporterId));
             reporter = rootReporter.get().createSubReporter(reportType, String.format("%s (%s)", reportType, provider), "providerToUse", provider);

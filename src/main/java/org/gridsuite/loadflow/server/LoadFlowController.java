@@ -66,7 +66,7 @@ public class LoadFlowController {
                 .networkUuid(networkUuid)
                 .variantId(variantId)
                 .receiver(receiver)
-                .reportInfos(ReportInfos.builder().reportUuid(reportId).reporterId(reportName).reportType(reportType).build())
+                .reportInfos(ReportInfos.builder().reportUuid(reportId).reporterId(reportName).computationType(reportType).build())
                 .userId(userId)
                 .limitReduction(limitReduction)
                 .parametersUuid(parametersUuid)

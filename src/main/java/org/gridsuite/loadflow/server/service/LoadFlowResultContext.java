@@ -57,7 +57,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .receiver(receiver)
                         .provider(provider)
                         .parameters(parameters)
-                        .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).reportType(reportType).build())
+                        .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).computationType(reportType).build())
                         .userId(userId)
                         .limitReduction(limitReduction)
                         .build();

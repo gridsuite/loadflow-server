@@ -19,6 +19,6 @@ import java.util.UUID;
 public record ReportInfos(
         UUID reportUuid,
         String reporterId,
-        String reportType
+        String computationType
 ) {
 }
