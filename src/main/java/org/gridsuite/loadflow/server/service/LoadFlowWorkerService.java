@@ -66,7 +66,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider) {
+    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, UUID resultUuid) {
         LoadFlowParameters params = runContext.buildParameters();
         LoadFlow.Runner runner = LoadFlow.find(provider);
         return runner.runAsync(
