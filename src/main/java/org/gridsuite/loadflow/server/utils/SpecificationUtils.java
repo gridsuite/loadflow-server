@@ -82,11 +82,7 @@ public final class SpecificationUtils {
             return createTextPredicate(criteriaBuilder, expression, filter, (String) value);
         }
         if (ResourceFilter.DataType.NUMBER == filter.dataType()) {
-            if (isInteger((String) value)) {
-                return createIntegerPredicate(criteriaBuilder, expression, filter, (String) value);
-            } else {
-                return createDoublePredicate(criteriaBuilder, expression, filter, (String) value);
-            }
+            return createDoublePredicate(criteriaBuilder, expression, filter, (String) value);
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
     }
@@ -109,19 +105,8 @@ public final class SpecificationUtils {
         };
     }
 
-    private static Predicate createIntegerPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
-        Integer valueInteger = Integer.valueOf(value);
-        Expression<Integer> integerExpression = expression.as(Integer.class);
-        return switch (filter.type()) {
-            case NOT_EQUAL -> criteriaBuilder.notEqual(integerExpression, valueInteger);
-            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(integerExpression, valueInteger);
-            case GREATER_THAN_OR_EQUAL -> criteriaBuilder.greaterThanOrEqualTo(integerExpression, valueInteger);
-            default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
-        };
-    }
-
     private static Predicate createDoublePredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
-        final double tolerance = 0.00001; // tolerance for double comparison
+        final double tolerance = 0.00001; // tolerance for comparison
         Double valueDouble = Double.valueOf(value);
         Expression<Double> doubleExpression = expression.as(Double.class);
 
@@ -136,14 +121,5 @@ public final class SpecificationUtils {
                     criteriaBuilder.greaterThanOrEqualTo(doubleExpression, valueDouble - tolerance);
             default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
         };
-    }
-
-    public static boolean isInteger(String input) {
-        try {
-            Integer.parseInt(input);
-            return true;
-        } catch (NumberFormatException e) {
-            return false;
-        }
     }
 }
