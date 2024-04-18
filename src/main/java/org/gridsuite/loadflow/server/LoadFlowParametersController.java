@@ -13,7 +13,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.service.parameters.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;

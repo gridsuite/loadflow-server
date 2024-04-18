@@ -4,15 +4,14 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
-package org.gridsuite.loadflow.server.computation.repositories;
-
-import java.util.UUID;
+package org.gridsuite.loadflow.server.computation.utils.annotations;
 
 /**
- * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com
+ * @author Slimane Amar <slimane.amar at rte-france.com>
  */
-public interface ComputationResultRepository {
-    void delete(UUID resultUuid);
 
-    void deleteAll();
+public class PostCompletionException extends RuntimeException {
+    public PostCompletionException(Throwable t) {
+        super(t);
+    }
 }

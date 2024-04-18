@@ -8,16 +8,16 @@ package org.gridsuite.loadflow.server.repositories;
 
 import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
+import org.gridsuite.loadflow.server.computation.service.AbstractComputationResultService;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.gridsuite.loadflow.server.entities.*;
-import org.gridsuite.loadflow.server.computation.repositories.ComputationResultRepository;
 import org.gridsuite.loadflow.server.repositories.parameters.SlackBusResultRepository;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
-import org.springframework.stereotype.Repository;
+import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.ZoneOffset;
@@ -28,8 +28,8 @@ import java.util.*;
  * @author Anis Touri <anis.touri at rte-france.com
  */
 @AllArgsConstructor
-@Repository
-public class LoadFlowResultRepository implements ComputationResultRepository {
+@Service
+public class LoadFlowResultService extends AbstractComputationResultService<LoadFlowStatus> {
 
     private GlobalStatusRepository globalStatusRepository;
 
@@ -41,7 +41,7 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
 
     private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
         List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
-                .map(componentResult -> LoadFlowResultRepository.toComponentResultEntity(resultUuid, componentResult))
+                .map(componentResult -> LoadFlowResultService.toComponentResultEntity(resultUuid, componentResult))
                 .toList();
         List<LimitViolationEntity> limitViolations = limitViolationInfos.stream()
                 .map(limitViolationInfo -> toLimitViolationsEntity(resultUuid, limitViolationInfo))
@@ -71,6 +71,7 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         return new GlobalStatusEntity(resultUuid, status);
     }
 
+    @Override
     @Transactional
     public void insertStatus(List<UUID> resultUuids, LoadFlowStatus status) {
         Objects.requireNonNull(resultUuids);
@@ -127,6 +128,7 @@ public class LoadFlowResultRepository implements ComputationResultRepository {
         resultRepository.deleteAll();
     }
 
+    @Override
     @Transactional(readOnly = true)
     public LoadFlowStatus findStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
