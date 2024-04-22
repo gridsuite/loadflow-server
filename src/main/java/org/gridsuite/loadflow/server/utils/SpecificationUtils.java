@@ -82,7 +82,7 @@ public final class SpecificationUtils {
             return createTextPredicate(criteriaBuilder, expression, filter, (String) value);
         }
         if (ResourceFilter.DataType.NUMBER == filter.dataType()) {
-            return createDoublePredicate(criteriaBuilder, expression, filter, (String) value);
+            return createNumberPredicate(criteriaBuilder, expression, filter, (String) value);
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
     }
@@ -105,7 +105,7 @@ public final class SpecificationUtils {
         };
     }
 
-    private static Predicate createDoublePredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
+    private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
         final double tolerance = 0.00001; // tolerance for comparison
         Double valueDouble = Double.valueOf(value);
         Expression<Double> doubleExpression = expression.as(Double.class);
