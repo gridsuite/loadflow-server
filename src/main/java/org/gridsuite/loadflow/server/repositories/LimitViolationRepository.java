@@ -31,7 +31,7 @@ public interface LimitViolationRepository extends JpaRepository<LimitViolationEn
     List<LimitViolationType> findLimitTypes(UUID resultUuid);
 
     @Query(value = "SELECT distinct l.side from LimitViolationEntity as l " +
-            "where l.loadFlowResult.resultUuid = :resultUuid " +
+            "where l.loadFlowResult.resultUuid = :resultUuid AND l.side != ''" +
             "order by l.side")
     List<TwoSides> findBranchSides(UUID resultUuid);
 }
