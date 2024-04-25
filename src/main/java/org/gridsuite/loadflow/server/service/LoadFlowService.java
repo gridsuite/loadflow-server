@@ -28,6 +28,8 @@ import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.utils.FilterUtils;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -44,6 +46,7 @@ import java.util.stream.Collectors;
  */
 @Service
 public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext, LoadFlowResultService, LoadFlowStatus> {
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
     public static final String COMPUTATION_TYPE = "loadflow";
 

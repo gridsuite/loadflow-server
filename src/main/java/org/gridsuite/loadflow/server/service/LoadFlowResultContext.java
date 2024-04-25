@@ -11,7 +11,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.gridsuite.loadflow.server.computation.utils.MessageUtils;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.computation.service.AbstractResultContext;
-import org.gridsuite.loadflow.server.computation.utils.ReportContext;
+import org.gridsuite.loadflow.server.computation.dto.ReportInfos;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
@@ -57,7 +57,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .receiver(receiver)
                         .provider(provider)
                         .parameters(parameters)
-                        .reportContext(ReportContext.builder().reportId(reportUuid).reportName(reporterId).reportType(reportType).build())
+                        .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).computationType(reportType).build())
                         .userId(userId)
                         .limitReduction(limitReduction)
                         .build();
