@@ -7,7 +7,6 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.reporter.Reporter;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -21,6 +20,7 @@ import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import org.gridsuite.loadflow.server.computation.service.*;
+import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
@@ -65,7 +66,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, Reporter reporter) {
+    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, UUID resultUuid) {
         LoadFlowParameters params = runContext.buildParameters();
         LoadFlow.Runner runner = LoadFlow.find(provider);
         return runner.runAsync(
@@ -73,7 +74,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
                 executionService.getComputationManager(),
                 params,
-                reporter);
+                runContext.getReporter());
     }
 
     @Override
@@ -167,5 +168,17 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         }
         return violations.stream()
                 .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
+    }
+
+    @Bean
+    @Override
+    public Consumer<Message<String>> consumeRun() {
+        return super.consumeRun();
+    }
+
+    @Bean
+    @Override
+    public Consumer<Message<String>> consumeCancel() {
+        return super.consumeCancel();
     }
 }
