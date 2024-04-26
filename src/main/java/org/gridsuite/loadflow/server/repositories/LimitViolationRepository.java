@@ -26,7 +26,7 @@ public interface LimitViolationRepository extends JpaRepository<LimitViolationEn
     boolean existsLimitViolationEntitiesByLoadFlowResultResultUuid(UUID resultUuid);
 
     @Query(value = "SELECT distinct l.limitType from LimitViolationEntity as l " +
-            "where l.loadFlowResult.resultUuid = :resultUuid " +
+            "where l.loadFlowResult.resultUuid = :resultUuid AND l.limitType != ''" +
             "order by l.limitType")
     List<LimitViolationType> findLimitTypes(UUID resultUuid);
 

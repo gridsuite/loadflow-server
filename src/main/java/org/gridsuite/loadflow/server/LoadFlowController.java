@@ -171,22 +171,22 @@ public class LoadFlowController {
     }
 
     @GetMapping(value = "/results/{resultUuid}/limit-types", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get available limit types")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available limit types"))
+    @Operation(summary = "Get the list of limit types values")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of limit types values by result"))
     public ResponseEntity<List<LimitViolationType>> getLimitTypes(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getLimitTypes(resultUuid));
     }
 
     @GetMapping(value = "/results/{resultUuid}/branch-sides", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get available branch sides")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available branch sides"))
+    @Operation(summary = "Get the list of branch sides values")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of branch sides values by result"))
     public ResponseEntity<List<TwoSides>> getBranchSides(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getBranchSides(resultUuid));
     }
 
     @GetMapping(value = "/results/{resultUuid}/computation-status", produces = APPLICATION_JSON_VALUE)
-    @Operation(summary = "Get available computation status")
-    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of available computation status"))
+    @Operation(summary = "Get the list of computation status values")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of computation status values by result"))
     public ResponseEntity<List<Status>> getComputationStatus(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getComputationStatus(resultUuid));
     }

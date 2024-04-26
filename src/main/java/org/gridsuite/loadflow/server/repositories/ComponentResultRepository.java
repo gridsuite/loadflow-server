@@ -27,7 +27,7 @@ public interface ComponentResultRepository extends JpaRepository<ComponentResult
     List<ComponentResultEntity> findAll(Specification specification, Sort sort);
 
     @Query(value = "SELECT distinct l.status from ComponentResultEntity as l " +
-            "where l.loadFlowResult.resultUuid = :resultUuid " +
+            "where l.loadFlowResult.resultUuid = :resultUuid AND l.status != ''" +
             "order by l.status")
     List<LoadFlowResult.ComponentResult.Status> findComputingStatus(UUID resultUuid);
 }
