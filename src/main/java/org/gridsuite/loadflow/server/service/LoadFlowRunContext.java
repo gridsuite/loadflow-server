@@ -14,7 +14,7 @@ import lombok.Builder;
 import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.computation.service.AbstractComputationRunContext;
-import org.gridsuite.loadflow.server.computation.utils.ReportContext;
+import org.gridsuite.loadflow.server.computation.dto.ReportInfos;
 
 import java.util.UUID;
 
@@ -42,9 +42,9 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
     }
 
     @Builder
-    public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportContext reportContext, String userId,
+    public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportInfos reportInfos, String userId,
                               Float limitReduction, LoadFlowParametersValues parameters, UUID parametersUuid) {
-        super(networkUuid, variantId, receiver, reportContext, userId, provider, parameters);
+        super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters, null);
         this.limitReduction = limitReduction;
         this.parametersUuid = parametersUuid;
     }

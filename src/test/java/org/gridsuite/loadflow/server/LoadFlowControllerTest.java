@@ -379,6 +379,17 @@ public class LoadFlowControllerTest {
             });
             assertEquals(1, limitViolationInfos.size());
 
+            // get loadflow component result with tolerated filter
+            mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + buildFilterUrlWithTolerance(false)))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            resultAsString = mvcResult.getResponse().getContentAsString();
+            limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<>() {
+            });
+            assertEquals(1, limitViolationInfos.size());
+
         }
 
     }
@@ -518,6 +529,33 @@ public class LoadFlowControllerTest {
                     new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1500", ResourceFilter.Column.LIMIT),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200", ResourceFilter.Column.VALUE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
+            );
+            List<ResourceFilter> childFilters = List.of(
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ACTIVE_POWER_MISMATCH),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "slackBusId1", ResourceFilter.Column.ID),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ITERATION_COUNT)
+            );
+
+            String jsonFilters = new ObjectMapper().writeValueAsString(hasChildFilter ? childFilters : filters);
+
+            filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
+
+            return filterUrl;
+        } catch (Exception ignored) {
+        }
+        return filterUrl;
+    }
+
+    private String buildFilterUrlWithTolerance(boolean hasChildFilter) {
+        String filterUrl = "";
+        try {
+            List<ResourceFilter> filters = List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "NHV1_NHV2", ResourceFilter.Column.SUBJECT_ID),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.CONTAINS, new String[]{"limit1"}, ResourceFilter.Column.LIMIT_NAME),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1499.99999", ResourceFilter.Column.LIMIT),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200.00001", ResourceFilter.Column.VALUE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "66.66665", ResourceFilter.Column.OVERLOAD),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
             );
             List<ResourceFilter> childFilters = List.of(
