@@ -312,8 +312,7 @@ public class LoadFlowControllerTest {
                         content().contentType(MediaType.APPLICATION_JSON)
                 ).andReturn();
         List<LimitViolationType> limitTypes = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
-        assertEquals(1, limitTypes.size());
-        assertTrue(limitTypes.contains(LimitViolationType.CURRENT));
+        assertEquals(0, limitTypes.size());
 
         // get loadflow branch sides
         mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/branch-sides", RESULT_UUID))
