@@ -50,7 +50,7 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok(parametersService.createDefaultParameters());
     }
 
-    @PostMapping(value = "")
+    @PostMapping(value = "", params = "duplicateFrom", produces = MediaType.APPLICATION_JSON_VALUE)
     @Operation(summary = "Duplicate parameters")
     @ApiResponse(responseCode = "200", description = "parameters were duplicated")
     public ResponseEntity<UUID> duplicateParameters(
