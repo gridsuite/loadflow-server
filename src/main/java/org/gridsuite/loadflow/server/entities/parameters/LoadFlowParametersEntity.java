@@ -130,7 +130,7 @@ public class LoadFlowParametersEntity {
                     }
                 });
             }
-            updateProvider(loadFlowParametersInfos.provider());
+            provider = loadFlowParametersInfos.provider();
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
@@ -164,10 +164,6 @@ public class LoadFlowParametersEntity {
                 specificParameters.addAll(allSpecificValuesEntities);
             }
         }
-    }
-
-    public void updateProvider(String provider) {
-        this.provider = provider;
     }
 
     public LoadFlowParameters toLoadFlowParameters() {

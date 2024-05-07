@@ -99,6 +99,6 @@ public class LoadFlowParametersService {
     public void updateProvider(UUID parametersUuid, String provider) {
         loadFlowParametersRepository.findById(parametersUuid)
             .orElseThrow()
-            .updateProvider(provider != null ? provider : defaultLoadflowProvider);
+            .setProvider(provider != null ? provider : defaultLoadflowProvider);
     }
 }
