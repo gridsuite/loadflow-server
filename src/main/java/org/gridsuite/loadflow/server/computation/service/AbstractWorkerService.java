@@ -181,7 +181,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
             rootReportNodeRef.set(ReportNode.newRootReportNode().withMessageTemplate(rootReporterId, rootReporterId).build());
 
-            reportNode = rootReportNodeRef.get().newReportNode().withMessageTemplate(reportType, String.format("%s (%s)", reportType))
+            reportNode = rootReportNodeRef.get().newReportNode().withMessageTemplate(reportType, String.format("%s (${providerToUse})", reportType))
                     .withUntypedValue("providerToUse", provider)
                     .add();
 
