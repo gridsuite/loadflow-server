@@ -11,7 +11,10 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowProvider;
+import com.powsybl.security.LimitViolationType;
+import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
@@ -28,6 +31,8 @@ import org.gridsuite.loadflow.server.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.utils.FilterUtils;
 import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -44,6 +49,7 @@ import java.util.stream.Collectors;
  */
 @Service
 public class LoadFlowService extends AbstractComputationService<LoadFlowRunContext, LoadFlowResultService, LoadFlowStatus> {
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
     public static final String COMPUTATION_TYPE = "loadflow";
 
@@ -182,6 +188,21 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         }
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).toList();
+    }
+
+    public List<LimitViolationType> getLimitTypes(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return limitViolationRepository.findLimitTypes(resultUuid);
+    }
+
+    public List<TwoSides> getBranchSides(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return limitViolationRepository.findBranchSides(resultUuid);
+    }
+
+    public List<Status> getComputationStatus(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return resultService.findComputingStatus(resultUuid);
     }
 
     public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {

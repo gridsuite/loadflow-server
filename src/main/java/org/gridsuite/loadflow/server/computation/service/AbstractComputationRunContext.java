@@ -6,10 +6,11 @@
  */
 package org.gridsuite.loadflow.server.computation.service;
 
+import com.powsybl.commons.report.ReportNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
-import org.gridsuite.loadflow.server.computation.utils.ReportContext;
+import org.gridsuite.loadflow.server.computation.dto.ReportInfos;
 
 import java.util.UUID;
 
@@ -23,8 +24,10 @@ public abstract class AbstractComputationRunContext<P> {
     private final UUID networkUuid;
     private final String variantId;
     private final String receiver;
-    private final ReportContext reportContext;
+    private final ReportInfos reportInfos;
     private final String userId;
     @Setter protected String provider;
     @Setter protected P parameters;
+    @Setter
+    ReportNode reporter;
 }

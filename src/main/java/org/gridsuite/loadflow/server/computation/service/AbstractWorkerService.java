@@ -16,7 +16,6 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.messaging.Message;
 import org.springframework.web.server.ResponseStatusException;
@@ -42,7 +41,7 @@ import java.util.function.Consumer;
 public abstract class AbstractWorkerService<S, R extends AbstractComputationRunContext<P>, P, T extends AbstractComputationResultService<?>> {
     protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractWorkerService.class);
 
-    private final Lock lockRunAndCancel = new ReentrantLock();
+    protected final Lock lockRunAndCancel = new ReentrantLock();
     protected final ObjectMapper objectMapper;
     protected final NetworkStoreService networkStoreService;
     protected final ReportService reportService;
@@ -50,7 +49,7 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
     protected final NotificationService notificationService;
     protected final AbstractComputationObserver<S, P> observer;
     protected final Map<UUID, CompletableFuture<S>> futures = new ConcurrentHashMap<>();
-    private final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
+    protected final Map<UUID, CancelContext> cancelComputationRequests = new ConcurrentHashMap<>();
     protected final T resultService;
 
     protected AbstractWorkerService(NetworkStoreService networkStoreService,
@@ -90,8 +89,8 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         notificationService.publishStop(resultUuid, receiver, getComputationType());
         if (LOGGER.isInfoEnabled()) {
             LOGGER.info("{} (resultUuid='{}')",
-                    NotificationService.getCancelMessage(getComputationType()),
-                    resultUuid);
+                NotificationService.getCancelMessage(getComputationType()),
+                resultUuid);
         }
     }
 
@@ -113,7 +112,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     protected abstract AbstractResultContext<R> fromMessage(Message<String> message);
 
-    @Bean
     public Consumer<Message<String>> consumeRun() {
         return message -> {
             AbstractResultContext<R> resultContext = fromMessage(message);
@@ -122,29 +120,27 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
                 startTime.set(System.nanoTime());
 
                 Network network = getNetwork(resultContext.getRunContext().getNetworkUuid(),
-                        resultContext.getRunContext().getVariantId());
+                    resultContext.getRunContext().getVariantId());
                 S result = run(network, resultContext.getRunContext(), resultContext.getResultUuid());
 
                 long nanoTime = System.nanoTime();
                 LOGGER.info("Just run in {}s", TimeUnit.NANOSECONDS.toSeconds(nanoTime - startTime.getAndSet(nanoTime)));
 
-                if (result != null) {  // result available
-                    observer.observe("results.save", resultContext.getRunContext(), () -> saveResult(network, resultContext, result));
+                observer.observe("results.save", resultContext.getRunContext(), () -> saveResult(network, resultContext, result));
 
-                    long finalNanoTime = System.nanoTime();
-                    LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
+                long finalNanoTime = System.nanoTime();
+                LOGGER.info("Stored in {}s", TimeUnit.NANOSECONDS.toSeconds(finalNanoTime - startTime.getAndSet(finalNanoTime)));
 
-                    notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
-                    LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
-                }
+                notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver());
+                LOGGER.info("{} complete (resultUuid='{}')", getComputationType(), resultContext.getResultUuid());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             } catch (Exception e) {
                 if (!(e instanceof CancellationException)) {
                     LOGGER.error(NotificationService.getFailedMessage(getComputationType()), e);
                     notificationService.publishFail(
-                            resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
-                            e.getMessage(), resultContext.getRunContext().getUserId(), getComputationType());
+                        resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
+                        e.getMessage(), resultContext.getRunContext().getUserId(), getComputationType());
                     resultService.delete(resultContext.getResultUuid());
                 }
             } finally {
@@ -154,7 +150,6 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         };
     }
 
-    @Bean
     public Consumer<Message<String>> consumeCancel() {
         return message -> cancelAsync(CancelContext.fromMessage(message));
     }
@@ -163,10 +158,10 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
 
     /**
      * Do some extra task before running the computation, e.g. print log or init extra data for the run context
+     *
      * @param ignoredRunContext This context may be used for further computation in overriding classes
-     * @param ignoredReportNode This reporter may be used for further computation in overriding classes
      */
-    protected void preRun(R ignoredRunContext, ReportNode ignoredReportNode) {
+    protected void preRun(R ignoredRunContext) {
         LOGGER.info("Run {} computation ...", getComputationType());
     }
 
@@ -175,45 +170,46 @@ public abstract class AbstractWorkerService<S, R extends AbstractComputationRunC
         AtomicReference<ReportNode> rootReportNodeRef = new AtomicReference<>(ReportNode.NO_OP);
         ReportNode reportNode = ReportNode.NO_OP;
 
-        if (runContext.getReportContext().getReportId() != null) {
-            final String reportType = runContext.getReportContext().getReportType();
-            String rootReporterId = runContext.getReportContext().getReportName() == null ? reportType : runContext.getReportContext().getReportName() + "@" + reportType;
-
+        if (runContext.getReportInfos().reportUuid() != null) {
+            final String reportType = runContext.getReportInfos().computationType();
+            String rootReporterId = runContext.getReportInfos().reporterId() == null ? reportType : runContext.getReportInfos().reporterId() + "@" + reportType;
             rootReportNodeRef.set(ReportNode.newRootReportNode().withMessageTemplate(rootReporterId, rootReporterId).build());
 
             reportNode = rootReportNodeRef.get().newReportNode().withMessageTemplate(reportType, String.format("%s (${providerToUse})", reportType))
-                    .withUntypedValue("providerToUse", provider)
-                    .add();
+                .withUntypedValue("providerToUse", provider)
+                .add();
 
             // Delete any previous computation logs
             observer.observe("report.delete",
-                    runContext, () -> reportService.deleteReport(runContext.getReportContext().getReportId(), reportType));
+                runContext, () -> reportService.deleteReport(runContext.getReportInfos().reportUuid(), reportType));
         }
+        runContext.setReporter(reportNode);
 
-        preRun(runContext, reportNode);
+        preRun(runContext);
         CompletableFuture<S> future = runAsync(network, runContext, provider, reportNode, resultUuid);
         S result = future == null ? null : observer.observeRun("run", runContext, future::get);
-        postRun(runContext, reportNode);
+        postRun(runContext);
 
-        if (runContext.getReportContext().getReportId() != null) {
-            observer.observe("report.send", runContext, () -> reportService.sendReport(runContext.getReportContext().getReportId(), rootReportNodeRef.get()));
+        if (runContext.getReportInfos().reportUuid() != null) {
+            observer.observe("report.send", runContext, () -> reportService.sendReport(runContext.getReportInfos().reportUuid(), rootReportNodeRef.get()));
         }
         return result;
     }
 
     /**
      * Do some extra task after running the computation
+     *
      * @param ignoredRunContext This context may be used for extra task in overriding classes
-     * @param ignoredReportNode This reporter may be used for extra task in overriding classes
      */
-    protected void postRun(R ignoredRunContext, ReportNode ignoredReportNode) { }
+    protected void postRun(R ignoredRunContext) {
+    }
 
     protected CompletableFuture<S> runAsync(
-            Network network,
-            R runContext,
-            String provider,
-            ReportNode reportNode,
-            UUID resultUuid) {
+        Network network,
+        R runContext,
+        String provider,
+        ReportNode reportNode,
+        UUID resultUuid) {
         lockRunAndCancel.lock();
         try {
             if (resultUuid != null && cancelComputationRequests.get(resultUuid) != null) {

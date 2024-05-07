@@ -79,34 +79,47 @@ public final class SpecificationUtils {
      */
     public static Predicate filterToAtomicPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, Object value) {
         if (ResourceFilter.DataType.TEXT == filter.dataType()) {
-            String stringValue = (String) value;
-            String escapedFilterValue = EscapeCharacter.DEFAULT.escape(stringValue);
-            if (escapedFilterValue == null) {
-                throw new UnsupportedOperationException("Filter text values can not be null");
-            }
-            // this makes equals query work with enum values
-            Expression<String> stringExpression = expression.as(String.class);
-            return switch (filter.type()) {
-                case CONTAINS -> criteriaBuilder.like(criteriaBuilder.upper(stringExpression), "%" + escapedFilterValue.toUpperCase() + "%", EscapeCharacter.DEFAULT.getEscapeCharacter());
-                case STARTS_WITH -> criteriaBuilder.like(criteriaBuilder.upper(stringExpression), escapedFilterValue.toUpperCase() + "%", EscapeCharacter.DEFAULT.getEscapeCharacter());
-                case EQUALS, IN -> criteriaBuilder.equal(criteriaBuilder.upper(stringExpression), stringValue.toUpperCase());
-                default ->
-                        throw new UnsupportedOperationException("This type of filter is not supported for text data type");
-            };
+            return createTextPredicate(criteriaBuilder, expression, filter, (String) value);
         }
-
         if (ResourceFilter.DataType.NUMBER == filter.dataType()) {
-            Double valueDouble = Double.valueOf((String) value);
-            return switch (filter.type()) {
-                case NOT_EQUAL -> criteriaBuilder.notEqual(expression, valueDouble);
-                case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo((Expression<Double>) expression, valueDouble);
-                case GREATER_THAN_OR_EQUAL ->
-                        criteriaBuilder.greaterThanOrEqualTo((Expression<Double>) expression, valueDouble);
-                default ->
-                        throw new UnsupportedOperationException("This type of filter is not supported for number data type");
-            };
+            return createNumberPredicate(criteriaBuilder, expression, filter, (String) value);
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
+    }
 
+    private static Predicate createTextPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
+        String escapedFilterValue = EscapeCharacter.DEFAULT.escape(value);
+        if (escapedFilterValue == null) {
+            throw new UnsupportedOperationException("Filter text values can not be null");
+        }
+        // this makes equals query work with enum values
+        Expression<String> stringExpression = expression.as(String.class);
+
+        return switch (filter.type()) {
+            case CONTAINS ->
+                    criteriaBuilder.like(criteriaBuilder.upper(stringExpression), "%" + value.toUpperCase() + "%", EscapeCharacter.DEFAULT.getEscapeCharacter());
+            case STARTS_WITH ->
+                    criteriaBuilder.like(criteriaBuilder.upper(stringExpression), value.toUpperCase() + "%", EscapeCharacter.DEFAULT.getEscapeCharacter());
+            case EQUALS, IN -> criteriaBuilder.equal(criteriaBuilder.upper(stringExpression), value.toUpperCase());
+            default -> throw new UnsupportedOperationException("Unsupported filter type for text data type");
+        };
+    }
+
+    private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
+        final double tolerance = 0.00001; // tolerance for comparison
+        Double valueDouble = Double.valueOf(value);
+        Expression<Double> doubleExpression = expression.as(Double.class);
+
+        return switch (filter.type()) {
+            case NOT_EQUAL -> {
+                Double upperBound = valueDouble + tolerance;
+                Double lowerBound = valueDouble - tolerance;
+                yield criteriaBuilder.or(criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound), criteriaBuilder.lessThanOrEqualTo(doubleExpression, lowerBound));
+            }
+            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble + tolerance);
+            case GREATER_THAN_OR_EQUAL ->
+                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, valueDouble - tolerance);
+            default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
+        };
     }
 }
