@@ -44,7 +44,7 @@
     <properties>
         <jib.from.image>powsybl/java-dynawo:2.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <powsybl-ws-dependencies.version>2.10.0-SNAPSHOT</powsybl-ws-dependencies.version>
+        <gridsuite-dependencies.version>29-SNAPSHOT</gridsuite-dependencies.version>
         <gridsuite-filter.version>1.0.1</gridsuite-filter.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
@@ -105,9 +105,9 @@
 
             <!-- imports -->
             <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-ws-dependencies</artifactId>
-                <version>${powsybl-ws-dependencies.version}</version>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-dependencies</artifactId>
+                <version>${gridsuite-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
