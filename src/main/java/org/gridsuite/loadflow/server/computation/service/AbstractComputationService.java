@@ -8,8 +8,6 @@ package org.gridsuite.loadflow.server.computation.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,9 +19,7 @@ import java.util.UUID;
  * @param <T> run service specific to a computation
  * @param <S> enum status specific to a computation
  */
-public abstract class AbstractComputationService<R extends AbstractComputationRunContext, T extends AbstractComputationResultService<S>, S> {
-
-    protected static final Logger LOGGER = LoggerFactory.getLogger(AbstractComputationService.class);
+public abstract class AbstractComputationService<R extends AbstractComputationRunContext<?>, T extends AbstractComputationResultService<S>, S> {
 
     protected ObjectMapper objectMapper;
     protected NotificationService notificationService;

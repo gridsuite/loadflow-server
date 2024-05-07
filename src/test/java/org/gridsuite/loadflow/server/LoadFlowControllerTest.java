@@ -283,6 +283,59 @@ public class LoadFlowControllerTest {
     }
 
     @Test
+    public void testGetEnumValues() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
+                            any(LoadFlowParameters.class), any(ReportNode.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+        }
+
+        // get loadflow limit types
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/limit-types", RESULT_UUID))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        List<LimitViolationType> limitTypes = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(0, limitTypes.size());
+
+        // get loadflow branch sides
+        mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/branch-sides", RESULT_UUID))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        List<TwoSides> sides = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(1, sides.size());
+        assertTrue(sides.contains(TwoSides.ONE));
+
+        // get loadflow computing status
+        mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/computation-status", RESULT_UUID))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
+        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
+        assertEquals(1, status.size());
+        assertTrue(status.contains(LoadFlowResult.ComponentResult.Status.CONVERGED));
+    }
+
+    @Test
     public void testGetLimitViolationsWithFilters() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
@@ -322,6 +375,17 @@ public class LoadFlowControllerTest {
                     ).andReturn();
             String resultAsString = mvcResult.getResponse().getContentAsString();
             List<LimitViolationInfos> limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<>() {
+            });
+            assertEquals(1, limitViolationInfos.size());
+
+            // get loadflow component result with tolerated filter
+            mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations?" + buildFilterUrlWithTolerance(false)))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            resultAsString = mvcResult.getResponse().getContentAsString();
+            limitViolationInfos = mapper.readValue(resultAsString, new TypeReference<>() {
             });
             assertEquals(1, limitViolationInfos.size());
 
@@ -464,6 +528,33 @@ public class LoadFlowControllerTest {
                     new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1500", ResourceFilter.Column.LIMIT),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200", ResourceFilter.Column.VALUE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
+            );
+            List<ResourceFilter> childFilters = List.of(
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ACTIVE_POWER_MISMATCH),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "slackBusId1", ResourceFilter.Column.ID),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ITERATION_COUNT)
+            );
+
+            String jsonFilters = new ObjectMapper().writeValueAsString(hasChildFilter ? childFilters : filters);
+
+            filterUrl = "filters=" + URLEncoder.encode(jsonFilters, StandardCharsets.UTF_8);
+
+            return filterUrl;
+        } catch (Exception ignored) {
+        }
+        return filterUrl;
+    }
+
+    private String buildFilterUrlWithTolerance(boolean hasChildFilter) {
+        String filterUrl = "";
+        try {
+            List<ResourceFilter> filters = List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "NHV1_NHV2", ResourceFilter.Column.SUBJECT_ID),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
+                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.CONTAINS, new String[]{"limit1"}, ResourceFilter.Column.LIMIT_NAME),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1499.99999", ResourceFilter.Column.LIMIT),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200.00001", ResourceFilter.Column.VALUE),
+                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "66.66665", ResourceFilter.Column.OVERLOAD),
                     new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
             );
             List<ResourceFilter> childFilters = List.of(
@@ -662,53 +753,6 @@ public class LoadFlowControllerTest {
         assertEquals(Set.of("OpenLoadFlow", "DynaFlow"), lfParams.keySet());
         assertTrue(lfParams.values().stream().noneMatch(CollectionUtils::isEmpty));
 
-    }
-
-    @Test
-    public void geLimitTypesTest() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/limit-types"))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LimitViolationType> limitTypes = mapper.readValue(resultAsString, new TypeReference<>() {
-        });
-        assertEquals(2, limitTypes.size());
-        assertTrue(limitTypes.contains(LimitViolationType.HIGH_VOLTAGE));
-        assertTrue(limitTypes.contains(LimitViolationType.LOW_VOLTAGE));
-        assertFalse(limitTypes.contains(LimitViolationType.CURRENT));
-    }
-
-    @Test
-    public void geBranchSidesTest() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/branch-sides"))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<TwoSides> sides = mapper.readValue(resultAsString, new TypeReference<>() {
-        });
-        assertEquals(2, sides.size());
-        assertTrue(sides.contains(TwoSides.ONE));
-        assertTrue(sides.contains(TwoSides.TWO));
-    }
-
-    @Test
-    public void getComputationStatus() throws Exception {
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/computation-status"))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(resultAsString, new TypeReference<>() {
-        });
-        assertEquals(status, Arrays.asList(LoadFlowResult.ComponentResult.Status.values()));
     }
 
     private static final class LoadFlowResultMock {
