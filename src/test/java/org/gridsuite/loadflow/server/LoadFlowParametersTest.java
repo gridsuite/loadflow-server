@@ -269,7 +269,7 @@ class LoadFlowParametersTest {
         return LoadFlowParametersInfos.builder()
             .provider(PROVIDER)
             .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(Map.of())
+            .specificParametersPerProvider(Map.of("OpenLoadFlow", Map.of("writeReferenceTerminals", "false")))
             .build();
     }
 
