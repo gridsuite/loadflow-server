@@ -44,8 +44,7 @@
     <properties>
         <jib.from.image>powsybl/java-dynawo:2.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <powsybl-ws-dependencies.version>2.9.0</powsybl-ws-dependencies.version>
-        <gridsuite-filter.version>1.0.7</gridsuite-filter.version>
+        <gridsuite-dependencies.version>29</gridsuite-dependencies.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -91,11 +90,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <dependency>
-                <groupId>org.gridsuite</groupId>
-                <artifactId>gridsuite-filter</artifactId>
-                <version>${gridsuite-filter.version}</version>
-            </dependency>
             <!-- overrides of imports -->
             <dependency>
                 <groupId>org.antlr</groupId>
@@ -105,9 +99,9 @@
 
             <!-- imports -->
             <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-ws-dependencies</artifactId>
-                <version>${powsybl-ws-dependencies.version}</version>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-dependencies</artifactId>
+                <version>${gridsuite-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
