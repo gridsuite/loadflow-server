@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -66,7 +67,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, UUID resultUuid) {
+    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, ReportNode reportNode) {
         LoadFlowParameters params = runContext.buildParameters();
         LoadFlow.Runner runner = LoadFlow.find(provider);
         return runner.runAsync(
@@ -74,7 +75,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
                 executionService.getComputationManager(),
                 params,
-                runContext.getReporter());
+                reportNode);
     }
 
     @Override

@@ -6,7 +6,7 @@
  */
 package org.gridsuite.loadflow.server.computation.service;
 
-import com.powsybl.commons.reporter.Reporter;
+import com.powsybl.commons.report.ReportNode;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -28,5 +28,6 @@ public abstract class AbstractComputationRunContext<P> {
     private final String userId;
     @Setter protected String provider;
     @Setter protected P parameters;
-    @Setter Reporter reporter;
+    @Setter
+    ReportNode reporter;
 }

@@ -9,8 +9,8 @@ package org.gridsuite.loadflow.server.computation.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.PowsyblException;
-import com.powsybl.commons.reporter.Reporter;
-import com.powsybl.commons.reporter.ReporterModelJsonModule;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.commons.report.ReportNodeJsonModule;
 import lombok.Setter;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
@@ -47,15 +47,15 @@ public class ReportService {
         this.reportServerBaseUri = reportServerBaseUri;
         this.objectMapper = objectMapper;
         this.restTemplate = restTemplate;
-        ReporterModelJsonModule reporterModelJsonModule = new ReporterModelJsonModule();
-        objectMapper.registerModule(reporterModelJsonModule);
+        ReportNodeJsonModule reportNodeJsonModule = new ReportNodeJsonModule();
+        objectMapper.registerModule(reportNodeJsonModule);
     }
 
     private String getReportServerURI() {
         return this.reportServerBaseUri + DELIMITER + REPORT_API_VERSION + DELIMITER + "reports" + DELIMITER;
     }
 
-    public void sendReport(UUID reportUuid, Reporter reporter) {
+    public void sendReport(UUID reportUuid, ReportNode reportNode) {
         Objects.requireNonNull(reportUuid);
 
         var path = UriComponentsBuilder.fromPath("{reportUuid}")
@@ -65,7 +65,7 @@ public class ReportService {
         headers.setContentType(MediaType.APPLICATION_JSON);
 
         try {
-            restTemplate.exchange(getReportServerURI() + path, HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reporter), headers), Reporter.class);
+            restTemplate.exchange(getReportServerURI() + path, HttpMethod.PUT, new HttpEntity<>(objectMapper.writeValueAsString(reportNode), headers), ReportNode.class);
         } catch (JsonProcessingException error) {
             throw new PowsyblException("Error sending report", error);
         }
