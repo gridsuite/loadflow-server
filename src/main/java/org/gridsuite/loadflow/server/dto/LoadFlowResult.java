@@ -11,7 +11,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,7 +26,7 @@ public class LoadFlowResult {
 
     private UUID resultUuid;
 
-    private ZonedDateTime writeTimeStamp;
+    private OffsetDateTime writeTimeStamp;
 
     private List<ComponentResult> componentResults;
 }

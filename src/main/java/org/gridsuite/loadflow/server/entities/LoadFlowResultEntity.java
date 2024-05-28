@@ -9,7 +9,7 @@ package org.gridsuite.loadflow.server.entities;
 import lombok.*;
 
 import jakarta.persistence.*;
-import java.time.ZonedDateTime;
+import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,8 +27,8 @@ public class LoadFlowResultEntity {
     @Id
     private UUID resultUuid;
 
-    @Column
-    private ZonedDateTime writeTimeStamp;
+    @Column(columnDefinition = "timestamptz")
+    private OffsetDateTime writeTimeStamp;
 
     @Setter
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
