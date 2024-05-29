@@ -47,7 +47,14 @@ class LoadFlowParametersTest {
 
     private static final String PROVIDER = "LFProvider";
 
-    private static final Map<String, Map<String, String>> DEFAULT_PARAMETER = Map.of("OpenLoadFlow", Map.of("writeReferenceTerminals", "false"));
+    private static final Map<String, Map<String, String>> DEFAULT_PARAMETER = Map.of(
+            "OpenLoadFlow", Map.of(
+                    "writeReferenceTerminals", "false"
+            ),
+            "DynaFlow", Map.of(
+                    "mergeLoads", "false"
+            )
+    );
 
     @Autowired
     MockMvc mockMvc;
