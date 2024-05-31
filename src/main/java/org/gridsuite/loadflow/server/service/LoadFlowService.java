@@ -89,13 +89,13 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
         //FIXME: We need to override powsybl default values as up to now we can't override those values through PlatformConfig. To be removed when it's fixed.
-        powsyblSpecificLFParameters.put("OpenLoadFlow", changeDefaultValue(powsyblSpecificLFParameters, "OpenLoadFlow", "writeReferenceTerminals", false));
-        powsyblSpecificLFParameters.put("DynaFlow", changeDefaultValue(powsyblSpecificLFParameters, "DynaFlow", "mergeLoads", false));
+        changeDefaultValue(powsyblSpecificLFParameters, "OpenLoadFlow", "writeReferenceTerminals", false);
+        changeDefaultValue(powsyblSpecificLFParameters, "DynaFlow", "mergeLoads", false);
 
         return powsyblSpecificLFParameters;
     }
 
-    public static List<Parameter> changeDefaultValue(Map<String, List<Parameter>> specificParameters, String providerName, String parameterName, Object defaultValue) {
+    public static void changeDefaultValue(Map<String, List<Parameter>> specificParameters, String providerName, String parameterName, Object defaultValue) {
         List<Parameter> providerParams = new ArrayList<>(specificParameters.get(providerName));
         providerParams.stream().filter(parameter -> parameterName.equals(parameter.getName())).findAny().ifPresent(parameterToOverride ->
         {
@@ -108,7 +108,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                     parameterToOverride.getScope()
             ));
         });
-        return providerParams;
+        specificParameters.put(providerName, providerParams);
     }
 
     @Override
