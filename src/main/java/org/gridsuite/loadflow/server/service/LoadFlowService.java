@@ -97,6 +97,9 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public static void changeDefaultValue(Map<String, List<Parameter>> specificParameters, String providerName, String parameterName, Object defaultValue) {
+        if (specificParameters.get(providerName) == null) {
+            return;
+        }
         List<Parameter> providerParams = new ArrayList<>(specificParameters.get(providerName));
         providerParams.stream().filter(parameter -> parameterName.equals(parameter.getName())).findAny().ifPresent(parameterToOverride -> {
             providerParams.remove(parameterToOverride);
