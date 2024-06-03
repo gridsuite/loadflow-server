@@ -11,7 +11,7 @@ import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.NonNull;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.computation.service.AbstractComputationObserver;
+import com.powsybl.ws.commons.computation.service.AbstractComputationObserver;
 import org.springframework.stereotype.Service;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;

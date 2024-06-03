@@ -8,10 +8,10 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.gridsuite.loadflow.server.computation.utils.MessageUtils;
+import com.powsybl.ws.commons.computation.utils.MessageUtils;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.computation.service.AbstractResultContext;
-import org.gridsuite.loadflow.server.computation.dto.ReportInfos;
+import com.powsybl.ws.commons.computation.service.AbstractResultContext;
+import com.powsybl.ws.commons.computation.dto.ReportInfos;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
@@ -20,7 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
+import static com.powsybl.ws.commons.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
     public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
@@ -69,8 +69,8 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
     protected Map<String, String> getSpecificMsgHeaders() {
         return Map.of(
                 HEADER_LIMIT_REDUCTION,
-                runContext.getLimitReduction() != null ?
-                        runContext.getLimitReduction().toString() :
+                getRunContext().getLimitReduction() != null ?
+                        getRunContext().getLimitReduction().toString() :
                         null);
     }
 }

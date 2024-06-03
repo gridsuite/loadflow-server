@@ -7,7 +7,6 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -20,7 +19,7 @@ import com.powsybl.security.Security;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
-import org.gridsuite.loadflow.server.computation.service.*;
+import com.powsybl.ws.commons.computation.service.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
@@ -57,25 +56,25 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(Network network, LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
-        LoadFlowResult result = super.run(network, runContext, resultUuid);
+    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
+        LoadFlowResult result = super.run(runContext, resultUuid);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
-            observer.observe("network.save", runContext, () -> networkStoreService.flush(network));
+            observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
         }
         return result;
     }
 
     @Override
-    protected CompletableFuture<LoadFlowResult> getCompletableFuture(Network network, LoadFlowRunContext runContext, String provider, ReportNode reportNode) {
+    protected CompletableFuture<LoadFlowResult> getCompletableFuture(LoadFlowRunContext runContext, String provider, UUID resultUuid) {
         LoadFlowParameters params = runContext.buildParameters();
         LoadFlow.Runner runner = LoadFlow.find(provider);
         return runner.runAsync(
-                network,
+                runContext.getNetwork(),
                 runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
                 executionService.getComputationManager(),
                 params,
-                reportNode);
+                runContext.getReportNode());
     }
 
     @Override
