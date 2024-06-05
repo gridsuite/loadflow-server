@@ -88,7 +88,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
 
-        // FIXME: We need to override powsybl default values in the loadflow-server as up to now we can't override those values through PlatformConfig for the specific parameters.
+        // FIXME: We need to override Powsybl default values in the loadflow-server as up to now we can't override those values through PlatformConfig for the specific parameters.
         //  To be removed when it's fixed.
         changeDefaultValue(powsyblSpecificLFParameters, "OpenLoadFlow", "writeReferenceTerminals", false);
         changeDefaultValue(powsyblSpecificLFParameters, "DynaFlow", "mergeLoads", false);
