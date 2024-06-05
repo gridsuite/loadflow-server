@@ -47,15 +47,6 @@ class LoadFlowParametersTest {
 
     private static final String PROVIDER = "LFProvider";
 
-    private static final Map<String, Map<String, String>> DEFAULT_PARAMETER = Map.of(
-            "OpenLoadFlow", Map.of(
-                    "writeReferenceTerminals", "false"
-            ),
-            "DynaFlow", Map.of(
-                    "mergeLoads", "false"
-            )
-    );
-
     @Autowired
     MockMvc mockMvc;
 
@@ -95,7 +86,7 @@ class LoadFlowParametersTest {
         LoadFlowParametersInfos defaultParameters = LoadFlowParametersInfos.builder()
             .provider(defaultLoadflowProvider)
             .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(DEFAULT_PARAMETER)
+            .specificParametersPerProvider(Map.of())
             .build();
 
         mockMvc.perform(post(URI_PARAMETERS_BASE + "/default"))
@@ -278,7 +269,7 @@ class LoadFlowParametersTest {
         return LoadFlowParametersInfos.builder()
             .provider(PROVIDER)
             .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(DEFAULT_PARAMETER)
+            .specificParametersPerProvider(Map.of())
             .build();
     }
 
@@ -288,7 +279,7 @@ class LoadFlowParametersTest {
         return LoadFlowParametersInfos.builder()
             .provider(PROVIDER)
             .commonParameters(loadFlowParameters)
-            .specificParametersPerProvider(DEFAULT_PARAMETER)
+            .specificParametersPerProvider(Map.of())
             .build();
     }
 }
