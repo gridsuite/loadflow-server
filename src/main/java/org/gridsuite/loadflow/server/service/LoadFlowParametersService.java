@@ -29,8 +29,6 @@ public class LoadFlowParametersService {
 
     private final String defaultLoadflowProvider;
 
-    public static final Map<String, Map<String, String>> OPEN_LOADFLOW_PARAMS_DEFAULT_VALUES_OVERRIDE = Map.of("OpenLoadFlow", Map.of("writeReferenceTerminals", "false"));
-
     private final LoadFlowParametersRepository loadFlowParametersRepository;
 
     public LoadFlowParametersService(LoadFlowParametersRepository loadFlowParametersRepository,
@@ -93,7 +91,7 @@ public class LoadFlowParametersService {
         return LoadFlowParametersInfos.builder()
             .provider(provider)
             .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(OPEN_LOADFLOW_PARAMS_DEFAULT_VALUES_OVERRIDE)
+            .specificParametersPerProvider(Map.of())
             .build();
     }
 
