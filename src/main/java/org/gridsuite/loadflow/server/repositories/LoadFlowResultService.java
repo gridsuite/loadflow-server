@@ -20,8 +20,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.ZoneOffset;
-import java.time.ZonedDateTime;
+import java.time.Instant;
 import java.util.*;
 
 /**
@@ -46,7 +45,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         List<LimitViolationEntity> limitViolations = limitViolationInfos.stream()
                 .map(limitViolationInfo -> toLimitViolationsEntity(resultUuid, limitViolationInfo))
                 .toList();
-        return new LoadFlowResultEntity(resultUuid, ZonedDateTime.now(ZoneOffset.UTC), componentResults, limitViolations);
+        return new LoadFlowResultEntity(resultUuid, Instant.now(), componentResults, limitViolations);
     }
 
     private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {

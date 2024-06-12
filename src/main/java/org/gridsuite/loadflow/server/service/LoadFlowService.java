@@ -79,7 +79,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
-        return LoadFlowProvider.findAll().stream()
+        Map<String, List<Parameter>> powsyblSpecificLFParameters = LoadFlowProvider.findAll().stream()
                 .filter(provider -> providerName == null || provider.getName().equals(providerName))
                 .map(provider -> {
                     List<Parameter> params = provider.getSpecificParameters().stream()
@@ -87,6 +87,31 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                             .toList();
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
+
+        // FIXME: We need to override Powsybl default values in the loadflow-server as up to now we can't override those values through PlatformConfig for the specific parameters.
+        //  To be removed when it's fixed.
+        changeDefaultValue(powsyblSpecificLFParameters, "OpenLoadFlow", "writeReferenceTerminals", false);
+        changeDefaultValue(powsyblSpecificLFParameters, "DynaFlow", "mergeLoads", false);
+
+        return powsyblSpecificLFParameters;
+    }
+
+    public static void changeDefaultValue(Map<String, List<Parameter>> specificParameters, String providerName, String parameterName, Object defaultValue) {
+        if (specificParameters.get(providerName) == null) {
+            return;
+        }
+        List<Parameter> providerParams = new ArrayList<>(specificParameters.get(providerName));
+        providerParams.stream().filter(parameter -> parameterName.equals(parameter.getName())).findAny().ifPresent(parameterToOverride -> {
+            providerParams.remove(parameterToOverride);
+            providerParams.add(new Parameter(parameterToOverride.getName(),
+                    parameterToOverride.getType(),
+                    parameterToOverride.getDescription(),
+                    defaultValue,
+                    parameterToOverride.getPossibleValues(),
+                    parameterToOverride.getScope()
+            ));
+        });
+        specificParameters.put(providerName, providerParams);
     }
 
     @Override
