@@ -36,10 +36,10 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
                 .filter(p -> p.getName().equals(provider))
                 .findFirst().orElseThrow(() -> new PowsyblException("LoadFLow provider not found " + provider));
-        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(PlatformConfig.defaultConfig())
+        Extension<LoadFlowParameters> specificParametersExtension = lfProvider.loadSpecificParameters(PlatformConfig.defaultConfig())
                 .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
-        lfProvider.updateSpecificParameters(extension, parameters.specificParameters());
-        params.addExtension((Class) extension.getClass(), extension);
+        lfProvider.updateSpecificParameters(specificParametersExtension, parameters.specificParameters());
+        params.addExtension((Class) specificParametersExtension.getClass(), specificParametersExtension);
         return params;
     }
 
