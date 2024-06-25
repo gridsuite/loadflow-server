@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.powsybl.commons.PowsyblException;
+import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.extensions.Extension;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
@@ -35,9 +36,12 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
                 .filter(p -> p.getName().equals(getProvider()))
                 .findFirst().orElseThrow(() -> new PowsyblException("LoadFLow provider not found " + getProvider()));
-        Extension<LoadFlowParameters> extension = lfProvider.loadSpecificParameters(getParameters().specificParameters())
-                .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + getProvider()));
-        params.addExtension((Class) extension.getClass(), extension);
+
+        Extension<LoadFlowParameters> specificParametersExtension = lfProvider.loadSpecificParameters(PlatformConfig.defaultConfig())
+                .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
+        params.addExtension((Class) specificParametersExtension.getClass(), specificParametersExtension);
+        lfProvider.updateSpecificParameters(specificParametersExtension, parameters.specificParameters());
+
         return params;
     }
 
