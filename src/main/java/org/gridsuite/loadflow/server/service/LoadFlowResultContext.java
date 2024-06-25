@@ -45,10 +45,11 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
-        UUID reportUuid = headers.containsKey(REPORT_UUID_HEADER) ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
+        UUID reportUuid = headers.get(REPORT_UUID_HEADER) != null ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
         String reporterId = headers.containsKey(REPORTER_ID_HEADER) ? (String) headers.get(REPORTER_ID_HEADER) : null;
         String reportType = headers.containsKey(REPORT_TYPE_HEADER) ? (String) headers.get(REPORT_TYPE_HEADER) : null;
-        Float limitReduction = headers.containsKey(HEADER_LIMIT_REDUCTION) ? Float.parseFloat((String) headers.get(HEADER_LIMIT_REDUCTION)) : null;
+        String limitReductionStr = (String) headers.get(HEADER_LIMIT_REDUCTION);
+        Float limitReduction = limitReductionStr != null ? Float.parseFloat(limitReductionStr) : null;
 
         LoadFlowRunContext runContext =
                 LoadFlowRunContext.builder()
