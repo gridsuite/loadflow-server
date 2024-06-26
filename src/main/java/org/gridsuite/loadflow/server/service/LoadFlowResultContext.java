@@ -16,6 +16,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.UncheckedIOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
@@ -68,12 +69,12 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
 
     @Override
     protected Map<String, String> getSpecificMsgHeaders(ObjectMapper ignoredObjectMapper) {
+        Map<String, String> specificMsgHeaders = new HashMap<>();
         if (getRunContext().getLimitReduction() != null) {
-            return Map.of(
+            specificMsgHeaders.put(
                     HEADER_LIMIT_REDUCTION,
                     getRunContext().getLimitReduction().toString());
-        } else {
-            return super.getSpecificMsgHeaders(ignoredObjectMapper);
         }
+        return specificMsgHeaders;
     }
 }
