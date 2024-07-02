@@ -14,8 +14,8 @@ import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.computation.service.AbstractComputationRunContext;
-import org.gridsuite.loadflow.server.computation.dto.ReportInfos;
+import com.powsybl.ws.commons.computation.service.AbstractComputationRunContext;
+import com.powsybl.ws.commons.computation.dto.ReportInfos;
 
 import java.util.UUID;
 
@@ -28,25 +28,27 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
     private final UUID parametersUuid;
 
     public LoadFlowParameters buildParameters() {
-        LoadFlowParameters params = parameters == null || parameters.specificParameters() == null ?
-                LoadFlowParameters.load() : parameters.commonParameters();
-        if (parameters == null || parameters.specificParameters() == null || parameters.specificParameters().isEmpty()) {
+        LoadFlowParameters params = getParameters() == null || getParameters().specificParameters() == null ?
+                LoadFlowParameters.load() : getParameters().commonParameters();
+        if (getParameters() == null || getParameters().specificParameters() == null || getParameters().specificParameters().isEmpty()) {
             return params; // no specific LF params
         }
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
-                .filter(p -> p.getName().equals(provider))
-                .findFirst().orElseThrow(() -> new PowsyblException("LoadFLow provider not found " + provider));
+                .filter(p -> p.getName().equals(getProvider()))
+                .findFirst().orElseThrow(() -> new PowsyblException("LoadFLow provider not found " + getProvider()));
+
         Extension<LoadFlowParameters> specificParametersExtension = lfProvider.loadSpecificParameters(PlatformConfig.defaultConfig())
-                .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + provider));
+                .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + getProvider()));
         params.addExtension((Class) specificParametersExtension.getClass(), specificParametersExtension);
-        lfProvider.updateSpecificParameters(specificParametersExtension, parameters.specificParameters());
+        lfProvider.updateSpecificParameters(specificParametersExtension, getParameters().specificParameters());
+
         return params;
     }
 
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportInfos reportInfos, String userId,
                               Float limitReduction, LoadFlowParametersValues parameters, UUID parametersUuid) {
-        super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters, null);
+        super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters);
         this.limitReduction = limitReduction;
         this.parametersUuid = parametersUuid;
     }

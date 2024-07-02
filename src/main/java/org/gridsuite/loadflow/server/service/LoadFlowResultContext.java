@@ -8,19 +8,20 @@ package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.gridsuite.loadflow.server.computation.utils.MessageUtils;
+import com.powsybl.ws.commons.computation.utils.MessageUtils;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.computation.service.AbstractResultContext;
-import org.gridsuite.loadflow.server.computation.dto.ReportInfos;
+import com.powsybl.ws.commons.computation.service.AbstractResultContext;
+import com.powsybl.ws.commons.computation.dto.ReportInfos;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.UncheckedIOException;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.gridsuite.loadflow.server.computation.service.NotificationService.*;
+import static com.powsybl.ws.commons.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
     public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
@@ -45,10 +46,11 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         } catch (JsonProcessingException e) {
             throw new UncheckedIOException(e);
         }
-        UUID reportUuid = headers.containsKey(REPORT_UUID_HEADER) ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
+        UUID reportUuid = headers.get(REPORT_UUID_HEADER) != null ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
         String reporterId = headers.containsKey(REPORTER_ID_HEADER) ? (String) headers.get(REPORTER_ID_HEADER) : null;
         String reportType = headers.containsKey(REPORT_TYPE_HEADER) ? (String) headers.get(REPORT_TYPE_HEADER) : null;
-        Float limitReduction = headers.containsKey(HEADER_LIMIT_REDUCTION) ? Float.parseFloat((String) headers.get(HEADER_LIMIT_REDUCTION)) : null;
+        String limitReductionStr = (String) headers.get(HEADER_LIMIT_REDUCTION);
+        Float limitReduction = limitReductionStr != null ? Float.parseFloat(limitReductionStr) : null;
 
         LoadFlowRunContext runContext =
                 LoadFlowRunContext.builder()
@@ -66,11 +68,13 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
     }
 
     @Override
-    protected Map<String, String> getSpecificMsgHeaders() {
-        return Map.of(
-                HEADER_LIMIT_REDUCTION,
-                runContext.getLimitReduction() != null ?
-                        runContext.getLimitReduction().toString() :
-                        null);
+    protected Map<String, String> getSpecificMsgHeaders(ObjectMapper ignoredObjectMapper) {
+        Map<String, String> specificMsgHeaders = new HashMap<>();
+        if (getRunContext().getLimitReduction() != null) {
+            specificMsgHeaders.put(
+                    HEADER_LIMIT_REDUCTION,
+                    getRunContext().getLimitReduction().toString());
+        }
+        return specificMsgHeaders;
     }
 }

@@ -8,7 +8,7 @@ package org.gridsuite.loadflow.server.repositories;
 
 import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
-import org.gridsuite.loadflow.server.computation.service.AbstractComputationResultService;
+import com.powsybl.ws.commons.computation.service.AbstractComputationResultService;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
