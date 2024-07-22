@@ -44,8 +44,7 @@
     <properties>
         <jib.from.image>powsybl/java-dynawo:2.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>30</gridsuite-dependencies.version>
-        <powsybl-ws-commons.version>1.11.0</powsybl-ws-commons.version><!-- should be removed once gridsuite-dependencies is upgraded-->
+        <gridsuite-dependencies.version>31</gridsuite-dependencies.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -119,11 +118,9 @@
         </dependency>
 
         <!-- Compilation dependencies -->
-        <!-- FIXME: gridsuite-filter modules' version is overloaded in the dependencies section. The overloads and this property below have to be removed at next gridsuite-dependencies.version upgrade -->
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-filter</artifactId>
-            <version>1.0.10</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
@@ -140,7 +137,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
-            <version>${powsybl-ws-commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
