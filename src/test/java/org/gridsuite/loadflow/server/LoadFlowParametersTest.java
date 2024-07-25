@@ -8,7 +8,6 @@ package org.gridsuite.loadflow.server;
 
 import static org.gridsuite.loadflow.utils.assertions.Assertions.*;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -54,6 +53,7 @@ class LoadFlowParametersTest {
     private static final String URI_PARAMETERS_GET_PUT = URI_PARAMETERS_BASE + "/";
 
     private static final String PROVIDER = "LFProvider";
+    private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
 
     @Autowired
     MockMvc mockMvc;
@@ -322,7 +322,6 @@ class LoadFlowParametersTest {
             .provider(PROVIDER)
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
-            .limitReductionsValues(Collections.emptyList())
             .build();
     }
 

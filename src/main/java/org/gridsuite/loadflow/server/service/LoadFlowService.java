@@ -119,6 +119,9 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     @Override
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
+        //test maissa
+        params.setLimitReductions(parametersService.getDefaultParametersValues("OpenLoadFlow", limitReductionService).getLimitReductions());
+        params.setLimitReductionsValues(parametersService.getDefaultParametersValues("OpenLoadFlow", limitReductionService).getLimitReductionsValues());
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
         loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());

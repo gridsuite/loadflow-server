@@ -136,7 +136,7 @@ public class LoadFlowParametersEntity {
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
-        //add limit reduction for openLoadFlow provider
+        //add limit reduction for only openLoadFlow provider
         if (loadFlowParametersInfos.getLimitReductionsValues() != null) {
             limitReductions = loadFlowParametersInfos.getLimitReductionsValues().stream().map(LimitReductionEntity::new).toList();
         }
@@ -201,7 +201,9 @@ public class LoadFlowParametersEntity {
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
                                 Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                         LoadFlowSpecificParameterEntity::getValue))));
-        loadFlowParametersInfosBuilder.limitReductionsValues(toLimitReductionsValues());
+        if (provider.equals("OpenLoadFlow")) {
+            loadFlowParametersInfosBuilder.limitReductionsValues(toLimitReductionsValues());
+        }
 
         return loadFlowParametersInfosBuilder.build();
     }

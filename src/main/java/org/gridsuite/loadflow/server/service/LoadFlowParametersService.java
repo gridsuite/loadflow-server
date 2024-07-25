@@ -98,12 +98,14 @@ public class LoadFlowParametersService {
         List<List<Double>> limitReductions = Optional.ofNullable(limitReductionService)
                 .map(LimitReductionService::getDefaultValues)
                 .orElseGet(Collections::emptyList);
-        return LoadFlowParametersInfos.builder()
+        LoadFlowParametersInfos.LoadFlowParametersInfosBuilder loadFlowParametersInfosBuilder = LoadFlowParametersInfos.builder()
             .provider(provider)
             .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(Map.of())
-            .limitReductionsValues(limitReductions)
-            .build();
+            .specificParametersPerProvider(Map.of());
+        if (provider.equals("OpenLoadFlow")) {
+            loadFlowParametersInfosBuilder.limitReductionsValues(limitReductions);
+        }
+        return loadFlowParametersInfosBuilder.build();
     }
 
     @Transactional
