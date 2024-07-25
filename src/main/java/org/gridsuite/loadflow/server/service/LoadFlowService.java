@@ -56,6 +56,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     private final LoadFlowParametersService parametersService;
     private final FilterService filterService;
     private final LimitViolationRepository limitViolationRepository;
+    private final LimitReductionService limitReductionService;
 
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultService resultService,
@@ -64,11 +65,12 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            LoadFlowParametersService parametersService,
                            FilterService filterService,
                            LimitViolationRepository limitViolationRepository,
-                           @Value("${loadflow.default-provider}") String defaultProvider) {
+                           @Value("${loadflow.default-provider}") String defaultProvider, LimitReductionService limitReductionService) {
         super(notificationService, resultService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
         this.filterService = filterService;
         this.limitViolationRepository = limitViolationRepository;
+        this.limitReductionService = limitReductionService;
     }
 
     @Override
@@ -119,7 +121,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
-        loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
+        loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status

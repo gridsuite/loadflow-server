@@ -12,10 +12,7 @@ import lombok.*;
 
 import jakarta.persistence.*;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -100,6 +97,11 @@ public class LoadFlowParametersEntity {
     @JoinColumn(name = "load_flow_parameters_id", foreignKey = @ForeignKey(name = "loadFlowParametersEntity_specificParameters_fk"))
     private List<LoadFlowSpecificParameterEntity> specificParameters;
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "load_flow_parameters_id", foreignKey = @ForeignKey(name = "loadFlowParametersEntity_specificParameters_fk"))
+    @OrderColumn(name = "index")
+    private List<LimitReductionEntity> limitReductions;
+
     public LoadFlowParametersEntity(LoadFlowParametersInfos loadFlowParametersInfos) {
         assignAttributes(loadFlowParametersInfos);
     }
@@ -114,9 +116,9 @@ public class LoadFlowParametersEntity {
         if (loadFlowParametersInfos == null) {
             allCommonValues = LoadFlowParameters.load();
         } else {
-            allCommonValues = loadFlowParametersInfos.commonParameters();
-            if (loadFlowParametersInfos.specificParametersPerProvider() != null) {
-                loadFlowParametersInfos.specificParametersPerProvider().forEach((p, paramsMap) -> {
+            allCommonValues = loadFlowParametersInfos.getCommonParameters();
+            if (loadFlowParametersInfos.getSpecificParametersPerProvider() != null) {
+                loadFlowParametersInfos.getSpecificParametersPerProvider().forEach((p, paramsMap) -> {
                     if (paramsMap != null) {
                         paramsMap.forEach((paramName, paramValue) -> {
                             if (paramValue != null) {
@@ -130,10 +132,14 @@ public class LoadFlowParametersEntity {
                     }
                 });
             }
-            provider = loadFlowParametersInfos.provider();
+            provider = loadFlowParametersInfos.getProvider();
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
+        //add limit reduction for openLoadFlow provider
+        if (loadFlowParametersInfos.getLimitReductionsValues() != null) {
+            limitReductions = loadFlowParametersInfos.getLimitReductionsValues().stream().map(LimitReductionEntity::new).toList();
+        }
     }
 
     private void assignCommonValues(LoadFlowParameters allCommonValues) {
@@ -187,37 +193,57 @@ public class LoadFlowParametersEntity {
     }
 
     public LoadFlowParametersInfos toLoadFlowParametersInfos() {
-        return LoadFlowParametersInfos.builder()
+        LoadFlowParametersInfos.LoadFlowParametersInfosBuilder loadFlowParametersInfosBuilder = LoadFlowParametersInfos.builder()
                 .uuid(id)
                 .provider(provider)
                 .commonParameters(toLoadFlowParameters())
                 .specificParametersPerProvider(specificParameters.stream()
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
                                 Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
-                                        LoadFlowSpecificParameterEntity::getValue))))
-                .build();
+                                        LoadFlowSpecificParameterEntity::getValue))));
+        loadFlowParametersInfosBuilder.limitReductionsValues(toLimitReductionsValues());
+
+        return loadFlowParametersInfosBuilder.build();
+    }
+
+    public List<List<Double>> toLimitReductionsValues() {
+        if (this.limitReductions == null) {
+            return Collections.emptyList();
+        }
+        return this.limitReductions.stream()
+                .map(LimitReductionEntity::getReductions)
+                .map(ArrayList::new)
+                .collect(Collectors.toList());
     }
 
     public LoadFlowParametersValues toLoadFlowParametersValues() {
-        return LoadFlowParametersValues.builder()
+        LoadFlowParametersValues.LoadFlowParametersValuesBuilder loadFlowParametersValuesBuilder = LoadFlowParametersValues.builder()
                 .provider(provider)
                 .commonParameters(toLoadFlowParameters())
                 .specificParameters(specificParameters.stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))
                         .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
-                                LoadFlowSpecificParameterEntity::getValue)))
-                .build();
+                                LoadFlowSpecificParameterEntity::getValue)));
+
+        if (provider.equals("OpenLoadFlow") && !toLimitReductionsValues().isEmpty()) {
+            loadFlowParametersValuesBuilder.limitReductionsValues(toLimitReductionsValues());
+        }
+        return loadFlowParametersValuesBuilder.build();
     }
 
     public LoadFlowParametersValues toLoadFlowParametersValues(String provider) {
-        return LoadFlowParametersValues.builder()
+        LoadFlowParametersValues.LoadFlowParametersValuesBuilder loadFlowParametersValuesBuilder =
+                LoadFlowParametersValues.builder()
                 .provider(provider)
                 .commonParameters(toLoadFlowParameters())
                 .specificParameters(specificParameters.stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))
                         .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
-                                LoadFlowSpecificParameterEntity::getValue)))
-                .build();
+                                LoadFlowSpecificParameterEntity::getValue)));
+        if (provider.equals("OpenLoadFlow")) {
+            loadFlowParametersValuesBuilder.limitReductionsValues(toLimitReductionsValues());
+        }
+        return loadFlowParametersValuesBuilder.build();
     }
 
     public LoadFlowParametersEntity copy() {

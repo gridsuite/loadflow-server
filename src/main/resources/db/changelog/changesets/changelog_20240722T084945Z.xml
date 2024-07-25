@@ -1,0 +1,34 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="souissimai (generated)" id="1721638198335-1">
+        <createTable tableName="limit_reduction_entity">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="limit_reduction_entityPK"/>
+            </column>
+            <column name="load_flow_parameters_id" type="UUID"/>
+            <column name="index" type="INT"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="souissimai (generated)" id="1721638198335-2">
+        <createTable tableName="limit_reduction_entity_reductions">
+            <column name="limit_reduction_entity_id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="limit_reduction_entity_reductionsPK"/>
+            </column>
+            <column name="reductions" type="FLOAT(53)"/>
+            <column name="index" type="INT">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="limit_reduction_entity_reductionsPK"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet author="souissimai (generated)" id="1721638198335-3">
+        <createIndex indexName="idx_load_flow_parameters_id" tableName="limit_reduction_entity">
+            <column name="load_flow_parameters_id"/>
+        </createIndex>
+    </changeSet>
+    <changeSet author="souissimai (generated)" id="1721638198335-4">
+        <addForeignKeyConstraint baseColumnNames="limit_reduction_entity_id" baseTableName="limit_reduction_entity_reductions" constraintName="limitReductionEntity_limitReductionEntityReductions_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="limit_reduction_entity" validate="true"/>
+    </changeSet>
+    <changeSet author="souissimai (generated)" id="1721638198335-5">
+        <addForeignKeyConstraint baseColumnNames="load_flow_parameters_id" baseTableName="limit_reduction_entity" constraintName="loadFlowParametersEntity_limitReductions_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="load_flow_parameters" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

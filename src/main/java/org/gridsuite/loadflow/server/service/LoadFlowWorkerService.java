@@ -7,6 +7,13 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.report.ReportNode;
+import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
+import com.powsybl.iidm.criteria.IdentifiableCriterion;
+import com.powsybl.iidm.criteria.VoltageInterval;
+import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
+import com.powsybl.iidm.criteria.duration.LimitDurationCriterion;
+import com.powsybl.iidm.criteria.duration.PermanentDurationCriterion;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -16,7 +23,10 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
+import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
+import com.powsybl.security.limitreduction.LimitReduction;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import com.powsybl.ws.commons.computation.service.*;
@@ -24,10 +34,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
@@ -37,12 +49,15 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
  */
 @Service
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
+    private final LimitReductionService limitReductionService;
+    public static final String DEFAULT_PROVIDER = "OpenLoadFlow";
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultService resultService,
                                  ExecutionService executionService, LoadFlowObserver observer,
-                                 ObjectMapper objectMapper) {
+                                 ObjectMapper objectMapper, LimitReductionService limitReductionService) {
         super(networkStoreService, notificationService, reportService, resultService, executionService, observer, objectMapper);
+        this.limitReductionService = limitReductionService;
     }
 
     @Override
@@ -56,8 +71,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
-        LoadFlowResult result = super.run(runContext, resultUuid);
+    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) throws Exception {
+        LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
             observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
@@ -75,6 +90,35 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 executionService.getComputationManager(),
                 params,
                 runContext.getReportNode());
+    }
+
+    private LimitReduction createLimitReduction(IdentifiableCriterion voltageLevelCriterion, LimitDurationCriterion limitDurationCriterion, double value) {
+        return LimitReduction.builder(LimitType.CURRENT, value)
+                .withNetworkElementCriteria(voltageLevelCriterion)
+                .withLimitDurationCriteria(limitDurationCriterion)
+                .build();
+    }
+
+    private List<LimitReduction> createLimitReductions(LoadFlowRunContext runContext) {
+        List<LimitReduction> limitReductions = new ArrayList<>(limitReductionService.getVoltageLevels().size() * limitReductionService.getLimitDurations().size());
+
+        limitReductionService.createLimitReductions(runContext.getParameters().getLimitReductionsValues()).forEach(limitReduction -> {
+            LimitReductionsByVoltageLevel.VoltageLevel voltageLevel = limitReduction.getVoltageLevel();
+            IdentifiableCriterion voltageLevelCriterion = new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(voltageLevel.getLowBound(), voltageLevel.getHighBound(), false, true)));
+            limitReductions.add(createLimitReduction(voltageLevelCriterion, new PermanentDurationCriterion(), limitReduction.getPermanentLimitReduction()));
+            limitReduction.getTemporaryLimitReductions().forEach(temporaryLimitReduction -> {
+                LimitDurationCriterion limitDurationCriterion;
+                LimitReductionsByVoltageLevel.LimitDuration limitDuration = temporaryLimitReduction.getLimitDuration();
+                if (temporaryLimitReduction.getLimitDuration().getHighBound() != null) {
+                    limitDurationCriterion = IntervalTemporaryDurationCriterion.between(limitDuration.getLowBound(), limitDuration.getHighBound(), limitDuration.isLowClosed(), limitDuration.isHighClosed());
+                } else {
+                    limitDurationCriterion = IntervalTemporaryDurationCriterion.greaterThan(limitDuration.getLowBound(), limitDuration.isLowClosed());
+                }
+                limitReductions.add(createLimitReduction(voltageLevelCriterion, limitDurationCriterion, temporaryLimitReduction.getReduction()));
+            });
+        });
+
+        return limitReductions;
     }
 
     @Override
@@ -160,11 +204,25 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {
         List<LimitViolation> violations;
+        List<LimitReduction> limitReductions;
         LoadFlowParameters lfCommonParams = loadFlowRunContext.buildParameters();
+        boolean isOpenLoadFlowRunContext = loadFlowRunContext.getProvider().equals(DEFAULT_PROVIDER) && loadFlowRunContext.getParameters().getLimitReductionsValues() != null;
+        limitReductions = createLimitReductions(loadFlowRunContext);
+
         if (lfCommonParams.isDc()) {
-            violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
+            if (isOpenLoadFlowRunContext) {
+                violations = Security.checkLimitsDc(network, new DefaultLimitReductionsApplier(limitReductions), lfCommonParams.getDcPowerFactor());
+
+            } else {
+                violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
+            }
         } else {
-            violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());
+            if (isOpenLoadFlowRunContext) {
+                violations = Security.checkLimits(network, new DefaultLimitReductionsApplier(limitReductions));
+            } else {
+                violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());
+            }
+
         }
         return violations.stream()
                 .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
