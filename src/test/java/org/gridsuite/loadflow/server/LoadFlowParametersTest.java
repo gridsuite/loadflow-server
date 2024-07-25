@@ -53,7 +53,6 @@ class LoadFlowParametersTest {
     private static final String URI_PARAMETERS_GET_PUT = URI_PARAMETERS_BASE + "/";
 
     private static final String PROVIDER = "LFProvider";
-    private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
 
     @Autowired
     MockMvc mockMvc;
@@ -78,7 +77,7 @@ class LoadFlowParametersTest {
     }
 
     @Test
-    public void limitReductionConfigTest() {
+    void limitReductionConfigTest() {
         List<LimitReductionsByVoltageLevel> limitReductions = limitReductionService.createDefaultLimitReductions();
         assertNotNull(limitReductions);
         assertFalse(limitReductions.isEmpty());
@@ -134,13 +133,6 @@ class LoadFlowParametersTest {
     @Test
     void testCreateWithDefaultValues() throws Exception {
         LoadFlowParametersInfos defaultLoadFlowParameters = parametersService.getDefaultParametersValues(defaultLoadflowProvider, limitReductionService);
-
-        LoadFlowParametersInfos defaultParameters = LoadFlowParametersInfos.builder()
-            .provider(defaultLoadflowProvider)
-            .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(Map.of())
-            .build();
-
         mockMvc.perform(post(URI_PARAMETERS_BASE + "/default"))
                 .andExpect(status().isOk()).andReturn();
 

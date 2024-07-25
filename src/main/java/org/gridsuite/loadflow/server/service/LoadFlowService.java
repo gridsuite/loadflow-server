@@ -52,6 +52,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     protected static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
 
     public static final String COMPUTATION_TYPE = "loadflow";
+    private static final String DEFAULT_PROVIDER = "OpenLoadFlow";
 
     private final LoadFlowParametersService parametersService;
     private final FilterService filterService;
@@ -92,7 +93,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
         // FIXME: We need to override Powsybl default values in the loadflow-server as up to now we can't override those values through PlatformConfig for the specific parameters.
         //  To be removed when it's fixed.
-        changeDefaultValue(powsyblSpecificLFParameters, "OpenLoadFlow", "writeReferenceTerminals", false);
+        changeDefaultValue(powsyblSpecificLFParameters, DEFAULT_PROVIDER, "writeReferenceTerminals", false);
         changeDefaultValue(powsyblSpecificLFParameters, "DynaFlow", "mergeLoads", false);
 
         return powsyblSpecificLFParameters;
@@ -119,9 +120,10 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     @Override
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
-        //test maissa
-        params.setLimitReductions(parametersService.getDefaultParametersValues("OpenLoadFlow", limitReductionService).getLimitReductions());
-        params.setLimitReductionsValues(parametersService.getDefaultParametersValues("OpenLoadFlow", limitReductionService).getLimitReductionsValues());
+        //test run
+        //params.setLimitReductions(parametersService.getDefaultParametersValues("OpenLoadFlow", limitReductionService).getLimitReductions());
+        //params.setLimitReductionsValues(parametersService.getDefaultParametersValues("OpenLoadFlow", limitReductionService).getLimitReductionsValues());
+
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
         loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());
