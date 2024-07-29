@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.network.*;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
@@ -56,8 +58,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid) throws Exception {
-        LoadFlowResult result = super.run(runContext, resultUuid);
+    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) throws Exception {
+        LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
             observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
