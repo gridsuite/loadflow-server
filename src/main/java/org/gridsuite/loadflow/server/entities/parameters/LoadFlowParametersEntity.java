@@ -120,7 +120,7 @@ public class LoadFlowParametersEntity {
         if (loadFlowParametersInfos == null) {
             allCommonValues = LoadFlowParameters.load();
         } else {
-            if (loadFlowParametersInfos.getProvider().equals("OpenLoadFlow") && loadFlowParametersInfos.getLimitReductions() != null) {
+            if (loadFlowParametersInfos.getLimitReductions() != null) {
                 limitReductionEntities.addAll(loadFlowParametersInfos.getLimitReductionsValues().stream().map(LimitReductionEntity::new).toList());
             }
             allCommonValues = loadFlowParametersInfos.getCommonParameters();

@@ -120,7 +120,7 @@ public class LoadFlowParametersService {
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
                                 Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                         LoadFlowSpecificParameterEntity::getValue))));
-        if (entity.getProvider().equals("OpenLoadFlow") && !entity.toLimitReductionsValues().isEmpty()) {
+        if (!entity.toLimitReductionsValues().isEmpty()) {
             loadFlowParametersInfosBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
         }
         return loadFlowParametersInfosBuilder.build();
