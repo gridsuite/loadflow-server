@@ -89,7 +89,7 @@ public class LoadFlowParametersService {
         return createParameters(defaultParametersInfos);
     }
 
-    private LoadFlowParametersInfos getDefaultParametersValues(String provider) {
+    public LoadFlowParametersInfos getDefaultParametersValues(String provider) {
         List<List<Double>> limitReductions = Optional.ofNullable(limitReductionService)
                 .map(LimitReductionService::getDefaultValues)
                 .orElseGet(Collections::emptyList);
