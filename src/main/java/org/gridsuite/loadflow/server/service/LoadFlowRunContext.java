@@ -28,9 +28,9 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
     private final UUID parametersUuid;
 
     public LoadFlowParameters buildParameters() {
-        LoadFlowParameters params = getParameters() == null || getParameters().specificParameters() == null ?
-                LoadFlowParameters.load() : getParameters().commonParameters();
-        if (getParameters() == null || getParameters().specificParameters() == null || getParameters().specificParameters().isEmpty()) {
+        LoadFlowParameters params = getParameters() == null || getParameters().getSpecificParameters() == null ?
+                LoadFlowParameters.load() : getParameters().getCommonParameters();
+        if (getParameters() == null || getParameters().getSpecificParameters() == null || getParameters().getSpecificParameters().isEmpty()) {
             return params; // no specific LF params
         }
         LoadFlowProvider lfProvider = LoadFlowProvider.findAll().stream()
@@ -40,7 +40,7 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
         Extension<LoadFlowParameters> specificParametersExtension = lfProvider.loadSpecificParameters(PlatformConfig.defaultConfig())
                 .orElseThrow(() -> new PowsyblException("Cannot add specific loadflow parameters with provider " + getProvider()));
         params.addExtension((Class) specificParametersExtension.getClass(), specificParametersExtension);
-        lfProvider.updateSpecificParameters(specificParametersExtension, getParameters().specificParameters());
+        lfProvider.updateSpecificParameters(specificParametersExtension, getParameters().getSpecificParameters());
 
         return params;
     }

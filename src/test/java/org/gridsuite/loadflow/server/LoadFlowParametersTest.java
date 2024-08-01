@@ -76,7 +76,7 @@ class LoadFlowParametersTest {
         mockMvc.perform(post(URI_PARAMETERS_BASE).content(parametersToCreateJson).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk()).andReturn();
 
-        LoadFlowParametersInfos createdParameters = parametersRepository.findAll().get(0).toLoadFlowParametersInfos();
+        LoadFlowParametersInfos createdParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findAll().get(0));
 
         assertThat(createdParameters).recursivelyEquals(parametersToCreate);
     }
@@ -92,7 +92,7 @@ class LoadFlowParametersTest {
         mockMvc.perform(post(URI_PARAMETERS_BASE + "/default"))
                 .andExpect(status().isOk()).andReturn();
 
-        LoadFlowParametersInfos createdParameters = parametersRepository.findAll().get(0).toLoadFlowParametersInfos();
+        LoadFlowParametersInfos createdParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findAll().get(0));
 
         assertThat(createdParameters).recursivelyEquals(defaultParameters);
     }
@@ -127,7 +127,7 @@ class LoadFlowParametersTest {
         mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).content(parametersToUpdateJson).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
 
         assertThat(updatedParameters).recursivelyEquals(parametersToUpdate);
     }
@@ -142,7 +142,7 @@ class LoadFlowParametersTest {
         mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
 
         assertThat(updatedParameters).recursivelyEquals(defaultValues);
     }
@@ -193,7 +193,7 @@ class LoadFlowParametersTest {
         LoadFlowParametersValues receivedParameters = mapper.readValue(resultAsString, new TypeReference<>() {
         });
 
-        LoadFlowParametersValues parametersValues = parameters.toEntity().toLoadFlowParametersValues(PROVIDER);
+        LoadFlowParametersValues parametersValues = parametersService.toLoadFlowParametersValues(PROVIDER, parameters.toEntity());
 
         assertThat(receivedParameters).recursivelyEquals(parametersValues);
     }
@@ -229,9 +229,9 @@ class LoadFlowParametersTest {
                 .content(newProvider))
                 .andExpect(status().isOk()).andReturn();
 
-        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
 
-        assertThat(updatedParameters.provider()).isEqualTo(newProvider);
+        assertThat(updatedParameters.getProvider()).isEqualTo(newProvider);
     }
 
     @Test
@@ -243,9 +243,9 @@ class LoadFlowParametersTest {
         mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
                 .andExpect(status().isOk()).andReturn();
 
-        LoadFlowParametersInfos updatedParameters = parametersRepository.findById(parametersUuid).get().toLoadFlowParametersInfos();
+        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
 
-        assertThat(updatedParameters.provider()).isEqualTo(defaultLoadflowProvider);
+        assertThat(updatedParameters.getProvider()).isEqualTo(defaultLoadflowProvider);
     }
 
     @Test
@@ -256,7 +256,7 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersValues parametersValues = parametersService.getParametersValues(parametersUuid);
 
-        assertThat(parametersRepository.findById(parametersUuid).get().toLoadFlowParametersValues()).recursivelyEquals(parametersValues);
+        assertThat(parametersService.toLoadFlowParametersValues(parametersRepository.findById(parametersUuid).get())).recursivelyEquals(parametersValues);
     }
 
     /** Save parameters into the repository and return its UUID. */

@@ -19,14 +19,19 @@ public class LoadflowException extends RuntimeException {
         INVALID_SORT_FORMAT,
         INVALID_FILTER,
         NETWORK_NOT_FOUND,
-        EVALUATE_FILTER_FAILED
-
+        EVALUATE_FILTER_FAILED,
+        LIMIT_REDUCTION_CONFIG_ERROR
     }
 
     private final Type type;
 
     public LoadflowException(Type type) {
         super(Objects.requireNonNull(type.name()));
+        this.type = type;
+    }
+
+    public LoadflowException(Type type, String message) {
+        super(message);
         this.type = type;
     }
 

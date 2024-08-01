@@ -6,14 +6,13 @@
  */
 package org.gridsuite.loadflow.server.service;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
+import org.gridsuite.loadflow.server.entities.parameters.LoadFlowSpecificParameterEntity;
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -31,10 +30,13 @@ public class LoadFlowParametersService {
 
     private final LoadFlowParametersRepository loadFlowParametersRepository;
 
+    private final LimitReductionService limitReductionService;
+
     public LoadFlowParametersService(LoadFlowParametersRepository loadFlowParametersRepository,
-            @Value("${loadflow.default-provider}") String defaultLoadflowProvider) {
+            @Value("${loadflow.default-provider}") String defaultLoadflowProvider, LimitReductionService limitReductionService) {
         this.loadFlowParametersRepository = loadFlowParametersRepository;
         this.defaultLoadflowProvider = defaultLoadflowProvider;
+        this.limitReductionService = limitReductionService;
     }
 
     public UUID createParameters(LoadFlowParametersInfos parametersInfos) {
@@ -42,20 +44,20 @@ public class LoadFlowParametersService {
     }
 
     public Optional<LoadFlowParametersInfos> getParameters(UUID parametersUuid) {
-        return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::toLoadFlowParametersInfos);
+        return loadFlowParametersRepository.findById(parametersUuid).map(this::toLoadFlowParametersInfos);
     }
 
     public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid, String provider) {
-        return loadFlowParametersRepository.findById(parametersUuid).map(entity -> entity.toLoadFlowParametersValues(provider));
+        return loadFlowParametersRepository.findById(parametersUuid).map(entity -> toLoadFlowParametersValues(provider, entity));
     }
 
     public LoadFlowParametersValues getParametersValues(UUID parametersUuid) {
         return loadFlowParametersRepository.findById(parametersUuid)
-            .map(LoadFlowParametersEntity::toLoadFlowParametersValues).orElseThrow();
+                .map(e -> toLoadFlowParametersValues(e)).orElseThrow();
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
-        return loadFlowParametersRepository.findAll().stream().map(LoadFlowParametersEntity::toLoadFlowParametersInfos).toList();
+        return loadFlowParametersRepository.findAll().stream().map(e -> toLoadFlowParametersInfos(e)).toList();
     }
 
     @Transactional
@@ -76,7 +78,7 @@ public class LoadFlowParametersService {
     @Transactional
     public Optional<UUID> duplicateParameters(UUID sourceParametersUuid) {
         return loadFlowParametersRepository.findById(sourceParametersUuid)
-            .map(LoadFlowParametersEntity::copy)
+                .map(e -> e.copy(toLoadFlowParametersInfos(e)))
             .map(loadFlowParametersRepository::save)
             .map(LoadFlowParametersEntity::getId);
     }
@@ -88,11 +90,18 @@ public class LoadFlowParametersService {
     }
 
     private LoadFlowParametersInfos getDefaultParametersValues(String provider) {
-        return LoadFlowParametersInfos.builder()
+        List<List<Double>> limitReductions = Optional.ofNullable(limitReductionService)
+                .map(LimitReductionService::getDefaultValues)
+                .orElseGet(Collections::emptyList);
+        LoadFlowParametersInfos.LoadFlowParametersInfosBuilder loadFlowParametersInfosBuilder = LoadFlowParametersInfos.builder()
             .provider(provider)
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
-            .build();
+            .limitReductions(limitReductionService.createLimitReductions(limitReductions));
+        if (provider.equals("OpenLoadFlow")) {
+            loadFlowParametersInfosBuilder.limitReductions(limitReductionService.createLimitReductions(limitReductions));
+        }
+        return loadFlowParametersInfosBuilder.build();
     }
 
     @Transactional
@@ -101,4 +110,48 @@ public class LoadFlowParametersService {
             .orElseThrow()
             .setProvider(provider != null ? provider : defaultLoadflowProvider);
     }
+
+    public LoadFlowParametersInfos toLoadFlowParametersInfos(LoadFlowParametersEntity entity) {
+        LoadFlowParametersInfos.LoadFlowParametersInfosBuilder loadFlowParametersInfosBuilder = LoadFlowParametersInfos.builder()
+                .uuid(entity.getId())
+                .provider(entity.getProvider())
+                .commonParameters(entity.toLoadFlowParameters())
+                .specificParametersPerProvider(entity.getSpecificParameters().stream()
+                        .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
+                                Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
+                                        LoadFlowSpecificParameterEntity::getValue))));
+        if (entity.getProvider().equals("OpenLoadFlow") && !entity.toLimitReductionsValues().isEmpty()) {
+            loadFlowParametersInfosBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
+        }
+        return loadFlowParametersInfosBuilder.build();
+    }
+
+    public LoadFlowParametersValues toLoadFlowParametersValues(LoadFlowParametersEntity entity) {
+        LoadFlowParametersValues.LoadFlowParametersValuesBuilder loadFlowParametersValuesBuilder = LoadFlowParametersValues.builder()
+                .provider(entity.getProvider())
+                .commonParameters(entity.toLoadFlowParameters())
+                .specificParameters(entity.getSpecificParameters().stream()
+                        .filter(p -> p.getProvider().equalsIgnoreCase(entity.getProvider()))
+                        .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
+                                LoadFlowSpecificParameterEntity::getValue)));
+        if (entity.getProvider().equals("OpenLoadFlow")) {
+            loadFlowParametersValuesBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
+        }
+        return loadFlowParametersValuesBuilder.build();
+    }
+
+    public LoadFlowParametersValues toLoadFlowParametersValues(String provider, LoadFlowParametersEntity entity) {
+        LoadFlowParametersValues.LoadFlowParametersValuesBuilder loadFlowParametersValuesBuilder = LoadFlowParametersValues.builder()
+                .provider(provider)
+                .commonParameters(entity.toLoadFlowParameters())
+                .specificParameters(entity.getSpecificParameters().stream()
+                        .filter(p -> p.getProvider().equalsIgnoreCase(provider))
+                        .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
+                                LoadFlowSpecificParameterEntity::getValue)));
+        if (provider.equals("OpenLoadFlow")) {
+            loadFlowParametersValuesBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
+        }
+        return loadFlowParametersValuesBuilder.build();
+    }
+
 }

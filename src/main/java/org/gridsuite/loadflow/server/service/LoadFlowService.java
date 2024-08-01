@@ -119,7 +119,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
-        loadFlowRunContext.setProvider(params.provider() != null ? params.provider() : getDefaultProvider());
+        loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());
         UUID resultUuid = uuidGeneratorService.generate();
 
         // update status to running status

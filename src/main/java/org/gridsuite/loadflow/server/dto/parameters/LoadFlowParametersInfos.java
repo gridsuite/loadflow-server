@@ -6,10 +6,13 @@
  */
 package org.gridsuite.loadflow.server.dto.parameters;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.powsybl.loadflow.LoadFlowParameters;
 
-import lombok.Builder;
+import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -18,13 +21,29 @@ import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntit
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 @Builder
-public record LoadFlowParametersInfos(
-    UUID uuid,
-    String provider,
-    LoadFlowParameters commonParameters,
-    Map<String, Map<String, String>> specificParametersPerProvider) {
+public class LoadFlowParametersInfos {
+    private UUID uuid;
+    private String provider;
+    private LoadFlowParameters commonParameters;
+    private Map<String, Map<String, String>> specificParametersPerProvider;
+
+    private List<LimitReductionsByVoltageLevel> limitReductions;
+
     public LoadFlowParametersEntity toEntity() {
         return new LoadFlowParametersEntity(this);
+    }
+
+    @JsonIgnore
+    public List<List<Double>> getLimitReductionsValues() {
+        return limitReductions.stream().map(reductionsByVL -> {
+            List<Double> values = new ArrayList<>(reductionsByVL.getTemporaryLimitReductions().size() + 1);
+            values.add(reductionsByVL.getPermanentLimitReduction());
+            reductionsByVL.getTemporaryLimitReductions().forEach(l -> values.add(l.getReduction()));
+            return values;
+        }).toList();
     }
 }

@@ -34,3 +34,47 @@ powsybl-ws:
 # default values for loadflow providers "DynaFlow" or "OpenLoadFlow"
 loadflow:
   default-provider: OpenLoadFlow
+  default-limit-reductions:
+    voltageLevels:
+      - nominalV: 20
+        lowBound: 5
+        highBound: 30
+      - nominalV: 45
+        lowBound: 30
+        highBound: 55
+      - nominalV: 63
+        lowBound: 55
+        highBound: 75
+      - nominalV: 90
+        lowBound: 75
+        highBound: 120
+      - nominalV: 150
+        lowBound: 120
+        highBound: 180
+      - nominalV: 225
+        lowBound: 180
+        highBound: 300
+      - nominalV: 400
+        lowBound: 300
+        highBound: 500
+    limitDurations:
+      - lowBound: 0
+        lowClosed: true
+        highBound: 300
+        highClosed: false
+      - lowBound: 300
+        lowClosed: true
+        highBound: 600
+        highClosed: true
+      - lowBound: 600
+        lowClosed: false
+        highBound: ~
+        highClosed: false
+    defaultValues:
+      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 0.95, 0.9 ]
+      - [ 1, 1, 0.95, 0.9 ]

@@ -7,16 +7,22 @@
 package org.gridsuite.loadflow.server.dto.parameters;
 
 import com.powsybl.loadflow.LoadFlowParameters;
-import lombok.Builder;
+import lombok.*;
 
+import java.util.List;
 import java.util.Map;
 
 /**
  * @author David Braquart <david.braquart@rte-france.com>
  */
+@NoArgsConstructor
+@AllArgsConstructor
+@Getter
 @Builder
-public record LoadFlowParametersValues(
-    String provider,
-    LoadFlowParameters commonParameters,
-    Map<String, String> specificParameters
-) { }
+public class LoadFlowParametersValues {
+    private String provider;
+    private LoadFlowParameters commonParameters;
+    private Map<String, String> specificParameters;
+
+    private List<LimitReductionsByVoltageLevel> limitReductions;
+}
