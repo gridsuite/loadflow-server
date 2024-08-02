@@ -177,7 +177,9 @@ class LoadFlowParametersTest {
 
     @Test
     void testResetToDefaultValues() throws Exception {
-        LoadFlowParametersInfos defaultValues = buildParameters();
+        limitReductionService.setDefaultValues(List.of(List.of(1.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0)));
+
+        LoadFlowParametersInfos defaultValues = parametersService.getDefaultParametersValues(PROVIDER);
         LoadFlowParametersInfos parametersToUpdate = buildParametersUpdate();
 
         UUID parametersUuid = saveAndRetunId(parametersToUpdate);
@@ -185,9 +187,8 @@ class LoadFlowParametersTest {
         mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
 
-        //LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
-
-       // assertThat(updatedParameters).recursivelyEquals(defaultValues);
+        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
+        assertThat(updatedParameters).recursivelyEquals(defaultValues);
     }
 
     @Test
@@ -309,20 +310,24 @@ class LoadFlowParametersTest {
     }
 
     protected LoadFlowParametersInfos buildParameters() {
+        List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
         return LoadFlowParametersInfos.builder()
-            .provider(PROVIDER)
-            .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(Map.of())
-            .build();
+                .provider(PROVIDER)
+                .commonParameters(LoadFlowParameters.load())
+                .specificParametersPerProvider(Map.of())
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
+                .build();
     }
 
     protected LoadFlowParametersInfos buildParametersUpdate() {
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+        List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
         loadFlowParameters.setDc(true);
         return LoadFlowParametersInfos.builder()
             .provider(PROVIDER)
             .commonParameters(loadFlowParameters)
             .specificParametersPerProvider(Map.of())
+            .limitReductions(limitReductionService.createLimitReductions(limitReductions))
             .build();
     }
 }

@@ -98,9 +98,6 @@ public class LoadFlowParametersService {
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
             .limitReductions(limitReductionService.createLimitReductions(limitReductions));
-        if (provider.equals("OpenLoadFlow")) {
-            loadFlowParametersInfosBuilder.limitReductions(limitReductionService.createLimitReductions(limitReductions));
-        }
         return loadFlowParametersInfosBuilder.build();
     }
 
@@ -120,9 +117,7 @@ public class LoadFlowParametersService {
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
                                 Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                         LoadFlowSpecificParameterEntity::getValue))));
-        if (!entity.toLimitReductionsValues().isEmpty()) {
-            loadFlowParametersInfosBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
-        }
+        loadFlowParametersInfosBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
         return loadFlowParametersInfosBuilder.build();
     }
 
@@ -134,9 +129,7 @@ public class LoadFlowParametersService {
                         .filter(p -> p.getProvider().equalsIgnoreCase(entity.getProvider()))
                         .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                 LoadFlowSpecificParameterEntity::getValue)));
-        if (entity.getProvider().equals("OpenLoadFlow")) {
-            loadFlowParametersValuesBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
-        }
+        loadFlowParametersValuesBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
         return loadFlowParametersValuesBuilder.build();
     }
 
@@ -148,9 +141,7 @@ public class LoadFlowParametersService {
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))
                         .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                 LoadFlowSpecificParameterEntity::getValue)));
-        if (provider.equals("OpenLoadFlow")) {
-            loadFlowParametersValuesBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
-        }
+        loadFlowParametersValuesBuilder.limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()));
         return loadFlowParametersValuesBuilder.build();
     }
 
