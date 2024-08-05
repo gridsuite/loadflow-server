@@ -205,17 +205,16 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     private List<LimitViolationInfos> getLimitViolations(Network network, LoadFlowRunContext loadFlowRunContext) {
         List<LimitViolation> violations;
         LoadFlowParameters lfCommonParams = loadFlowRunContext.buildParameters();
-        boolean isOpenLoadFlowRunContext = loadFlowRunContext.getProvider().equals(DEFAULT_PROVIDER) && !loadFlowRunContext.getParameters().getLimitReductions().isEmpty();
 
         if (lfCommonParams.isDc()) {
-            if (isOpenLoadFlowRunContext) {
+            if (loadFlowRunContext.getProvider().equals(DEFAULT_PROVIDER)) {
                 violations = Security.checkLimitsDc(network, new DefaultLimitReductionsApplier(createLimitReductions(loadFlowRunContext)), lfCommonParams.getDcPowerFactor());
 
             } else {
                 violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
             }
         } else {
-            if (isOpenLoadFlowRunContext) {
+            if (loadFlowRunContext.getProvider().equals(DEFAULT_PROVIDER)) {
                 violations = Security.checkLimits(network, new DefaultLimitReductionsApplier(createLimitReductions(loadFlowRunContext)));
             } else {
                 violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());

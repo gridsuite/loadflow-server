@@ -53,11 +53,11 @@ public class LoadFlowParametersService {
 
     public LoadFlowParametersValues getParametersValues(UUID parametersUuid) {
         return loadFlowParametersRepository.findById(parametersUuid)
-                .map(e -> toLoadFlowParametersValues(e)).orElseThrow();
+                .map(this::toLoadFlowParametersValues).orElseThrow();
     }
 
     public List<LoadFlowParametersInfos> getAllParameters() {
-        return loadFlowParametersRepository.findAll().stream().map(e -> toLoadFlowParametersInfos(e)).toList();
+        return loadFlowParametersRepository.findAll().stream().map(this::toLoadFlowParametersInfos).toList();
     }
 
     @Transactional
@@ -90,14 +90,11 @@ public class LoadFlowParametersService {
     }
 
     public LoadFlowParametersInfos getDefaultParametersValues(String provider) {
-        List<List<Double>> limitReductions = Optional.ofNullable(limitReductionService)
-                .map(LimitReductionService::getDefaultValues)
-                .orElseGet(Collections::emptyList);
         LoadFlowParametersInfos.LoadFlowParametersInfosBuilder loadFlowParametersInfosBuilder = LoadFlowParametersInfos.builder()
             .provider(provider)
             .commonParameters(LoadFlowParameters.load())
             .specificParametersPerProvider(Map.of())
-            .limitReductions(limitReductionService.createLimitReductions(limitReductions));
+            .limitReductions(limitReductionService.createDefaultLimitReductions());
         return loadFlowParametersInfosBuilder.build();
     }
 
