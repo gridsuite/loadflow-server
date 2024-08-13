@@ -76,7 +76,7 @@ class LoadFlowParametersTest {
     }
 
     @Test
-    public void limitReductionConfigTest() {
+    void limitReductionConfigTest() {
         List<LimitReductionsByVoltageLevel> limitReductions = limitReductionService.createDefaultLimitReductions();
         assertNotNull(limitReductions);
         assertFalse(limitReductions.isEmpty());
