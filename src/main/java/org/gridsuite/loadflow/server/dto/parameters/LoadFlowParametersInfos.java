@@ -39,7 +39,8 @@ public class LoadFlowParametersInfos {
 
     @JsonIgnore
     public List<List<Double>> getLimitReductionsValues() {
-        return limitReductions.stream().map(reductionsByVL -> {
+        // Only for some providers
+        return limitReductions == null ? null : limitReductions.stream().map(reductionsByVL -> {
             List<Double> values = new ArrayList<>(reductionsByVL.getTemporaryLimitReductions().size() + 1);
             values.add(reductionsByVL.getPermanentLimitReduction());
             reductionsByVL.getTemporaryLimitReductions().forEach(l -> values.add(l.getReduction()));

@@ -41,6 +41,6 @@ public class LimitReductionsByVoltageLevel {
 
     private VoltageLevel voltageLevel;
     private double permanentLimitReduction;
-    List<LimitReduction> temporaryLimitReductions;
+    private List<LimitReduction> temporaryLimitReductions;
 }
 

@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @Setter
@@ -17,6 +18,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 @Service
 @ConfigurationProperties(prefix = "loadflow.default-limit-reductions")
 public class LimitReductionService {
+    private Set<String> providers;
     private List<LimitReductionsByVoltageLevel.VoltageLevel> voltageLevels;
     private List<LimitReductionsByVoltageLevel.LimitDuration> limitDurations;
     private List<List<Double>> defaultValues;

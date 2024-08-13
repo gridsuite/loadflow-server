@@ -19,6 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
+import org.springframework.lang.Nullable;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
@@ -108,19 +109,20 @@ public class LoadFlowParametersEntity {
         assignAttributes(loadFlowParametersInfos);
     }
 
-    public void update(LoadFlowParametersInfos loadFlowParametersInfos) {
+    public List<List<Double>> toLimitReductionsValues() {
+        return this.limitReductions.stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
+    }
+
+    public void update(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
         assignAttributes(loadFlowParametersInfos);
     }
 
     public void assignAttributes(LoadFlowParametersInfos loadFlowParametersInfos) {
         LoadFlowParameters allCommonValues;
         List<LoadFlowSpecificParameterEntity> allSpecificValuesEntities = new ArrayList<>(List.of());
-        List<LimitReductionEntity> limitReductionEntities = new ArrayList<>(List.of());
-
         if (loadFlowParametersInfos == null) {
             allCommonValues = LoadFlowParameters.load();
         } else {
-            limitReductionEntities.addAll(loadFlowParametersInfos.getLimitReductionsValues().stream().map(LimitReductionEntity::new).toList());
             allCommonValues = loadFlowParametersInfos.getCommonParameters();
             if (loadFlowParametersInfos.getSpecificParametersPerProvider() != null) {
                 loadFlowParametersInfos.getSpecificParametersPerProvider().forEach((p, paramsMap) -> {
@@ -141,17 +143,19 @@ public class LoadFlowParametersEntity {
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
-        assignLimitReduction(limitReductionEntities);
+        assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
     }
 
-    private void assignLimitReduction(List<LimitReductionEntity> limitReductionEntities) {
+    private void assignLimitReductions(@Nullable List<List<Double>> values) {
+        if (values == null) {
+            return;
+        }
+        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new).toList();
         if (limitReductions == null) {
-            limitReductions = limitReductionEntities;
+            limitReductions = entities;
         } else {
             limitReductions.clear();
-            if (!limitReductionEntities.isEmpty()) {
-                limitReductions.addAll(limitReductionEntities);
-            }
+            limitReductions.addAll(entities);
         }
     }
 
@@ -203,10 +207,6 @@ public class LoadFlowParametersEntity {
                 .setConnectedComponentMode(this.getConnectedComponentMode())
                 .setHvdcAcEmulation(this.isHvdcAcEmulation())
                 .setDcPowerFactor(this.getDcPowerFactor());
-    }
-
-    public List<List<Double>> toLimitReductionsValues() {
-        return this.limitReductions.stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
     }
 
     public LoadFlowParametersEntity copy(LoadFlowParametersInfos loadFlowParametersInfos) {

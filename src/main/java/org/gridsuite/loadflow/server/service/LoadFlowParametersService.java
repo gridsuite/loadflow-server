@@ -9,6 +9,8 @@ package org.gridsuite.loadflow.server.service;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import lombok.NonNull;
+import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
@@ -26,17 +28,26 @@ import com.powsybl.loadflow.LoadFlowParameters;
 @Service
 public class LoadFlowParametersService {
 
-    private final String defaultLoadflowProvider;
-
     private final LoadFlowParametersRepository loadFlowParametersRepository;
 
     private final LimitReductionService limitReductionService;
 
-    public LoadFlowParametersService(LoadFlowParametersRepository loadFlowParametersRepository,
-            @Value("${loadflow.default-provider}") String defaultLoadflowProvider, LimitReductionService limitReductionService) {
+    private final String defaultProvider;
+
+    public LoadFlowParametersService(@NonNull LoadFlowParametersRepository loadFlowParametersRepository,
+            @Value("${loadflow.default-provider}") String defaultProvider, @NonNull LimitReductionService limitReductionService) {
         this.loadFlowParametersRepository = loadFlowParametersRepository;
-        this.defaultLoadflowProvider = defaultLoadflowProvider;
+        this.defaultProvider = defaultProvider;
         this.limitReductionService = limitReductionService;
+    }
+
+    private Optional<List<LimitReductionsByVoltageLevel>> getLimitReductionsForProvider(LoadFlowParametersEntity entity) {
+        // Only for some providers
+        if (!limitReductionService.getProviders().contains(entity.getProvider())) {
+            return Optional.empty();
+        }
+        List<List<Double>> limitReductionsValues = entity.toLimitReductionsValues();
+        return Optional.of(limitReductionsValues.isEmpty() ? limitReductionService.createDefaultLimitReductions() : limitReductionService.createLimitReductions(limitReductionsValues));
     }
 
     public UUID createParameters(LoadFlowParametersInfos parametersInfos) {
@@ -63,7 +74,7 @@ public class LoadFlowParametersService {
     @Transactional
     public void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parametersInfos) {
         LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
-        //if the parameters is null it means it's a reset to defaultValues but we need to keep the provider because it's updated separately
+        //if the parameters is null it means it's a reset to defaultValues, but we need to keep the provider because it's updated separately
         if (parametersInfos == null) {
             loadFlowParametersEntity.update(getDefaultParametersValues(loadFlowParametersEntity.getProvider()));
         } else {
@@ -85,28 +96,26 @@ public class LoadFlowParametersService {
 
     public UUID createDefaultParameters() {
         //default parameters
-        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues(defaultLoadflowProvider);
+        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues(defaultProvider);
         return createParameters(defaultParametersInfos);
     }
 
     public LoadFlowParametersInfos getDefaultParametersValues(String provider) {
-        LoadFlowParametersInfos.LoadFlowParametersInfosBuilder loadFlowParametersInfosBuilder = LoadFlowParametersInfos.builder()
-            .provider(provider)
-            .commonParameters(LoadFlowParameters.load())
-            .specificParametersPerProvider(Map.of())
-            .limitReductions(limitReductionService.createDefaultLimitReductions());
-        return loadFlowParametersInfosBuilder.build();
+        return LoadFlowParametersInfos.builder()
+                .provider(provider)
+                .commonParameters(LoadFlowParameters.load())
+                .specificParametersPerProvider(Map.of())
+                .limitReductions(limitReductionService.createDefaultLimitReductions()).build();
     }
 
     @Transactional
     public void updateProvider(UUID parametersUuid, String provider) {
         loadFlowParametersRepository.findById(parametersUuid)
             .orElseThrow()
-            .setProvider(provider != null ? provider : defaultLoadflowProvider);
+            .setProvider(provider != null ? provider : defaultProvider);
     }
 
     public LoadFlowParametersInfos toLoadFlowParametersInfos(LoadFlowParametersEntity entity) {
-        List<List<Double>> limitReductionsValues = entity.toLimitReductionsValues();
         return LoadFlowParametersInfos.builder()
                 .uuid(entity.getId())
                 .provider(entity.getProvider())
@@ -115,12 +124,11 @@ public class LoadFlowParametersService {
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
                                 Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                         LoadFlowSpecificParameterEntity::getValue))))
-                .limitReductions(limitReductionsValues.isEmpty() ? limitReductionService.createDefaultLimitReductions() : limitReductionService.createLimitReductions(limitReductionsValues))
+                .limitReductions(getLimitReductionsForProvider(entity).orElse(null))
                 .build();
     }
 
     public LoadFlowParametersValues toLoadFlowParametersValues(LoadFlowParametersEntity entity) {
-        List<List<Double>> limitReductionsValues = entity.toLimitReductionsValues();
         return LoadFlowParametersValues.builder()
                 .provider(entity.getProvider())
                 .commonParameters(entity.toLoadFlowParameters())
@@ -128,7 +136,7 @@ public class LoadFlowParametersService {
                         .filter(p -> p.getProvider().equalsIgnoreCase(entity.getProvider()))
                         .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                 LoadFlowSpecificParameterEntity::getValue)))
-                .limitReductions(limitReductionsValues.isEmpty() ? limitReductionService.createDefaultLimitReductions() : limitReductionService.createLimitReductions(limitReductionsValues))
+                .limitReductions(getLimitReductionsForProvider(entity).orElse(null))
                 .build();
     }
 
@@ -140,7 +148,7 @@ public class LoadFlowParametersService {
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))
                         .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
                                 LoadFlowSpecificParameterEntity::getValue)))
-                .limitReductions(limitReductionService.createLimitReductions(entity.toLimitReductionsValues()))
+                .limitReductions(getLimitReductionsForProvider(entity).orElse(null))
                 .build();
     }
 

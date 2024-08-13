@@ -68,7 +68,7 @@ class LoadFlowParametersTest {
     LimitReductionService limitReductionService;
 
     @Value("${loadflow.default-provider}")
-    String defaultLoadflowProvider;
+    String defaultLoadFlowProvider;
 
     @AfterEach
     public void clean() {
@@ -76,7 +76,7 @@ class LoadFlowParametersTest {
     }
 
     @Test
-    void limitReductionConfigTest() {
+    public void limitReductionConfigTest() {
         List<LimitReductionsByVoltageLevel> limitReductions = limitReductionService.createDefaultLimitReductions();
         assertNotNull(limitReductions);
         assertFalse(limitReductions.isEmpty());
@@ -131,7 +131,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testCreateWithDefaultValues() throws Exception {
-        LoadFlowParametersInfos defaultLoadFlowParameters = parametersService.getDefaultParametersValues(defaultLoadflowProvider);
+        LoadFlowParametersInfos defaultLoadFlowParameters = parametersService.getDefaultParametersValues(defaultLoadFlowProvider);
         mockMvc.perform(post(URI_PARAMETERS_BASE + "/default"))
                 .andExpect(status().isOk()).andReturn();
 
@@ -179,9 +179,13 @@ class LoadFlowParametersTest {
     void testResetToDefaultValues() throws Exception {
         limitReductionService.setDefaultValues(List.of(List.of(1.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0)));
 
-        LoadFlowParametersInfos defaultValues = parametersService.getDefaultParametersValues(PROVIDER);
-        LoadFlowParametersInfos parametersToUpdate = buildParametersUpdate();
-
+        LoadFlowParametersInfos defaultValues = parametersService.getDefaultParametersValues(defaultLoadFlowProvider);
+        LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+        LoadFlowParametersInfos parametersToUpdate = LoadFlowParametersInfos.builder()
+                .provider(defaultLoadFlowProvider)
+                .commonParameters(loadFlowParameters)
+                .specificParametersPerProvider(Map.of())
+                .build();
         UUID parametersUuid = saveAndRetunId(parametersToUpdate);
 
         mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
@@ -287,9 +291,9 @@ class LoadFlowParametersTest {
         mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
                 .andExpect(status().isOk()).andReturn();
 
-        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
+        LoadFlowParametersEntity securityAnalysisParametersEntity = parametersRepository.findById(parametersUuid).orElseThrow();
 
-        assertThat(updatedParameters.getProvider()).isEqualTo(defaultLoadflowProvider);
+        assertEquals(defaultLoadFlowProvider, securityAnalysisParametersEntity.getProvider());
     }
 
     @Test
@@ -310,24 +314,20 @@ class LoadFlowParametersTest {
     }
 
     protected LoadFlowParametersInfos buildParameters() {
-        List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
         return LoadFlowParametersInfos.builder()
                 .provider(PROVIDER)
                 .commonParameters(LoadFlowParameters.load())
                 .specificParametersPerProvider(Map.of())
-                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build();
     }
 
     protected LoadFlowParametersInfos buildParametersUpdate() {
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
-        List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
         loadFlowParameters.setDc(true);
         return LoadFlowParametersInfos.builder()
             .provider(PROVIDER)
             .commonParameters(loadFlowParameters)
             .specificParametersPerProvider(Map.of())
-            .limitReductions(limitReductionService.createLimitReductions(limitReductions))
-            .build();
+             .build();
     }
 }

@@ -24,6 +24,7 @@ powsybl-ws:
 
 loadflow:
   default-limit-reductions:
+    providers: [OpenLoadFlow]
     voltageLevels:
       - nominalV: 225
         lowBound: 180
