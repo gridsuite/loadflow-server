@@ -179,7 +179,7 @@ public class LoadFlowControllerTest {
         List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
 
         LoadFlowParametersValues loadFlowParametersValues = LoadFlowParametersValues.builder()
-                .provider("OpenLoadFlow")
+                .provider(limitReductionService.getProviders().iterator().next())
                 .commonParameters(loadFlowParameters)
                 .specificParameters(Collections.emptyMap())
                 .limitReductions(limitReductionService.createLimitReductions(limitReductions))
