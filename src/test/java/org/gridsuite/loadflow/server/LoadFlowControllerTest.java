@@ -35,6 +35,7 @@ import com.powsybl.ws.commons.computation.service.ReportService;
 import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.junit.After;
@@ -113,6 +114,8 @@ public class LoadFlowControllerTest {
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
     @Autowired
+    LimitReductionService limitReductionService;
+    @Autowired
     private ObjectMapper mapper;
     private Network network;
     private Network network1;
@@ -173,13 +176,15 @@ public class LoadFlowControllerTest {
         // parameters mocking
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
         loadFlowParameters.setDc(true);
+        List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+
         LoadFlowParametersValues loadFlowParametersValues = LoadFlowParametersValues.builder()
-                .provider("LFProvider")
+                .provider(limitReductionService.getProviders().iterator().next())
                 .commonParameters(loadFlowParameters)
                 .specificParameters(Collections.emptyMap())
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build();
         doReturn(loadFlowParametersValues).when(loadFlowParametersService).getParametersValues(any());
-
         // purge messages
         while (output.receive(1000, "loadflow.result") != null) {
         }
@@ -208,6 +213,7 @@ public class LoadFlowControllerTest {
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimits(any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimits(any(), any())).thenReturn(LimitViolationsMock.limitViolations);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))
@@ -252,7 +258,7 @@ public class LoadFlowControllerTest {
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyDouble(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))
@@ -341,7 +347,7 @@ public class LoadFlowControllerTest {
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyDouble(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))
@@ -399,7 +405,7 @@ public class LoadFlowControllerTest {
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyDouble(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))

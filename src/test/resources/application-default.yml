@@ -21,3 +21,30 @@ powsybl-ws:
     vendor: h2:mem
     query: ;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE;MODE=PostgreSQL
     hostPort: ":"
+
+loadflow:
+  default-limit-reductions:
+    providers: [OpenLoadFlow]
+    voltageLevels:
+      - nominalV: 225
+        lowBound: 180
+        highBound: 300
+      - nominalV: 400
+        lowBound: 300
+        highBound: 500
+    limitDurations:
+      - lowBound: 0
+        lowClosed: true
+        highBound: 300
+        highClosed: false
+      - lowBound: 300
+        lowClosed: true
+        highBound: 600
+        highClosed: true
+      - lowBound: 600
+        lowClosed: false
+        highBound: ~
+        highClosed: false
+    defaultValues:
+      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1 ]

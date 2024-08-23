@@ -19,7 +19,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
-import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.springframework.lang.Nullable;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
@@ -100,11 +100,20 @@ public class LoadFlowParametersEntity {
     @JoinColumn(name = "load_flow_parameters_id", foreignKey = @ForeignKey(name = "loadFlowParametersEntity_specificParameters_fk"))
     private List<LoadFlowSpecificParameterEntity> specificParameters;
 
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true)
+    @JoinColumn(name = "load_flow_parameters_id", foreignKey = @ForeignKey(name = "loadFlowParametersEntity_limitReductions_fk"))
+    @OrderColumn(name = "index")
+    private List<LimitReductionEntity> limitReductions;
+
     public LoadFlowParametersEntity(LoadFlowParametersInfos loadFlowParametersInfos) {
         assignAttributes(loadFlowParametersInfos);
     }
 
-    public void update(LoadFlowParametersInfos loadFlowParametersInfos) {
+    public List<List<Double>> toLimitReductionsValues() {
+        return this.limitReductions.stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
+    }
+
+    public void update(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
         assignAttributes(loadFlowParametersInfos);
     }
 
@@ -114,9 +123,9 @@ public class LoadFlowParametersEntity {
         if (loadFlowParametersInfos == null) {
             allCommonValues = LoadFlowParameters.load();
         } else {
-            allCommonValues = loadFlowParametersInfos.commonParameters();
-            if (loadFlowParametersInfos.specificParametersPerProvider() != null) {
-                loadFlowParametersInfos.specificParametersPerProvider().forEach((p, paramsMap) -> {
+            allCommonValues = loadFlowParametersInfos.getCommonParameters();
+            if (loadFlowParametersInfos.getSpecificParametersPerProvider() != null) {
+                loadFlowParametersInfos.getSpecificParametersPerProvider().forEach((p, paramsMap) -> {
                     if (paramsMap != null) {
                         paramsMap.forEach((paramName, paramValue) -> {
                             if (paramValue != null) {
@@ -130,10 +139,24 @@ public class LoadFlowParametersEntity {
                     }
                 });
             }
-            provider = loadFlowParametersInfos.provider();
+            provider = loadFlowParametersInfos.getProvider();
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
+        assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+    }
+
+    private void assignLimitReductions(@Nullable List<List<Double>> values) {
+        if (values == null) {
+            return;
+        }
+        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new).toList();
+        if (limitReductions == null) {
+            limitReductions = entities;
+        } else {
+            limitReductions.clear();
+            limitReductions.addAll(entities);
+        }
     }
 
     private void assignCommonValues(LoadFlowParameters allCommonValues) {
@@ -184,43 +207,5 @@ public class LoadFlowParametersEntity {
                 .setConnectedComponentMode(this.getConnectedComponentMode())
                 .setHvdcAcEmulation(this.isHvdcAcEmulation())
                 .setDcPowerFactor(this.getDcPowerFactor());
-    }
-
-    public LoadFlowParametersInfos toLoadFlowParametersInfos() {
-        return LoadFlowParametersInfos.builder()
-                .uuid(id)
-                .provider(provider)
-                .commonParameters(toLoadFlowParameters())
-                .specificParametersPerProvider(specificParameters.stream()
-                        .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
-                                Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
-                                        LoadFlowSpecificParameterEntity::getValue))))
-                .build();
-    }
-
-    public LoadFlowParametersValues toLoadFlowParametersValues() {
-        return LoadFlowParametersValues.builder()
-                .provider(provider)
-                .commonParameters(toLoadFlowParameters())
-                .specificParameters(specificParameters.stream()
-                        .filter(p -> p.getProvider().equalsIgnoreCase(provider))
-                        .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
-                                LoadFlowSpecificParameterEntity::getValue)))
-                .build();
-    }
-
-    public LoadFlowParametersValues toLoadFlowParametersValues(String provider) {
-        return LoadFlowParametersValues.builder()
-                .provider(provider)
-                .commonParameters(toLoadFlowParameters())
-                .specificParameters(specificParameters.stream()
-                        .filter(p -> p.getProvider().equalsIgnoreCase(provider))
-                        .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName,
-                                LoadFlowSpecificParameterEntity::getValue)))
-                .build();
-    }
-
-    public LoadFlowParametersEntity copy() {
-        return toLoadFlowParametersInfos().toEntity();
     }
 }
