@@ -89,7 +89,7 @@ public class LoadFlowParametersService {
     @Transactional
     public Optional<UUID> duplicateParameters(UUID sourceParametersUuid) {
         return loadFlowParametersRepository.findById(sourceParametersUuid)
-                .map(e -> e.copy(toLoadFlowParametersInfos(e)))
+                .map(e -> toLoadFlowParametersInfos(e).toEntity())
             .map(loadFlowParametersRepository::save)
             .map(LoadFlowParametersEntity::getId);
     }

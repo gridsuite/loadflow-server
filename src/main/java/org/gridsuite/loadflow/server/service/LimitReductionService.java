@@ -1,3 +1,9 @@
+/**
+ Copyright (c) 2024, RTE (http://www.rte-france.com)
+ This Source Code Form is subject to the terms of the Mozilla Public
+ License, v. 2.0. If a copy of the MPL was not distributed with this
+ file, You can obtain one at http://mozilla.org/MPL/2.0/.
+ */
 package org.gridsuite.loadflow.server.service;
 
 import lombok.Getter;
@@ -13,6 +19,9 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+/**
+ * @author Maissa SOUISSI <maissa.souissi at rte-france.com>
+ */
 @Setter
 @Getter
 @Service

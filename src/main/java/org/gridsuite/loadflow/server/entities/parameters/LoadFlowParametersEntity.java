@@ -208,8 +208,4 @@ public class LoadFlowParametersEntity {
                 .setHvdcAcEmulation(this.isHvdcAcEmulation())
                 .setDcPowerFactor(this.getDcPowerFactor());
     }
-
-    public LoadFlowParametersEntity copy(LoadFlowParametersInfos loadFlowParametersInfos) {
-        return loadFlowParametersInfos.toEntity();
-    }
 }
