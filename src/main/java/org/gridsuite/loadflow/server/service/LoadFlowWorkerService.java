@@ -195,7 +195,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 .subjectId(violation.getSubjectId())
                 .actualOverloadDuration(violation.getAcceptableDuration())
                 .upComingOverloadDuration(violation.getAcceptableDuration())
-                .limit(violation.getLimit())
+                .limit(violation.getLimit() / violation.getLimitReduction())
                 .limitName(violation.getLimitName())
                 .value(violation.getValue())
                 .side(violation.getSide() != null ? violation.getSide().name() : "")
