@@ -142,7 +142,7 @@ class LoadFlowParametersTest {
         assertThat(createdParameters).recursivelyEquals(defaultLoadFlowParameters);
     }
 
-    void testCreateAndGet(LoadFlowParametersInfos parametersToRead, LoadFlowParametersInfos expectedParameters) throws Exception {
+    protected void testCreateAndGet(LoadFlowParametersInfos parametersToRead, LoadFlowParametersInfos expectedParameters) throws Exception {
         //create parameters
         MvcResult mvcPostResult = mockMvc.perform(post("/" + VERSION + "/parameters")
                         .content(mapper.writeValueAsString(parametersToRead))
@@ -163,13 +163,9 @@ class LoadFlowParametersTest {
         });
 
         assertThat(receivedParameters).recursivelyEquals(expectedParameters);
-
-        //remove tested parameters
-        mockMvc.perform(delete("/" + VERSION + "/parameters/" + createdParametersUuid))
-                .andExpectAll(status().isOk());
     }
 
-    void testCreateAndGet(LoadFlowParametersInfos parametersToRead) throws Exception {
+    protected void testCreateAndGet(LoadFlowParametersInfos parametersToRead) throws Exception {
         testCreateAndGet(parametersToRead, parametersToRead);
     }
 
