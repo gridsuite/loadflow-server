@@ -193,7 +193,7 @@ public class LoadFlowControllerTest {
         }
         while (output.receive(1000, "loadflow.cancel") != null) {
         }
-        while (output.receive(1000, "loadflow.stopped") != null) {
+        while (output.receive(1000, "loadflow.cancelfailed") != null) {
         }
         while (output.receive(1000, "loadflow.failed") != null) {
         }
@@ -645,11 +645,12 @@ public class LoadFlowControllerTest {
                     .andExpect(status().isOk());
             assertNotNull(output.receive(TIMEOUT, "loadflow.cancel"));
 
-            Message<byte[]> message = output.receive(TIMEOUT, "loadflow.stopped");
+            Message<byte[]> message = output.receive(TIMEOUT, "loadflow.cancelfailed");
             assertNotNull(message);
             assertEquals(RESULT_UUID.toString(), message.getHeaders().get("resultUuid"));
             assertEquals("me", message.getHeaders().get("receiver"));
             assertEquals(NotificationService.getCancelMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
+            //FIXME how to test the case when the computation is still in progress and we send a cancel request
         }
     }
 
