@@ -193,9 +193,11 @@ public class LoadFlowControllerTest {
         }
         while (output.receive(1000, "loadflow.cancel") != null) {
         }
-        while (output.receive(1000, "loadflow.cancelfailed") != null) {
+        while (output.receive(1000, "loadflow.stopped") != null) {
         }
         while (output.receive(1000, "loadflow.failed") != null) {
+        }
+        while (output.receive(1000, "loadflow.cancelfailed") != null) {
         }
     }
 
