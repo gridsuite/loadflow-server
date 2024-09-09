@@ -25,6 +25,8 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.stopped
         publishFailed-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.failed
+        publishCancelFailed-out-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancelfailed
       output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishFailed-out-0
 
 powsybl-ws:
