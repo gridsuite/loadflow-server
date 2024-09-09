@@ -643,7 +643,8 @@ public class LoadFlowControllerTest {
 
             // stop loadlow
             assertNotNull(output.receive(TIMEOUT, "loadflow.run"));
-            mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID))
+            mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID)
+                            .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk());
             assertNotNull(output.receive(TIMEOUT, "loadflow.cancel"));
 
