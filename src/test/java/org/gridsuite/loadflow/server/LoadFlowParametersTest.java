@@ -186,14 +186,14 @@ class LoadFlowParametersTest {
                 .build());
 
         // Get default limits with 'OpenLoadFlow' provider
-        String defaultProvider = limitReductionService.getProviders().iterator().next();
-        testCreateAndGet(buildCommonAndSpecificParameters().provider(defaultProvider).limitReductions(List.of()).build(), buildCommonAndSpecificParameters()
-                .provider(defaultProvider)
+        String provider = limitReductionService.getProviders().iterator().next();
+        testCreateAndGet(buildCommonAndSpecificParameters().provider(provider).limitReductions(List.of()).build(), buildCommonAndSpecificParameters()
+                .provider(provider)
                 .limitReductions(limitReductionService.createDefaultLimitReductions())
                 .build());
         // Get limits with 'OpenLoadFlow' provider
         testCreateAndGet(buildCommonAndSpecificParameters()
-                .provider(defaultProvider)
+                .provider(provider)
                 .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build());
 
@@ -364,14 +364,14 @@ class LoadFlowParametersTest {
                 .commonParameters(LoadFlowParameters.load()).specificParametersPerProvider(Map.of());
     }
 
-    protected LoadFlowParametersInfos buildParametersByProvider(String provider) {
+    protected LoadFlowParametersInfos buildParametersWithProvider(String provider) {
         return buildCommonAndSpecificParameters()
                 .provider(provider)
                 .build();
     }
 
     protected LoadFlowParametersInfos buildParameters() {
-        return buildParametersByProvider(PROVIDER);
+        return buildParametersWithProvider(PROVIDER);
     }
 
     protected LoadFlowParametersInfos buildParametersUpdate() {
