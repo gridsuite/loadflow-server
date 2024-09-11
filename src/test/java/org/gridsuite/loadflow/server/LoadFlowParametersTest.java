@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server;
 
+import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.loadflow.utils.assertions.Assertions.*;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +34,7 @@ import org.springframework.http.MediaType;
 import static org.junit.Assert.*;
 import static org.junit.Assert.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.fasterxml.jackson.core.type.TypeReference;
@@ -140,20 +142,64 @@ class LoadFlowParametersTest {
         assertThat(createdParameters).recursivelyEquals(defaultLoadFlowParameters);
     }
 
-    @Test
-    void testRead() throws Exception {
+    protected void testCreateAndGet(LoadFlowParametersInfos parametersToRead, LoadFlowParametersInfos expectedParameters) throws Exception {
+        //create parameters
+        MvcResult mvcPostResult = mockMvc.perform(post("/" + VERSION + "/parameters")
+                        .content(mapper.writeValueAsString(parametersToRead))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpectAll(
+                        status().isOk(),
+                        content().contentType(MediaType.APPLICATION_JSON)
+                ).andReturn();
 
-        LoadFlowParametersInfos parametersToRead = buildParameters();
+        UUID createdParametersUuid = mapper.readValue(mvcPostResult.getResponse().getContentAsString(), UUID.class);
+        assertNotNull(createdParametersUuid);
 
-        UUID parametersUuid = saveAndRetunId(parametersToRead);
-
-        MvcResult mvcResult = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid))
+        // get created parameters
+        MvcResult mvcResult = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + createdParametersUuid))
                 .andExpect(status().isOk()).andReturn();
         String resultAsString = mvcResult.getResponse().getContentAsString();
         LoadFlowParametersInfos receivedParameters = mapper.readValue(resultAsString, new TypeReference<>() {
         });
 
-        assertThat(receivedParameters).recursivelyEquals(parametersToRead);
+        assertThat(receivedParameters).recursivelyEquals(expectedParameters);
+    }
+
+    protected void testCreateAndGet(LoadFlowParametersInfos parametersToRead) throws Exception {
+        testCreateAndGet(parametersToRead, parametersToRead);
+    }
+
+    @Test
+    void testRead() throws Exception {
+        List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+
+        // Get no limits with no provider
+        testCreateAndGet(buildCommonAndSpecificParameters().build());
+        // Get no limits with a provider other than 'OpenLoadFlow'
+        testCreateAndGet(buildCommonAndSpecificParameters().provider(PROVIDER).build());
+        testCreateAndGet(buildCommonAndSpecificParameters()
+                .provider(PROVIDER)
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
+                .build(), buildCommonAndSpecificParameters()
+                .provider(PROVIDER)
+                .limitReductions(null)
+                .build());
+
+        // Get default limits with 'OpenLoadFlow' provider
+        String provider = limitReductionService.getProviders().iterator().next();
+        testCreateAndGet(buildCommonAndSpecificParameters().provider(provider).limitReductions(List.of()).build(), buildCommonAndSpecificParameters()
+                .provider(provider)
+                .limitReductions(limitReductionService.createDefaultLimitReductions())
+                .build());
+        // Get limits with 'OpenLoadFlow' provider
+        testCreateAndGet(buildCommonAndSpecificParameters()
+                .provider(provider)
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
+                .build());
+
+        // Get not existing parameters and expect 404
+        mockMvc.perform(get("/" + VERSION + "/parameters/" + UUID.randomUUID()))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -161,7 +207,7 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos parametersToUpdate = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parametersToUpdate);
+        UUID parametersUuid = saveAndReturnId(parametersToUpdate);
 
         parametersToUpdate = buildParametersUpdate();
 
@@ -186,7 +232,7 @@ class LoadFlowParametersTest {
                 .commonParameters(loadFlowParameters)
                 .specificParametersPerProvider(Map.of())
                 .build();
-        UUID parametersUuid = saveAndRetunId(parametersToUpdate);
+        UUID parametersUuid = saveAndReturnId(parametersToUpdate);
 
         mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk());
@@ -200,7 +246,7 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos parametersToDelete = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parametersToDelete);
+        UUID parametersUuid = saveAndReturnId(parametersToDelete);
 
         mockMvc.perform(delete(URI_PARAMETERS_GET_PUT + parametersUuid)).andExpect(status().isOk()).andReturn();
 
@@ -213,7 +259,7 @@ class LoadFlowParametersTest {
     void testDuplicate() throws Exception {
         LoadFlowParametersInfos parametersToDuplicate = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parametersToDuplicate);
+        UUID parametersUuid = saveAndReturnId(parametersToDuplicate);
 
         mockMvc.perform(post(URI_PARAMETERS_BASE).queryParam("duplicateFrom", parametersUuid.toString()))
                 .andExpect(status().isOk()).andReturn();
@@ -233,7 +279,7 @@ class LoadFlowParametersTest {
     void testGetParametersValuesForAProvider() throws Exception {
         LoadFlowParametersInfos parameters = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parameters);
+        UUID parametersUuid = saveAndReturnId(parameters);
 
         MvcResult mvcResult = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid + "/values" + "?provider=" + PROVIDER))
                 .andExpect(status().isOk()).andReturn();
@@ -252,9 +298,9 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos parameters2 = buildParametersUpdate();
 
-        saveAndRetunId(parameters1);
+        saveAndReturnId(parameters1);
 
-        saveAndRetunId(parameters2);
+        saveAndReturnId(parameters2);
 
         MvcResult mvcResult = mockMvc.perform(get(URI_PARAMETERS_BASE))
                 .andExpect(status().isOk()).andReturn();
@@ -269,7 +315,7 @@ class LoadFlowParametersTest {
     void testUpdateProvider() throws Exception {
         LoadFlowParametersInfos parameters = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parameters);
+        UUID parametersUuid = saveAndReturnId(parameters);
 
         String newProvider = "newProvider";
 
@@ -286,7 +332,7 @@ class LoadFlowParametersTest {
     void testResetProvider() throws Exception {
         LoadFlowParametersInfos parameters = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parameters);
+        UUID parametersUuid = saveAndReturnId(parameters);
 
         mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
                 .andExpect(status().isOk()).andReturn();
@@ -300,7 +346,7 @@ class LoadFlowParametersTest {
     void testGetParametersValues() {
         LoadFlowParametersInfos parameters = buildParameters();
 
-        UUID parametersUuid = saveAndRetunId(parameters);
+        UUID parametersUuid = saveAndReturnId(parameters);
 
         LoadFlowParametersValues parametersValues = parametersService.getParametersValues(parametersUuid);
 
@@ -308,17 +354,24 @@ class LoadFlowParametersTest {
     }
 
     /** Save parameters into the repository and return its UUID. */
-    protected UUID saveAndRetunId(LoadFlowParametersInfos parametersInfos) {
+    protected UUID saveAndReturnId(LoadFlowParametersInfos parametersInfos) {
         parametersRepository.save(parametersInfos.toEntity());
         return parametersRepository.findAll().get(0).getId();
     }
 
-    protected LoadFlowParametersInfos buildParameters() {
+    protected LoadFlowParametersInfos.LoadFlowParametersInfosBuilder buildCommonAndSpecificParameters() {
         return LoadFlowParametersInfos.builder()
-                .provider(PROVIDER)
-                .commonParameters(LoadFlowParameters.load())
-                .specificParametersPerProvider(Map.of())
+                .commonParameters(LoadFlowParameters.load()).specificParametersPerProvider(Map.of());
+    }
+
+    protected LoadFlowParametersInfos buildParametersWithProvider(String provider) {
+        return buildCommonAndSpecificParameters()
+                .provider(provider)
                 .build();
+    }
+
+    protected LoadFlowParametersInfos buildParameters() {
+        return buildParametersWithProvider(PROVIDER);
     }
 
     protected LoadFlowParametersInfos buildParametersUpdate() {
