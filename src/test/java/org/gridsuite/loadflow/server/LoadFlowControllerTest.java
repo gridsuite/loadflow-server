@@ -197,6 +197,8 @@ public class LoadFlowControllerTest {
         }
         while (output.receive(1000, "loadflow.failed") != null) {
         }
+        while (output.receive(1000, "loadflow.cancelfailed") != null) {
+        }
     }
 
     @SneakyThrows
@@ -641,15 +643,17 @@ public class LoadFlowControllerTest {
 
             // stop loadlow
             assertNotNull(output.receive(TIMEOUT, "loadflow.run"));
-            mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID))
+            mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID)
+                            .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk());
             assertNotNull(output.receive(TIMEOUT, "loadflow.cancel"));
 
-            Message<byte[]> message = output.receive(TIMEOUT, "loadflow.stopped");
+            Message<byte[]> message = output.receive(TIMEOUT, "loadflow.cancelfailed");
             assertNotNull(message);
             assertEquals(RESULT_UUID.toString(), message.getHeaders().get("resultUuid"));
             assertEquals("me", message.getHeaders().get("receiver"));
-            assertEquals(NotificationService.getCancelMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
+            assertEquals(NotificationService.getCancelFailedMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
+            //FIXME how to test the case when the computation is still in progress and we send a cancel request
         }
     }
 
