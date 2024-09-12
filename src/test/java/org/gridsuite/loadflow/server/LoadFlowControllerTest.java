@@ -197,6 +197,8 @@ public class LoadFlowControllerTest {
         }
         while (output.receive(1000, "loadflow.failed") != null) {
         }
+        while (output.receive(1000, "loadflow.cancelfailed") != null) {
+        }
     }
 
     @SneakyThrows
@@ -291,8 +293,10 @@ public class LoadFlowControllerTest {
     @Test
     public void testGetEnumValues() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
-        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))
@@ -309,36 +313,40 @@ public class LoadFlowControllerTest {
             Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
             assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get loadflow limit types
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/limit-types", RESULT_UUID))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            List<LimitViolationType> limitTypes = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+            assertEquals(0, limitTypes.size());
+
+            // get loadflow branch sides
+            mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/branch-sides", RESULT_UUID))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            List<TwoSides> sides = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+            assertEquals(2, sides.size());
+            assertTrue(sides.contains(TwoSides.ONE));
+            assertTrue(sides.contains(TwoSides.TWO));
+
+            // get loadflow computing status
+            mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/computation-status", RESULT_UUID))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+            assertEquals(1, status.size());
+            assertTrue(status.contains(LoadFlowResult.ComponentResult.Status.CONVERGED));
         }
-
-        // get loadflow limit types
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/limit-types", RESULT_UUID))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-        List<LimitViolationType> limitTypes = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
-        assertEquals(0, limitTypes.size());
-
-        // get loadflow branch sides
-        mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/branch-sides", RESULT_UUID))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-        List<TwoSides> sides = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
-        assertEquals(1, sides.size());
-        assertTrue(sides.contains(TwoSides.ONE));
-
-        // get loadflow computing status
-        mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/computation-status", RESULT_UUID))
-                .andExpectAll(
-                        status().isOk(),
-                        content().contentType(MediaType.APPLICATION_JSON)
-                ).andReturn();
-        List<LoadFlowResult.ComponentResult.Status> status = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() { });
-        assertEquals(1, status.size());
-        assertTrue(status.contains(LoadFlowResult.ComponentResult.Status.CONVERGED));
     }
 
     @Test
@@ -635,15 +643,17 @@ public class LoadFlowControllerTest {
 
             // stop loadlow
             assertNotNull(output.receive(TIMEOUT, "loadflow.run"));
-            mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID))
+            mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID)
+                            .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk());
             assertNotNull(output.receive(TIMEOUT, "loadflow.cancel"));
 
-            Message<byte[]> message = output.receive(TIMEOUT, "loadflow.stopped");
+            Message<byte[]> message = output.receive(TIMEOUT, "loadflow.cancelfailed");
             assertNotNull(message);
             assertEquals(RESULT_UUID.toString(), message.getHeaders().get("resultUuid"));
             assertEquals("me", message.getHeaders().get("receiver"));
-            assertEquals(NotificationService.getCancelMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
+            assertEquals(NotificationService.getCancelFailedMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
+            //FIXME how to test the case when the computation is still in progress and we send a cancel request
         }
     }
 
