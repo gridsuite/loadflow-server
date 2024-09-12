@@ -56,7 +56,7 @@
         Caused by: java.io.InvalidClassException: org.antlr.v4.runtime.atn.ATN; Could not deserialize ATN with version 4 (expected 3).
         -->
         <antlr4.version>4.10.1</antlr4.version>
-        <powsybl-network-store.version>1.16.0</powsybl-network-store.version>
+        <powsybl-network-store.version>1.17.1</powsybl-network-store.version>
     </properties>
 
     <build>
