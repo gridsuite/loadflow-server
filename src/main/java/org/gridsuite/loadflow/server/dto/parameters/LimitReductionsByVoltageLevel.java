@@ -22,6 +22,7 @@ public class LimitReductionsByVoltageLevel {
     @Setter
     @Getter
     @NoArgsConstructor
+    @EqualsAndHashCode
     public static class LimitDuration {
         private Integer lowBound;
         private boolean lowClosed;
@@ -32,6 +33,7 @@ public class LimitReductionsByVoltageLevel {
     @Setter
     @Getter
     @NoArgsConstructor
+    @EqualsAndHashCode
     public static class VoltageLevel {
         private double nominalV;
         private double lowBound;
@@ -43,6 +45,7 @@ public class LimitReductionsByVoltageLevel {
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
+    @EqualsAndHashCode
     public static class LimitReduction {
         double reduction;
         LimitDuration limitDuration;
