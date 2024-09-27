@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.iidm.network.TwoSides;
@@ -79,39 +80,14 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     public static Map<String, List<Parameter>> getSpecificLoadFlowParameters(String providerName) {
-        Map<String, List<Parameter>> powsyblSpecificLFParameters = LoadFlowProvider.findAll().stream()
+        return LoadFlowProvider.findAll().stream()
                 .filter(provider -> providerName == null || provider.getName().equals(providerName))
                 .map(provider -> {
-                    List<Parameter> params = provider.getSpecificParameters().stream()
+                    List<Parameter> params = provider.getSpecificParameters(PlatformConfig.defaultConfig()).stream()
                             .filter(p -> p.getScope() == ParameterScope.FUNCTIONAL)
                             .toList();
                     return Pair.of(provider.getName(), params);
                 }).collect(Collectors.toMap(Pair::getLeft, Pair::getRight));
-
-        // FIXME: We need to override Powsybl default values in the loadflow-server as up to now we can't override those values through PlatformConfig for the specific parameters.
-        //  To be removed when it's fixed.
-        changeDefaultValue(powsyblSpecificLFParameters, "OpenLoadFlow", "writeReferenceTerminals", false);
-        changeDefaultValue(powsyblSpecificLFParameters, "DynaFlow", "mergeLoads", false);
-
-        return powsyblSpecificLFParameters;
-    }
-
-    public static void changeDefaultValue(Map<String, List<Parameter>> specificParameters, String providerName, String parameterName, Object defaultValue) {
-        if (specificParameters.get(providerName) == null) {
-            return;
-        }
-        List<Parameter> providerParams = new ArrayList<>(specificParameters.get(providerName));
-        providerParams.stream().filter(parameter -> parameterName.equals(parameter.getName())).findAny().ifPresent(parameterToOverride -> {
-            providerParams.remove(parameterToOverride);
-            providerParams.add(new Parameter(parameterToOverride.getName(),
-                    parameterToOverride.getType(),
-                    parameterToOverride.getDescription(),
-                    defaultValue,
-                    parameterToOverride.getPossibleValues(),
-                    parameterToOverride.getScope()
-            ));
-        });
-        specificParameters.put(providerName, providerParams);
     }
 
     @Override
