@@ -106,7 +106,8 @@ public final class SpecificationUtils {
     }
 
     private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
-        final double tolerance = 0.00001; // tolerance for comparison
+        int numberOfDecimalAfterDot = value.split("\\.").length > 1 ? value.split("\\.")[1].length() : 0;
+        final double tolerance = Math.pow(10, -numberOfDecimalAfterDot); // tolerance for comparison
         Double valueDouble = Double.valueOf(value);
         Expression<Double> doubleExpression = expression.as(Double.class);
 
