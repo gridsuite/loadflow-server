@@ -106,7 +106,11 @@ public final class SpecificationUtils {
     }
 
     private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
-        int numberOfDecimalAfterDot = value.split("\\.").length > 1 ? value.split("\\.")[1].length() : 0;
+        String[] splitValue = value.split("\\.");
+        int numberOfDecimalAfterDot = 0;
+        if (splitValue.length > 1) {
+            numberOfDecimalAfterDot = splitValue[1].length();
+        }
         final double tolerance = Math.pow(10, -numberOfDecimalAfterDot); // tolerance for comparison
         Double valueDouble = Double.valueOf(value);
         Expression<Double> doubleExpression = expression.as(Double.class);
@@ -114,8 +118,7 @@ public final class SpecificationUtils {
         return switch (filter.type()) {
             case NOT_EQUAL -> {
                 Double upperBound = valueDouble + tolerance;
-                Double lowerBound = valueDouble - tolerance;
-                yield criteriaBuilder.or(criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound), criteriaBuilder.lessThanOrEqualTo(doubleExpression, lowerBound));
+                yield criteriaBuilder.or(criteriaBuilder.greaterThan(doubleExpression, upperBound), criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble));
             }
             case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble + tolerance);
             case GREATER_THAN_OR_EQUAL ->
