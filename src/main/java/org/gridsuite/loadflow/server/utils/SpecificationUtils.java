@@ -82,7 +82,7 @@ public final class SpecificationUtils {
             return createTextPredicate(criteriaBuilder, expression, filter, (String) value);
         }
         if (ResourceFilter.DataType.NUMBER == filter.dataType()) {
-            return createNumberPredicate(criteriaBuilder, expression, filter, (String) value);
+            return createNumberPredicate(criteriaBuilder, expression, filter.type(), (String) value);
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
     }
@@ -105,24 +105,33 @@ public final class SpecificationUtils {
         };
     }
 
-    private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
-        String[] splitValue = value.split("\\.");
+    private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter.Type comparator, String filterValue) {
+        // the reference for the comparison is the number of digits after the decimal point in filterValue
+        // filterValue is truncated, not rounded
+        // extra digits are ignored, but the user may add '0's ater the decimal point in order to get a better precision
+        String[] splitValue = filterValue.split("\\.");
         int numberOfDecimalAfterDot = 0;
         if (splitValue.length > 1) {
             numberOfDecimalAfterDot = splitValue[1].length();
         }
-        final double tolerance = Math.pow(10, -numberOfDecimalAfterDot); // tolerance for comparison
-        Double valueDouble = Double.valueOf(value);
+        final double tolerance = Math.pow(10, -numberOfDecimalAfterDot);
+        double filterValueDouble = Double.parseDouble(filterValue);
         Expression<Double> doubleExpression = expression.as(Double.class);
 
-        return switch (filter.type()) {
+        return switch (comparator) {
             case NOT_EQUAL -> {
-                Double upperBound = valueDouble + tolerance;
-                yield criteriaBuilder.or(criteriaBuilder.greaterThan(doubleExpression, upperBound), criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble));
+                Double upperBound = filterValueDouble + tolerance;
+                // in order to be equal to doubleExpression, truncated filterValueDouble has to fit :
+                // filterValueDouble <= doubleExpression < filterValueDouble + tolerance
+                // therefore in order to be different only one one of the opposite comparison needs to be true
+                yield criteriaBuilder.or(
+                        criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound),
+                        criteriaBuilder.lessThan(doubleExpression, filterValueDouble)
+                );
             }
-            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble + tolerance);
+            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, filterValueDouble + tolerance);
             case GREATER_THAN_OR_EQUAL ->
-                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, valueDouble - tolerance);
+                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, filterValueDouble);
             default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
         };
     }
