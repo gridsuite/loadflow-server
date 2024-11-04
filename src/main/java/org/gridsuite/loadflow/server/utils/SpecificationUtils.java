@@ -123,7 +123,7 @@ public final class SpecificationUtils {
                 Double upperBound = filterValueDouble + tolerance;
                 // in order to be equal to doubleExpression, truncated filterValueDouble has to fit :
                 // filterValueDouble <= doubleExpression < filterValueDouble + tolerance
-                // therefore in order to be different only one one of the opposite comparison needs to be true
+                // therefore in order to be different at least one of the opposite comparison needs to be true :
                 yield criteriaBuilder.or(
                         criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound),
                         criteriaBuilder.lessThan(doubleExpression, filterValueDouble)
