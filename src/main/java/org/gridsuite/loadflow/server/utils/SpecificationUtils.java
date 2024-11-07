@@ -108,7 +108,7 @@ public final class SpecificationUtils {
     private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter.Type comparator, String filterValue) {
         // the reference for the comparison is the number of digits after the decimal point in filterValue
         // filterValue is truncated, not rounded
-        // extra digits are ignored, but the user may add '0's ater the decimal point in order to get a better precision
+        // extra digits are ignored, but the user may add '0's after the decimal point in order to get a better precision
         String[] splitValue = filterValue.split("\\.");
         int numberOfDecimalAfterDot = 0;
         if (splitValue.length > 1) {
