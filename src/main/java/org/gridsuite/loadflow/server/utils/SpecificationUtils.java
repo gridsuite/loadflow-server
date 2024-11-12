@@ -125,11 +125,11 @@ public final class SpecificationUtils {
                 Double lowerBound = filterValueDouble - tolerance;
                 /**
                  * in order to be equal to doubleExpression, value has to fit :
-                 * value - tolerance <= doubleExpression < value + tolerance
+                 * value - tolerance <= doubleExpression <= value + tolerance
                  * therefore in order to be different at least one of the opposite comparison needs to be true :
                  */
                 yield criteriaBuilder.or(
-                        criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound),
+                        criteriaBuilder.greaterThan(doubleExpression, upperBound),
                         criteriaBuilder.lessThan(doubleExpression, lowerBound)
                 );
             }
