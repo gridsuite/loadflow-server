@@ -107,31 +107,35 @@ public final class SpecificationUtils {
 
     private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter.Type comparator, String filterValue) {
         // the reference for the comparison is the number of digits after the decimal point in filterValue
-        // filterValue is truncated, not rounded
         // extra digits are ignored, but the user may add '0's after the decimal point in order to get a better precision
         String[] splitValue = filterValue.split("\\.");
         int numberOfDecimalAfterDot = 0;
         if (splitValue.length > 1) {
             numberOfDecimalAfterDot = splitValue[1].length();
         }
-        final double tolerance = Math.pow(10, -numberOfDecimalAfterDot);
+        // tolerance is multiplied by 0.5 to simulate the fact that the database value is rounded (in the front, from the user viewpoint)
+        // more than 13 decimal after dot will likely cause rounding errors due to double precision
+        final double tolerance = Math.pow(10, -numberOfDecimalAfterDot) * 0.5;
         double filterValueDouble = Double.parseDouble(filterValue);
         Expression<Double> doubleExpression = expression.as(Double.class);
 
         return switch (comparator) {
             case NOT_EQUAL -> {
                 Double upperBound = filterValueDouble + tolerance;
-                // in order to be equal to doubleExpression, truncated filterValueDouble has to fit :
-                // filterValueDouble <= doubleExpression < filterValueDouble + tolerance
-                // therefore in order to be different at least one of the opposite comparison needs to be true :
+                Double lowerBound = filterValueDouble - tolerance;
+                /**
+                 * in order to be equal to doubleExpression, value has to fit :
+                 * value - tolerance <= doubleExpression < value + tolerance
+                 * therefore in order to be different at least one of the opposite comparison needs to be true :
+                 */
                 yield criteriaBuilder.or(
                         criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound),
-                        criteriaBuilder.lessThan(doubleExpression, filterValueDouble)
+                        criteriaBuilder.lessThan(doubleExpression, lowerBound)
                 );
             }
             case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, filterValueDouble + tolerance);
             case GREATER_THAN_OR_EQUAL ->
-                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, filterValueDouble);
+                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, filterValueDouble - tolerance);
             default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
         };
     }
