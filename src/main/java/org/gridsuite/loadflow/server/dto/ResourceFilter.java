@@ -16,11 +16,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * @param type the type of filter (contains, startsWith...)
  * @param value the value of the filter
  * @param column the column on which the filter will be applied
+ * @param tolerance precision/tolerance used for the comparisons (simulates the rounding of the database values) Only useful for numbers.
  * @author Anis TOURI <anis.touri@rte-france.com>
  */
-public record ResourceFilter(DataType dataType, Type type, Object value, Column column) {
-
-    private static ObjectMapper objectMapper = new ObjectMapper();
+public record ResourceFilter(DataType dataType, Type type, Object value, Column column, Double tolerance) {
+    public ResourceFilter(DataType dataType, Type type, Object value, Column column) {
+        this(dataType, type, value, column, null);
+    }
 
     public enum DataType {
         @JsonProperty("text")
