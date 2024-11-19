@@ -23,6 +23,9 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
+import com.powsybl.security.ViolationLocation;
+import com.powsybl.security.NodeBreakerViolationLocation;
+import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -42,6 +45,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static com.powsybl.security.ViolationLocation.Type.NODE_BREAKER;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
 /**
@@ -191,8 +195,22 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
+
         return LimitViolationInfos.builder()
                 .subjectId(violation.getSubjectId())
+                        .actualOverloadDuration(violation.getAcceptableDuration())
+                        .upComingOverloadDuration(violation.getAcceptableDuration())
+                        .limit(violation.getLimit())
+                        .limitName(violation.getLimitName())
+                        .value(violation.getValue())
+                        .side(violation.getSide() != null ? violation.getSide().name() : "")
+                        .limitType(violation.getLimitType()).build();
+    }
+
+    public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {
+
+        return LimitViolationInfos.builder()
+                .subjectId(getIdFromViolation(violation, network))
                 .actualOverloadDuration(violation.getAcceptableDuration())
                 .upComingOverloadDuration(violation.getAcceptableDuration())
                 .limit(violation.getLimit())
@@ -221,8 +239,52 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             }
 
         }
+        System.out.println("violations ====> " + violations.size());
+
         return violations.stream()
-                .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
+                .map(limitViolation -> {
+                    return toLimitViolationInfos(limitViolation, network);
+                }).toList();
+    }
+
+    private static String getIdFromViolation(LimitViolation limitViolation, Network network) {
+        if (limitViolation.getViolationLocation().isPresent()) {
+            ViolationLocation location = limitViolation.getViolationLocation().get();
+            if (location.getType() == NODE_BREAKER) {
+                NodeBreakerViolationLocation nodeBreakerViolationLocation = (NodeBreakerViolationLocation) location;
+                return getBusIdOrVlIdNodeBreaker(nodeBreakerViolationLocation, network);
+            } else {
+                BusBreakerViolationLocation busBreakerViolationLocation = (BusBreakerViolationLocation) location;
+                return getBusIdOrVlIdBusBreaker(busBreakerViolationLocation, network, limitViolation.getSubjectId());
+            }
+        } else {
+            return limitViolation.getSubjectId();
+        }
+    }
+
+    private static String getBusIdOrVlIdNodeBreaker(NodeBreakerViolationLocation nodeBreakerViolationLocation, Network network) {
+        List<String> nodesIds = nodeBreakerViolationLocation
+                .getBusView(network)
+                .getBusStream()
+                .map(Identifiable::getId).toList();
+
+        return formatNodeId(nodesIds, nodeBreakerViolationLocation.getVoltageLevelId());
+    }
+
+    private static String formatNodeId(List<String> nodesIds, String subjectId) {
+        if (nodesIds.size() == 1) {
+            return nodesIds.get(0);
+        } else if (nodesIds.isEmpty()) {
+            return subjectId;
+        } else {
+            return subjectId + " (" + String.join(", ", nodesIds) + " )";
+        }
+    }
+
+    private static String getBusIdOrVlIdBusBreaker(BusBreakerViolationLocation busBreakerViolationLocation, Network network, String subjectId) {
+        List<String> busBreakerIds = busBreakerViolationLocation.getBusBreakerView(network)
+                .getBusStream().map(Identifiable::getId).toList();
+        return formatNodeId(busBreakerIds, subjectId);
     }
 
     @Bean
