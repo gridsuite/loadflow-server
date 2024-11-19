@@ -239,26 +239,23 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             }
 
         }
-        System.out.println("violations ====> " + violations.size());
-
         return violations.stream()
-                .map(limitViolation -> {
-                    return toLimitViolationInfos(limitViolation, network);
-                }).toList();
+                .map(limitViolation -> toLimitViolationInfos(limitViolation, network)).toList();
     }
 
     private static String getIdFromViolation(LimitViolation limitViolation, Network network) {
-        if (limitViolation.getViolationLocation().isPresent()) {
-            ViolationLocation location = limitViolation.getViolationLocation().get();
-            if (location.getType() == NODE_BREAKER) {
-                NodeBreakerViolationLocation nodeBreakerViolationLocation = (NodeBreakerViolationLocation) location;
-                return getBusIdOrVlIdNodeBreaker(nodeBreakerViolationLocation, network);
-            } else {
-                BusBreakerViolationLocation busBreakerViolationLocation = (BusBreakerViolationLocation) location;
-                return getBusIdOrVlIdBusBreaker(busBreakerViolationLocation, network, limitViolation.getSubjectId());
-            }
-        } else {
+        Optional<ViolationLocation> violationLocation = limitViolation.getViolationLocation();
+        if (violationLocation.isEmpty()) {
             return limitViolation.getSubjectId();
+        }
+        
+        ViolationLocation location = violationLocation.get();
+        if (location.getType() == NODE_BREAKER) {
+            NodeBreakerViolationLocation nodeBreakerViolationLocation = (NodeBreakerViolationLocation) location;
+            return getBusIdOrVlIdNodeBreaker(nodeBreakerViolationLocation, network);
+        } else {
+            BusBreakerViolationLocation busBreakerViolationLocation = (BusBreakerViolationLocation) location;
+            return getBusIdOrVlIdBusBreaker(busBreakerViolationLocation, network, limitViolation.getSubjectId());
         }
     }
 
