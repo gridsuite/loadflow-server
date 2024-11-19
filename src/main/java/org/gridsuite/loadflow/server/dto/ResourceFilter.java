@@ -8,7 +8,6 @@
 package org.gridsuite.loadflow.server.dto;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 /**
  * An object that can be used to filter data with the JPA Criteria API (via Spring Specification)
