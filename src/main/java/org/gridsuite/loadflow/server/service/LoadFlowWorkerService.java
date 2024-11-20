@@ -23,9 +23,6 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
-import com.powsybl.security.ViolationLocation;
-import com.powsybl.security.NodeBreakerViolationLocation;
-import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -45,8 +42,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
-import static com.powsybl.security.ViolationLocation.Type.NODE_BREAKER;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
+import static org.gridsuite.loadflow.server.utils.LoadflowResultsUtils.getIdFromViolation;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
@@ -243,46 +240,6 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 .map(limitViolation -> toLimitViolationInfos(limitViolation, network)).toList();
     }
 
-    private static String getIdFromViolation(LimitViolation limitViolation, Network network) {
-        Optional<ViolationLocation> violationLocation = limitViolation.getViolationLocation();
-        if (violationLocation.isEmpty()) {
-            return limitViolation.getSubjectId();
-        }
-        
-        ViolationLocation location = violationLocation.get();
-        if (location.getType() == NODE_BREAKER) {
-            NodeBreakerViolationLocation nodeBreakerViolationLocation = (NodeBreakerViolationLocation) location;
-            return getBusIdOrVlIdNodeBreaker(nodeBreakerViolationLocation, network);
-        } else {
-            BusBreakerViolationLocation busBreakerViolationLocation = (BusBreakerViolationLocation) location;
-            return getBusIdOrVlIdBusBreaker(busBreakerViolationLocation, network, limitViolation.getSubjectId());
-        }
-    }
-
-    private static String getBusIdOrVlIdNodeBreaker(NodeBreakerViolationLocation nodeBreakerViolationLocation, Network network) {
-        List<String> nodesIds = nodeBreakerViolationLocation
-                .getBusView(network)
-                .getBusStream()
-                .map(Identifiable::getId).toList();
-
-        return formatNodeId(nodesIds, nodeBreakerViolationLocation.getVoltageLevelId());
-    }
-
-    private static String formatNodeId(List<String> nodesIds, String subjectId) {
-        if (nodesIds.size() == 1) {
-            return nodesIds.get(0);
-        } else if (nodesIds.isEmpty()) {
-            return subjectId;
-        } else {
-            return subjectId + " (" + String.join(", ", nodesIds) + " )";
-        }
-    }
-
-    private static String getBusIdOrVlIdBusBreaker(BusBreakerViolationLocation busBreakerViolationLocation, Network network, String subjectId) {
-        List<String> busBreakerIds = busBreakerViolationLocation.getBusBreakerView(network)
-                .getBusStream().map(Identifiable::getId).toList();
-        return formatNodeId(busBreakerIds, subjectId);
-    }
 
     @Bean
     @Override
