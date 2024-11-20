@@ -14,6 +14,9 @@ import static com.powsybl.security.ViolationLocation.Type.NODE_BREAKER;
 
 public final class LoadflowResultsUtils {
 
+    private LoadflowResultsUtils() {
+    }
+
     public static String getIdFromViolation(LimitViolation limitViolation, Network network) {
         Optional<ViolationLocation> violationLocation = limitViolation.getViolationLocation();
         if (violationLocation.isEmpty()) {

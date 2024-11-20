@@ -1,11 +1,13 @@
 package org.gridsuite.loadflow.server;
 
-import com.powsybl.security.LimitViolationType;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.security.*;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
+import org.gridsuite.loadflow.server.utils.LoadflowResultsUtils;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -15,8 +17,10 @@ import org.springframework.data.jpa.domain.Specification;
 
 import java.util.Arrays;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
+import static org.gridsuite.loadflow.server.Networks.createNetwork;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -87,5 +91,46 @@ class LoadFlowServiceTest {
         assertNotNull(result);
         assertEquals(LimitViolationsMock.limitViolationEntities.size(), result.size());
         verify(limitViolationRepository, times(1)).findAll(any(Specification.class), eq(sort));
+    }
+
+    @Test
+    void testFormatNodeIdSingleNode() {
+        String result = LoadflowResultsUtils.formatNodeId(List.of("Node1"), "Subject1");
+        assertEquals("Node1", result);
+    }
+
+    @Test
+    void testFormatNodeIdEmptyNodes() {
+        String result = LoadflowResultsUtils.formatNodeId(List.of(), "Subject1");
+        assertEquals("Subject1", result);
+    }
+
+    @Test
+    void testFormatNodeIdMultipleNodes() {
+        String result = LoadflowResultsUtils.formatNodeId(List.of("Node1", "Node2"), "Subject1");
+        assertEquals("Subject1 (Node1, Node2 )", result);
+    }
+
+    @Test
+    void testGetIdFromViolationWithBusBreaker() {
+        // Setup
+        Network network = createNetwork("", true);
+        BusBreakerViolationLocation busBreakerLocation = new BusBreakerViolationLocation(List.of("NGEN"));
+        LimitViolation limitViolation = mock(LimitViolation.class);
+        when(limitViolation.getViolationLocation()).thenReturn(Optional.of(busBreakerLocation));
+
+        assertEquals("NGEN", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
+    }
+
+    @Test
+    void testGetIdFromViolationWithNoViolationLocation() {
+        // Setup
+        Network network = mock(Network.class);
+        LimitViolation limitViolation = mock(LimitViolation.class);
+
+        when(limitViolation.getViolationLocation()).thenReturn(Optional.empty());
+        when(limitViolation.getSubjectId()).thenReturn("SubjectId");
+
+        assertEquals("SubjectId", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
     }
 }

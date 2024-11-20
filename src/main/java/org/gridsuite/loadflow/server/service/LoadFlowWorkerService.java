@@ -240,7 +240,6 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 .map(limitViolation -> toLimitViolationInfos(limitViolation, network)).toList();
     }
 
-
     @Bean
     @Override
     public Consumer<Message<String>> consumeRun() {
