@@ -191,21 +191,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return limitViolationInfos;
     }
 
-    public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
-
-        return LimitViolationInfos.builder()
-                .subjectId(violation.getSubjectId())
-                        .actualOverloadDuration(violation.getAcceptableDuration())
-                        .upComingOverloadDuration(violation.getAcceptableDuration())
-                        .limit(violation.getLimit())
-                        .limitName(violation.getLimitName())
-                        .value(violation.getValue())
-                        .side(violation.getSide() != null ? violation.getSide().name() : "")
-                        .limitType(violation.getLimitType()).build();
-    }
-
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {
-
         return LimitViolationInfos.builder()
                 .subjectId(getIdFromViolation(violation, network))
                 .actualOverloadDuration(violation.getAcceptableDuration())
