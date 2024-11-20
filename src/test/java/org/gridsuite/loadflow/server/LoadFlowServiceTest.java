@@ -1,5 +1,6 @@
 package org.gridsuite.loadflow.server;
 
+import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.security.*;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -19,6 +20,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import static org.gridsuite.loadflow.server.Networks.createNetwork;
 import static org.junit.jupiter.api.Assertions.*;
@@ -132,5 +134,23 @@ class LoadFlowServiceTest {
         when(limitViolation.getSubjectId()).thenReturn("SubjectId");
 
         assertEquals("SubjectId", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
+    }
+
+    @Test
+    void testGetIdFromViolationWithNodeBreaker() {
+        Network network = createNetwork("", true);
+        NodeBreakerViolationLocation nodeBreakerViolationLocation = mock(NodeBreakerViolationLocation.class);
+        ViolationLocation.BusView busView = mock(ViolationLocation.BusView.class);
+        Bus bus = mock(Bus.class);
+
+        when(nodeBreakerViolationLocation.getType()).thenReturn(ViolationLocation.Type.NODE_BREAKER);
+        when(nodeBreakerViolationLocation.getBusView(network)).thenReturn(busView);
+        when(busView.getBusStream()).thenReturn(Stream.of(bus));
+        when(bus.getId()).thenReturn("NGEN");
+
+        LimitViolation limitViolation = mock(LimitViolation.class);
+        when(limitViolation.getViolationLocation()).thenReturn(Optional.of(nodeBreakerViolationLocation));
+
+        assertEquals("NGEN", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
     }
 }
