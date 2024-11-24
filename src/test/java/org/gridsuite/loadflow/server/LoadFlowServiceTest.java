@@ -138,19 +138,19 @@ class LoadFlowServiceTest {
 
     @Test
     void testGetIdFromViolationWithNodeBreaker() {
-        Network network = createNetwork("", true);
+        // Create a real network instead of mocking it
+        Network network = createNetwork("testNetwork", true);
+        
         NodeBreakerViolationLocation nodeBreakerViolationLocation = mock(NodeBreakerViolationLocation.class);
-        ViolationLocation.BusView busView = mock(ViolationLocation.BusView.class);
-        Bus bus = mock(Bus.class);
-
         when(nodeBreakerViolationLocation.getType()).thenReturn(ViolationLocation.Type.NODE_BREAKER);
-        when(nodeBreakerViolationLocation.getBusView(network)).thenReturn(busView);
-        when(busView.getBusStream()).thenReturn(Stream.of(bus));
-        when(bus.getId()).thenReturn("NGEN");
+        when(nodeBreakerViolationLocation.getVoltageLevelId()).thenReturn("VL1");
+        
 
         LimitViolation limitViolation = mock(LimitViolation.class);
         when(limitViolation.getViolationLocation()).thenReturn(Optional.of(nodeBreakerViolationLocation));
+        when(limitViolation.getSubjectId()).thenReturn("SubjectId");
 
-        assertEquals("NGEN", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
+        String result = LoadflowResultsUtils.getIdFromViolation(limitViolation, network);
+        assertEquals("VL1", result);
     }
 }

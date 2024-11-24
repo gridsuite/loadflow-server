@@ -1,13 +1,13 @@
 package org.gridsuite.loadflow.server.utils;
 
-import com.powsybl.iidm.network.Identifiable;
-import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.*;
 import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.NodeBreakerViolationLocation;
 import com.powsybl.security.ViolationLocation;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import static com.powsybl.security.ViolationLocation.Type.NODE_BREAKER;
@@ -34,12 +34,16 @@ public final class LoadflowResultsUtils {
     }
 
     public static String getBusIdOrVlIdNodeBreaker(NodeBreakerViolationLocation nodeBreakerViolationLocation, Network network) {
-        List<String> nodesIds = nodeBreakerViolationLocation
-                .getBusView(network)
-                .getBusStream()
-                .map(Identifiable::getId).toList();
+        VoltageLevel vl = network.getVoltageLevel(nodeBreakerViolationLocation.getVoltageLevelId());
+        List<String> busbarSectionIds = nodeBreakerViolationLocation.getNodes().stream()
+                .map(node -> vl.getNodeBreakerView().getTerminal(node))
+                .filter(Objects::nonNull)
+                .map(Terminal::getConnectable)
+                .filter(t -> t.getType() == IdentifiableType.BUSBAR_SECTION)
+                .map(Identifiable::getId)
+                .toList();
 
-        return formatNodeId(nodesIds, nodeBreakerViolationLocation.getVoltageLevelId());
+        return formatNodeId(busbarSectionIds, nodeBreakerViolationLocation.getVoltageLevelId());
     }
 
     public static String formatNodeId(List<String> nodesIds, String subjectId) {
