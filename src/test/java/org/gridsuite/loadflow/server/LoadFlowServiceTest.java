@@ -1,6 +1,5 @@
 package org.gridsuite.loadflow.server;
 
-import com.powsybl.iidm.network.Bus;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.security.*;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -20,7 +19,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.stream.Stream;
 
 import static org.gridsuite.loadflow.server.Networks.createNetwork;
 import static org.junit.jupiter.api.Assertions.*;
@@ -140,11 +138,10 @@ class LoadFlowServiceTest {
     void testGetIdFromViolationWithNodeBreaker() {
         // Create a real network instead of mocking it
         Network network = createNetwork("testNetwork", true);
-        
+
         NodeBreakerViolationLocation nodeBreakerViolationLocation = mock(NodeBreakerViolationLocation.class);
         when(nodeBreakerViolationLocation.getType()).thenReturn(ViolationLocation.Type.NODE_BREAKER);
         when(nodeBreakerViolationLocation.getVoltageLevelId()).thenReturn("VL1");
-        
 
         LimitViolation limitViolation = mock(LimitViolation.class);
         when(limitViolation.getViolationLocation()).thenReturn(Optional.of(nodeBreakerViolationLocation));
