@@ -6,9 +6,7 @@ import com.powsybl.security.LimitViolation;
 import com.powsybl.security.NodeBreakerViolationLocation;
 import com.powsybl.security.ViolationLocation;
 
-import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
+import java.util.*;
 
 import static com.powsybl.security.ViolationLocation.Type.NODE_BREAKER;
 
@@ -35,13 +33,18 @@ public final class LoadflowResultsUtils {
 
     public static String getBusIdOrVlIdNodeBreaker(NodeBreakerViolationLocation nodeBreakerViolationLocation, Network network) {
         VoltageLevel vl = network.getVoltageLevel(nodeBreakerViolationLocation.getVoltageLevelId());
+
         List<String> busIds = nodeBreakerViolationLocation.getNodes().stream()
                 .map(node -> vl.getNodeBreakerView().getTerminal(node))
                 .filter(Objects::nonNull)
                 .map(Terminal::getConnectable)
-                .filter(t -> t.getType() == IdentifiableType.BUS)
-                .map(Identifiable::getId)
+                .filter(t -> t.getType() == IdentifiableType.BUSBAR_SECTION)
+                .map(busBar -> ((BusbarSection) busBar).getTerminal().getBusView().getBus())
+                .filter(Objects::nonNull)
+                .map(Bus::getId)
+                .distinct()
                 .toList();
+
         return formatNodeId(busIds, nodeBreakerViolationLocation.getVoltageLevelId());
     }
 
@@ -56,8 +59,11 @@ public final class LoadflowResultsUtils {
     }
 
     public static String getBusIdOrVlIdBusBreaker(BusBreakerViolationLocation busBreakerViolationLocation, Network network, String subjectId) {
-        List<String> busBreakerIds = busBreakerViolationLocation.getBusBreakerView(network)
-                .getBusStream().map(Identifiable::getId).toList();
+        List<String> busBreakerIds = busBreakerViolationLocation
+                .getBusBreakerView(network)
+                .getBusStream()
+                .map(Identifiable::getId)
+                .distinct().toList();
         return formatNodeId(busBreakerIds, subjectId);
     }
 
