@@ -35,15 +35,14 @@ public final class LoadflowResultsUtils {
 
     public static String getBusIdOrVlIdNodeBreaker(NodeBreakerViolationLocation nodeBreakerViolationLocation, Network network) {
         VoltageLevel vl = network.getVoltageLevel(nodeBreakerViolationLocation.getVoltageLevelId());
-        List<String> busbarSectionIds = nodeBreakerViolationLocation.getNodes().stream()
+        List<String> busIds = nodeBreakerViolationLocation.getNodes().stream()
                 .map(node -> vl.getNodeBreakerView().getTerminal(node))
                 .filter(Objects::nonNull)
                 .map(Terminal::getConnectable)
-                .filter(t -> t.getType() == IdentifiableType.BUSBAR_SECTION)
+                .filter(t -> t.getType() == IdentifiableType.BUS)
                 .map(Identifiable::getId)
                 .toList();
-
-        return formatNodeId(busbarSectionIds, nodeBreakerViolationLocation.getVoltageLevelId());
+        return formatNodeId(busIds, nodeBreakerViolationLocation.getVoltageLevelId());
     }
 
     public static String formatNodeId(List<String> nodesIds, String subjectId) {
