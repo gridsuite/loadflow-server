@@ -11,10 +11,7 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
-import com.powsybl.iidm.network.Country;
-import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.iidm.network.VariantManagerConstants;
+import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
@@ -23,6 +20,7 @@ import com.powsybl.loadflow.LoadFlowResultImpl;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
+import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
@@ -792,4 +790,53 @@ public class LoadFlowControllerTest {
                 new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.ONE),
                 new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
     }
+
+    private static final class VoltageLimitViolationsMock {
+        static List<LimitViolation> limitViolations = List.of(
+                new LimitViolation("VLGEN", "", LimitViolationType.LOW_VOLTAGE, "limit1", 60, 1500, 0.7F, 1300, ThreeSides.TWO, new BusBreakerViolationLocation(List.of("NHV1"))),
+                new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))));
+    }
+
+    @Test
+    public void testGetLimitViolationsVoltage() throws Exception {
+        ((Bus) network.getIdentifiable("NHV1")).setV(380.0).getVoltageLevel().setLowVoltageLimit(400.0).setHighVoltageLimit(450.0);
+        ((Bus) network.getIdentifiable("NHV2")).setV(380.0).getVoltageLevel().setLowVoltageLimit(300.0).setHighVoltageLimit(350.0);
+
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(VoltageLimitViolationsMock.limitViolations);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
+                            any(LoadFlowParameters.class), any(ReportNode.class)))
+                    .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            MvcResult result = mockMvc.perform(post(
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            .header(HEADER_USER_ID, "userId"))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // get loadflow limit violations
+            result = mockMvc.perform(get(
+                            "/" + VERSION + "/results/{resultUuid}/limit-violations", RESULT_UUID))
+                    .andExpect(status().isOk())
+                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                    .andReturn();
+            List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+            });
+            assertEquals(2, limitViolations.size());
+            // check that the subject id is equal to the Bus Id
+            assertEquals(limitViolations.get(0).getSubjectId(), "NHV1");
+            assertEquals(limitViolations.get(1).getSubjectId(), "NHV2");
+        }
+    }
+
 }
