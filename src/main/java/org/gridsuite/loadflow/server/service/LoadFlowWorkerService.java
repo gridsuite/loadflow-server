@@ -43,7 +43,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
-import static org.gridsuite.loadflow.server.utils.LoadflowResultsUtils.getIdFromViolation;
+import static org.gridsuite.loadflow.server.utils.LoadflowResultsUtils.getViolationLocationId;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
@@ -193,7 +193,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {
         return LimitViolationInfos.builder()
-                .subjectId(getIdFromViolation(violation, network))
+                .subjectId(getViolationLocationId(violation, network))
                 .actualOverloadDuration(violation.getAcceptableDuration())
                 .upComingOverloadDuration(violation.getAcceptableDuration())
                 .limit(violation.getLimit())

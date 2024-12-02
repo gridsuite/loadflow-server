@@ -119,7 +119,7 @@ class LoadFlowServiceTest {
         LimitViolation limitViolation = mock(LimitViolation.class);
         when(limitViolation.getViolationLocation()).thenReturn(Optional.of(busBreakerLocation));
 
-        assertEquals("NGEN", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
+        assertEquals("NGEN", LoadflowResultsUtils.getViolationLocationId(limitViolation, network));
     }
 
     @Test
@@ -131,7 +131,7 @@ class LoadFlowServiceTest {
         when(limitViolation.getViolationLocation()).thenReturn(Optional.empty());
         when(limitViolation.getSubjectId()).thenReturn("SubjectId");
 
-        assertEquals("SubjectId", LoadflowResultsUtils.getIdFromViolation(limitViolation, network));
+        assertEquals("SubjectId", LoadflowResultsUtils.getViolationLocationId(limitViolation, network));
     }
 
     @Test
@@ -147,7 +147,7 @@ class LoadFlowServiceTest {
         when(limitViolation.getViolationLocation()).thenReturn(Optional.of(nodeBreakerViolationLocation));
         when(limitViolation.getSubjectId()).thenReturn("SubjectId");
 
-        String result = LoadflowResultsUtils.getIdFromViolation(limitViolation, network);
+        String result = LoadflowResultsUtils.getViolationLocationId(limitViolation, network);
         assertEquals("VL1", result);
     }
 }

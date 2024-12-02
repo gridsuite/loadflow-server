@@ -15,7 +15,7 @@ public final class LoadflowResultsUtils {
     private LoadflowResultsUtils() {
     }
 
-    public static String getIdFromViolation(LimitViolation limitViolation, Network network) {
+    public static String getViolationLocationId(LimitViolation limitViolation, Network network) {
         Optional<ViolationLocation> violationLocation = limitViolation.getViolationLocation();
         if (violationLocation.isEmpty()) {
             return limitViolation.getSubjectId();
@@ -34,18 +34,16 @@ public final class LoadflowResultsUtils {
     public static String getBusIdOrVlIdNodeBreaker(NodeBreakerViolationLocation nodeBreakerViolationLocation, Network network) {
         VoltageLevel vl = network.getVoltageLevel(nodeBreakerViolationLocation.getVoltageLevelId());
 
-        List<String> busIds = nodeBreakerViolationLocation.getNodes().stream()
+        List<String> busBarIds = nodeBreakerViolationLocation.getNodes().stream()
                 .map(node -> vl.getNodeBreakerView().getTerminal(node))
                 .filter(Objects::nonNull)
                 .map(Terminal::getConnectable)
                 .filter(t -> t.getType() == IdentifiableType.BUSBAR_SECTION)
-                .map(busBar -> ((BusbarSection) busBar).getTerminal().getBusView().getBus())
-                .filter(Objects::nonNull)
-                .map(Bus::getId)
+                .map(Identifiable::getId)
                 .distinct()
                 .toList();
 
-        return formatNodeId(busIds, nodeBreakerViolationLocation.getVoltageLevelId());
+        return formatNodeId(busBarIds, nodeBreakerViolationLocation.getVoltageLevelId());
     }
 
     public static String formatNodeId(List<String> nodesIds, String subjectId) {
