@@ -42,8 +42,8 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static com.powsybl.ws.commons.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
-import static org.gridsuite.loadflow.server.utils.LoadflowResultsUtils.getViolationLocationId;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
