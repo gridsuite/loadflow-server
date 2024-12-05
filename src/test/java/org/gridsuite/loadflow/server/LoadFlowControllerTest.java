@@ -97,6 +97,10 @@ public class LoadFlowControllerTest {
 
     private static final int TIMEOUT = 1000;
 
+    private static List<LimitViolation> limitViolationsWithViolationLocation = List.of(
+            new LimitViolation("VLGEN", "", LimitViolationType.LOW_VOLTAGE, "limit1", 60, 1500, 0.7F, 1300, ThreeSides.TWO, new BusBreakerViolationLocation(List.of("NHV1"))),
+            new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))));
+
     @Autowired
     private OutputDestination output;
     @Autowired
@@ -791,12 +795,6 @@ public class LoadFlowControllerTest {
                 new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
     }
 
-    private static final class VoltageLimitViolationsMock {
-        static List<LimitViolation> limitViolations = List.of(
-                new LimitViolation("VLGEN", "", LimitViolationType.LOW_VOLTAGE, "limit1", 60, 1500, 0.7F, 1300, ThreeSides.TWO, new BusBreakerViolationLocation(List.of("NHV1"))),
-                new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))));
-    }
-
     @Test
     public void testGetLimitViolationsVoltage() throws Exception {
         ((Bus) network.getIdentifiable("NHV1")).setV(380.0).getVoltageLevel().setLowVoltageLimit(400.0).setHighVoltageLimit(450.0);
@@ -806,7 +804,7 @@ public class LoadFlowControllerTest {
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(VoltageLimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(limitViolationsWithViolationLocation);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))
