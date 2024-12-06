@@ -56,6 +56,9 @@
         Caused by: java.io.InvalidClassException: org.antlr.v4.runtime.atn.ATN; Could not deserialize ATN with version 4 (expected 3).
         -->
         <antlr4.version>4.10.1</antlr4.version>
+        <!-- FIXME: powsybl-ws-commons modules'version is overloaded in the dependencies section
+        The overloads and this property below have to be removed at next powsybl-ws-dependencies.version upgrade -->
+        <powsybl-ws-commons.version>1.17.0</powsybl-ws-commons.version>
     </properties>
 
     <build>
@@ -136,7 +139,8 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
-            <version>1.17.0-SNAPSHOT</version>
+            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+            <version>${powsybl-ws-commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

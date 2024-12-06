@@ -97,7 +97,7 @@ public class LoadFlowControllerTest {
 
     private static final int TIMEOUT = 1000;
 
-    private static List<LimitViolation> limitViolationsWithViolationLocation = List.of(
+    private static final List<LimitViolation> LIMIT_VIOLATIONS_WITH_LOCATION = List.of(
             new LimitViolation("VLGEN", "", LimitViolationType.LOW_VOLTAGE, "limit1", 60, 1500, 0.7F, 1300, ThreeSides.TWO, new BusBreakerViolationLocation(List.of("NHV1"))),
             new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))));
 
@@ -804,7 +804,7 @@ public class LoadFlowControllerTest {
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(limitViolationsWithViolationLocation);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LIMIT_VIOLATIONS_WITH_LOCATION);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
                             any(LoadFlowParameters.class), any(ReportNode.class)))
@@ -832,8 +832,8 @@ public class LoadFlowControllerTest {
             });
             assertEquals(2, limitViolations.size());
             // check that the subject id is equal to the Bus Id
-            assertEquals(limitViolations.get(0).getSubjectId(), "VLHV1_0");
-            assertEquals(limitViolations.get(1).getSubjectId(), "VLHV2_0");
+            assertEquals("VLHV1_0", limitViolations.get(0).getSubjectId());
+            assertEquals("VLHV2_0", limitViolations.get(1).getSubjectId());
         }
     }
 
