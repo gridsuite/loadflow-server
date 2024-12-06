@@ -82,7 +82,7 @@ public final class SpecificationUtils {
             return createTextPredicate(criteriaBuilder, expression, filter, (String) value);
         }
         if (ResourceFilter.DataType.NUMBER == filter.dataType()) {
-            return createNumberPredicate(criteriaBuilder, expression, filter, (String) value);
+            return createNumberPredicate(criteriaBuilder, expression, filter.type(), (String) value, filter.tolerance());
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
     }
@@ -105,20 +105,46 @@ public final class SpecificationUtils {
         };
     }
 
-    private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
-        final double tolerance = 0.00001; // tolerance for comparison
-        Double valueDouble = Double.valueOf(value);
+    private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder,
+                                                   Expression<?> expression,
+                                                   ResourceFilter.Type comparator,
+                                                   String filterValue,
+                                                   Double filterTolerance) {
+        double tolerance;
+        if (filterTolerance != null) {
+            tolerance = filterTolerance;
+        } else {
+            // the reference for the comparison is the number of digits after the decimal point in filterValue
+            // extra digits are ignored, but the user may add '0's after the decimal point in order to get a better precision
+            String[] splitValue = filterValue.split("\\.");
+            int numberOfDecimalAfterDot = 0;
+            if (splitValue.length > 1) {
+                numberOfDecimalAfterDot = splitValue[1].length();
+            }
+            // tolerance is multiplied by 0.5 to simulate the fact that the database value is rounded (in the front, from the user viewpoint)
+            // more than 13 decimal after dot will likely cause rounding errors due to double precision
+            tolerance = Math.pow(10, -numberOfDecimalAfterDot) * 0.5;
+        }
+        double filterValueDouble = Double.parseDouble(filterValue);
         Expression<Double> doubleExpression = expression.as(Double.class);
 
-        return switch (filter.type()) {
+        return switch (comparator) {
             case NOT_EQUAL -> {
-                Double upperBound = valueDouble + tolerance;
-                Double lowerBound = valueDouble - tolerance;
-                yield criteriaBuilder.or(criteriaBuilder.greaterThanOrEqualTo(doubleExpression, upperBound), criteriaBuilder.lessThanOrEqualTo(doubleExpression, lowerBound));
+                Double upperBound = filterValueDouble + tolerance;
+                Double lowerBound = filterValueDouble - tolerance;
+                /**
+                 * in order to be equal to doubleExpression, value has to fit :
+                 * value - tolerance <= doubleExpression <= value + tolerance
+                 * therefore in order to be different at least one of the opposite comparison needs to be true :
+                 */
+                yield criteriaBuilder.or(
+                        criteriaBuilder.greaterThan(doubleExpression, upperBound),
+                        criteriaBuilder.lessThan(doubleExpression, lowerBound)
+                );
             }
-            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, valueDouble + tolerance);
+            case LESS_THAN_OR_EQUAL -> criteriaBuilder.lessThanOrEqualTo(doubleExpression, filterValueDouble + tolerance);
             case GREATER_THAN_OR_EQUAL ->
-                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, valueDouble - tolerance);
+                    criteriaBuilder.greaterThanOrEqualTo(doubleExpression, filterValueDouble - tolerance);
             default -> throw new UnsupportedOperationException("Unsupported filter type for number data type");
         };
     }
