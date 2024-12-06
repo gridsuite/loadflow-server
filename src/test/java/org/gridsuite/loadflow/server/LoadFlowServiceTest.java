@@ -1,6 +1,6 @@
 package org.gridsuite.loadflow.server;
 
-import com.powsybl.security.LimitViolationType;
+import com.powsybl.security.*;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
@@ -88,4 +88,5 @@ class LoadFlowServiceTest {
         assertEquals(LimitViolationsMock.limitViolationEntities.size(), result.size());
         verify(limitViolationRepository, times(1)).findAll(any(Specification.class), eq(sort));
     }
+
 }

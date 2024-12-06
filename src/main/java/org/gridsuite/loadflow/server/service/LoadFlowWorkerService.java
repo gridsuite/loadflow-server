@@ -42,6 +42,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static com.powsybl.ws.commons.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
 /**
@@ -190,9 +191,9 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return limitViolationInfos;
     }
 
-    public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation) {
+    public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {
         return LimitViolationInfos.builder()
-                .subjectId(violation.getSubjectId())
+                .subjectId(getViolationLocationId(violation, network))
                 .actualOverloadDuration(violation.getAcceptableDuration())
                 .upComingOverloadDuration(violation.getAcceptableDuration())
                 .limit(violation.getLimit())
@@ -222,7 +223,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
         }
         return violations.stream()
-                .map(LoadFlowWorkerService::toLimitViolationInfos).toList();
+                .map(limitViolation -> toLimitViolationInfos(limitViolation, network)).toList();
     }
 
     @Bean
