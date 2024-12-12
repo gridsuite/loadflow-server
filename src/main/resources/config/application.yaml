@@ -32,7 +32,7 @@ spring:
             consumer:
               auto-bind-dlq: true
               dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
-              dead-letter-routing-key:
+              dead-letter-routing-key: "#"
               dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlq
               quorum:
                 enabled: true
