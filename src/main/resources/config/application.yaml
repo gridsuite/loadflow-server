@@ -2,7 +2,6 @@ spring:
   application:
     name: loadflow-server
 
-
   cloud:
     function:
       definition: consumeRun;consumeCancel
@@ -13,6 +12,7 @@ spring:
           group: loadflowGroup
           consumer:
             concurrency: 4
+            max-attempts: 1
         publishRun-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
         publishResult-out-0:
@@ -23,12 +23,20 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancel
         publishStopped-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.stopped
-        publishFailed-out-0:
-          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.failed
         publishCancelFailed-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancelfailed
       output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishFailed-out-0;publishCancelFailed-out-0
-
+      rabbit:
+        bindings:
+          consumeRun-in-0:
+            consumer:
+              auto-bind-dlq: true
+              dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
+              dead-letter-routing-key:
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlq
+              quorum:
+                enabled: true
+                delivery-limit: 2
 powsybl-ws:
   database:
     name: loadflow
