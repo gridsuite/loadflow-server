@@ -25,15 +25,15 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.stopped
         publishCancelFailed-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancelfailed
-      output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishFailed-out-0;publishCancelFailed-out-0
+      output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishCancelFailed-out-0
       rabbit:
         bindings:
           consumeRun-in-0:
             consumer:
               auto-bind-dlq: true
               dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
-              dead-letter-routing-key: "#"
-              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlq
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx.dlq
+              dead-letter-exchange-type: topic
               quorum:
                 enabled: true
                 delivery-limit: 2
