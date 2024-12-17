@@ -40,6 +40,9 @@ public class LimitViolationEntity {
     @Column
     private String subjectId;
 
+    @Column
+    private String locationId;
+
     @Column(name = "limit_")
     private Double limit;
 
