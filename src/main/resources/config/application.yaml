@@ -50,7 +50,6 @@ loadflow:
         highBound: 75
       - nominalV: 90
         lowBound: 75
-        #      FIXME: is highbound correct ?
         highBound: 180
       - nominalV: 225
         lowBound: 180
