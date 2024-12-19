@@ -59,17 +59,17 @@ loadflow:
         highBound: 500
     limitDurations:
       - lowBound: 1200
-        lowClosed: false
+        lowClosed: true
         highBound: ~
         highClosed: false
       - lowBound: 600
-        lowClosed: false
+        lowClosed: true
         highBound: 1200
         highClosed: false
       - lowBound: 300
         lowClosed: true
         highBound: 600
-        highClosed: true
+        highClosed: false
       - lowBound: 60
         lowClosed: true
         highBound: 300
