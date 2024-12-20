@@ -58,7 +58,6 @@
         <antlr4.version>4.10.1</antlr4.version>
         <!-- FIXME: powsybl-ws-commons modules'version is overloaded in the dependencies section
         The overloads and this property below have to be removed at next powsybl-ws-dependencies.version upgrade -->
-        <powsybl-ws-commons.version>1.17.0</powsybl-ws-commons.version>
     </properties>
 
     <build>
@@ -94,6 +93,11 @@
     <dependencyManagement>
         <dependencies>
             <!-- overrides of imports -->
+            <dependency><!-- To remove when integrate in next release of gridsuite-dependencies or powsybl-ws-dependencies -->
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-ws-commons</artifactId>
+                <version>1.19.0</version>
+            </dependency>
             <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4</artifactId>
@@ -139,8 +143,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
-            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
-            <version>${powsybl-ws-commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

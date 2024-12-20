@@ -72,7 +72,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) throws Exception {
+    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) {
         LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
