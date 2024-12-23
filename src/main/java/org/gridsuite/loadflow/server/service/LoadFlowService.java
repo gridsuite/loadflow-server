@@ -171,7 +171,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
     @Transactional(readOnly = true)
     public List<LimitViolationInfos> getLimitViolationsInfos(UUID resultUuid, String stringFilters, String stringGlobalFilters, Sort sort, UUID networkUuid, String variantId) {
-        System.out.println("ressource filter String: " + stringFilters);
         if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
             return List.of();
         }
@@ -179,13 +178,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         // get resource filters and global filters
         List<ResourceFilter> resourceFilters = FilterUtils.fromStringFiltersToDTO(stringFilters, objectMapper);
         GlobalFilter globalFilter = FilterUtils.fromStringGlobalFiltersToDTO(stringGlobalFilters, objectMapper);
-
-        System.out.println("ressource Filter size: " + resourceFilters.size());
-        resourceFilters.forEach(resourceFilter -> {
-            System.out.println("ressource Filter: column" + resourceFilter.column().columnName() +
-                    " value= " + resourceFilter.value());
-        });
-        System.out.println("global filter: " + globalFilter);
         if (globalFilter != null) {
             List<ResourceFilter> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
             if (!resourceGlobalFilters.isEmpty()) {
