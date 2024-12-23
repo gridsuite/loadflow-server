@@ -212,7 +212,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
 
     private List<LimitViolationEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilter> resourceFilters, Sort sort) {
         Specification<LimitViolationEntity> specification = SpecificationBuilder.buildLimitViolationsSpecifications(limitViolationUuid, resourceFilters);
-
         return limitViolationRepository.findAll(specification, sort);
     }
 
