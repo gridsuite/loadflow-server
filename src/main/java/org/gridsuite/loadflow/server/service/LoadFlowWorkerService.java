@@ -193,7 +193,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {
         return LimitViolationInfos.builder()
-                .subjectId(getViolationLocationId(violation, network))
+                .subjectId(violation.getSubjectId())
+                .locationId(getViolationLocationId(violation, network))
                 .actualOverloadDuration(violation.getAcceptableDuration())
                 .upComingOverloadDuration(violation.getAcceptableDuration())
                 .limit(violation.getLimit())
