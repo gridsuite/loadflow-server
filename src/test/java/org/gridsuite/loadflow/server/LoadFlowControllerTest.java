@@ -832,8 +832,8 @@ public class LoadFlowControllerTest {
             });
             assertEquals(2, limitViolations.size());
             // check that the subject id is equal to the Bus Id
-            assertEquals("VLHV1_0", limitViolations.get(0).getSubjectId());
-            assertEquals("VLHV2_0", limitViolations.get(1).getSubjectId());
+            assertEquals("VLHV1_0", limitViolations.get(0).getLocationId());
+            assertEquals("VLHV2_0", limitViolations.get(1).getLocationId());
         }
     }
 

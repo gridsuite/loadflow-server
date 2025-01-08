@@ -58,9 +58,6 @@ loadflow:
         highBound: 75
       - nominalV: 90
         lowBound: 75
-        highBound: 120
-      - nominalV: 150
-        lowBound: 120
         highBound: 180
       - nominalV: 225
         lowBound: 180
@@ -69,23 +66,30 @@ loadflow:
         lowBound: 300
         highBound: 500
     limitDurations:
-      - lowBound: 600
-        lowClosed: false
+      - lowBound: 1200
+        lowClosed: true
         highBound: ~
+        highClosed: false
+      - lowBound: 600
+        lowClosed: true
+        highBound: 1200
         highClosed: false
       - lowBound: 300
         lowClosed: true
         highBound: 600
-        highClosed: true
-      - lowBound: 0
+        highClosed: false
+      - lowBound: 60
         lowClosed: true
         highBound: 300
         highClosed: false
+      - lowBound: 0
+        lowClosed: true
+        highBound: 60
+        highClosed: false
     defaultValues:
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 0.95, 0.95, 0.9, 0.9 ]
+      - [ 1, 1, 0.95, 0.95, 0.9, 0.9 ]

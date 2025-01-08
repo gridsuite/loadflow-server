@@ -94,6 +94,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return LimitViolationEntity.builder()
                 .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
                 .subjectId(limitViolationInfos.getSubjectId())
+                .locationId(limitViolationInfos.getLocationId())
                 .limitType(limitViolationInfos.getLimitType())
                 .limit(limitViolationInfos.getLimit())
                 .limitName(limitViolationInfos.getLimitName())
