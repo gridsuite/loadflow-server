@@ -25,6 +25,8 @@ import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 public class LimitViolationInfos {
     private String subjectId;
 
+    private String locationId;
+
     private Double limit;
 
     private String limitName;
@@ -44,6 +46,7 @@ public class LimitViolationInfos {
     public static LimitViolationInfos toLimitViolationInfos(LimitViolationEntity limitViolationEntity) {
         return LimitViolationInfos.builder()
                 .subjectId(limitViolationEntity.getSubjectId())
+                .locationId(limitViolationEntity.getLocationId())
                 .limit(limitViolationEntity.getLimit())
                 .limitName(limitViolationEntity.getLimitName())
                 .actualOverloadDuration(limitViolationEntity.getActualOverload())

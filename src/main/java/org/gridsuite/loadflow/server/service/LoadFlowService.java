@@ -178,7 +178,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         // get resource filters and global filters
         List<ResourceFilter> resourceFilters = FilterUtils.fromStringFiltersToDTO(stringFilters, objectMapper);
         GlobalFilter globalFilter = FilterUtils.fromStringGlobalFiltersToDTO(stringGlobalFilters, objectMapper);
-
         if (globalFilter != null) {
             List<ResourceFilter> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
             if (!resourceGlobalFilters.isEmpty()) {

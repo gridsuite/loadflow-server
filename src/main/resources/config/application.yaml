@@ -2,7 +2,6 @@ spring:
   application:
     name: loadflow-server
 
-
   cloud:
     function:
       definition: consumeRun;consumeCancel
@@ -13,6 +12,7 @@ spring:
           group: loadflowGroup
           consumer:
             concurrency: 4
+            max-attempts: 1
         publishRun-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
         publishResult-out-0:
@@ -23,12 +23,20 @@ spring:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancel
         publishStopped-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.stopped
-        publishFailed-out-0:
-          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.failed
         publishCancelFailed-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancelfailed
-      output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishFailed-out-0;publishCancelFailed-out-0
-
+      output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishCancelFailed-out-0
+      rabbit:
+        bindings:
+          consumeRun-in-0:
+            consumer:
+              auto-bind-dlq: true
+              dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx.dlq
+              dead-letter-exchange-type: topic
+              quorum:
+                enabled: true
+                delivery-limit: 2
 powsybl-ws:
   database:
     name: loadflow
@@ -50,9 +58,6 @@ loadflow:
         highBound: 75
       - nominalV: 90
         lowBound: 75
-        highBound: 120
-      - nominalV: 150
-        lowBound: 120
         highBound: 180
       - nominalV: 225
         lowBound: 180
@@ -61,23 +66,30 @@ loadflow:
         lowBound: 300
         highBound: 500
     limitDurations:
-      - lowBound: 600
-        lowClosed: false
+      - lowBound: 1200
+        lowClosed: true
         highBound: ~
+        highClosed: false
+      - lowBound: 600
+        lowClosed: true
+        highBound: 1200
         highClosed: false
       - lowBound: 300
         lowClosed: true
         highBound: 600
-        highClosed: true
-      - lowBound: 0
+        highClosed: false
+      - lowBound: 60
         lowClosed: true
         highBound: 300
         highClosed: false
+      - lowBound: 0
+        lowClosed: true
+        highBound: 60
+        highClosed: false
     defaultValues:
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
-      - [ 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 1, 1, 1, 1 ]
+      - [ 1, 1, 0.95, 0.95, 0.9, 0.9 ]
+      - [ 1, 1, 0.95, 0.95, 0.9, 0.9 ]

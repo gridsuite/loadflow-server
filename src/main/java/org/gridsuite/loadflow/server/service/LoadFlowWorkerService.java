@@ -72,7 +72,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) throws Exception {
+    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) {
         LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
@@ -193,7 +193,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {
         return LimitViolationInfos.builder()
-                .subjectId(getViolationLocationId(violation, network))
+                .subjectId(violation.getSubjectId())
+                .locationId(getViolationLocationId(violation, network))
                 .actualOverloadDuration(violation.getAcceptableDuration())
                 .upComingOverloadDuration(violation.getAcceptableDuration())
                 .limit(violation.getLimit())
