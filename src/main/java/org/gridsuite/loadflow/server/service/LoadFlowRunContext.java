@@ -28,7 +28,7 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
     private final UUID parametersUuid;
 
     public LoadFlowParameters buildParameters() {
-        LoadFlowParameters params = getParameters() == null || getParameters().getSpecificParameters() == null ?
+        LoadFlowParameters params = getParameters() == null || getParameters().getCommonParameters() == null ?
                 LoadFlowParameters.load() : getParameters().getCommonParameters();
         if (getParameters() == null || getParameters().getSpecificParameters() == null || getParameters().getSpecificParameters().isEmpty()) {
             return params; // no specific LF params
