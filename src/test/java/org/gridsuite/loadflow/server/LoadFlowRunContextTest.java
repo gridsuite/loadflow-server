@@ -19,6 +19,8 @@ import org.mockito.Mockito;
 import java.util.Collections;
 import java.util.Map;
 import java.util.Optional;
+
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -26,12 +28,32 @@ class LoadFlowRunContextTest {
 
     @Test
     void testBuildParametersWithNullParameters() {
+        LoadFlowParameters defaultParams = LoadFlowParameters.load();
         LoadFlowRunContext context = LoadFlowRunContext.builder()
                 .parameters(null)
                 .build();
 
         LoadFlowParameters params = context.buildParameters();
-        assertNotNull(params);
+        assertThat(params)
+                .usingRecursiveComparison()
+                .isEqualTo(defaultParams);
+    }
+
+    @Test
+    void testBuildParametersWithNullCommonParameters() {
+        LoadFlowParameters defaultParams = LoadFlowParameters.load();
+        LoadFlowParametersValues parametersValues = LoadFlowParametersValues.builder()
+                .commonParameters(null)
+                .build();
+
+        LoadFlowRunContext context = LoadFlowRunContext.builder()
+                .parameters(parametersValues)
+                .build();
+
+        LoadFlowParameters params = context.buildParameters();
+        assertThat(params)
+                .usingRecursiveComparison()
+                .isEqualTo(defaultParams);
     }
 
     @Test
