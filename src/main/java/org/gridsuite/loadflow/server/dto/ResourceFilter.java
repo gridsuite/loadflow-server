@@ -53,6 +53,8 @@ public record ResourceFilter(DataType dataType, Type type, Object value, Column 
         // Limit violation columns
         @JsonProperty("subjectId")
         SUBJECT_ID("subjectId"),
+        @JsonProperty("locationId")
+        LOCATION_ID("locationId"),
         @JsonProperty("limit")
         LIMIT("limit"),
         @JsonProperty("limitName")
