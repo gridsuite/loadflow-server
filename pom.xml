@@ -44,7 +44,7 @@
     <properties>
         <jib.from.image>powsybl/java-dynawo:2.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>35</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>36</gridsuite-dependencies.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -56,8 +56,6 @@
         Caused by: java.io.InvalidClassException: org.antlr.v4.runtime.atn.ATN; Could not deserialize ATN with version 4 (expected 3).
         -->
         <antlr4.version>4.10.1</antlr4.version>
-        <!-- FIXME: powsybl-ws-commons modules'version is overloaded in the dependencies section
-        The overloads and this property below have to be removed at next powsybl-ws-dependencies.version upgrade -->
     </properties>
 
     <build>
@@ -93,11 +91,6 @@
     <dependencyManagement>
         <dependencies>
             <!-- overrides of imports -->
-            <dependency><!-- To remove when integrate in next release of gridsuite-dependencies or powsybl-ws-dependencies -->
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-ws-commons</artifactId>
-                <version>1.19.0</version>
-            </dependency>
             <dependency>
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4</artifactId>
