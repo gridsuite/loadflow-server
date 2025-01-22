@@ -108,6 +108,10 @@ public class LoadFlowParametersService {
                 .limitReductions(limitReductionService.createDefaultLimitReductions()).build();
     }
 
+    public List<LimitReductionsByVoltageLevel> getDefaultLimitReductions() {
+        return limitReductionService.createDefaultLimitReductions();
+    }
+
     @Transactional
     public void updateProvider(UUID parametersUuid, String provider) {
         loadFlowParametersRepository.findById(parametersUuid)
@@ -151,5 +155,4 @@ public class LoadFlowParametersService {
                 .limitReductions(getLimitReductionsForProvider(entity).orElse(null))
                 .build();
     }
-
 }
