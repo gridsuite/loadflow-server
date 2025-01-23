@@ -8,7 +8,6 @@ package org.gridsuite.loadflow.server;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.gridsuite.loadflow.utils.assertions.Assertions.*;
 import static org.gridsuite.loadflow.utils.assertions.Assertions.assertThat;
 
 import java.util.List;
