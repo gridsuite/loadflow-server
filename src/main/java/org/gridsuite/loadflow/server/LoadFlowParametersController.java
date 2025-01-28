@@ -9,8 +9,10 @@ package org.gridsuite.loadflow.server;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 
+import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
@@ -41,6 +43,14 @@ public class LoadFlowParametersController {
     public ResponseEntity<UUID> createParameters(
             @RequestBody LoadFlowParametersInfos parametersInfos) {
         return ResponseEntity.ok(parametersService.createParameters(parametersInfos));
+    }
+
+    @GetMapping(value = "/default-limit-reductions", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get default limit reductions")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The default limit reductions")})
+    public ResponseEntity<List<LimitReductionsByVoltageLevel>> getDefaultLimitReductions() {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
+                .body(parametersService.getDefaultLimitReductions());
     }
 
     @PostMapping(value = "/default")

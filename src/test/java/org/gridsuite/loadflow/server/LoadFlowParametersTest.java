@@ -7,7 +7,9 @@
 package org.gridsuite.loadflow.server;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static org.gridsuite.loadflow.utils.assertions.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.gridsuite.loadflow.utils.assertions.Assertions.assertThat;
+
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -32,7 +34,6 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.http.MediaType;
 
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertThrows;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -200,6 +201,20 @@ class LoadFlowParametersTest {
         // Get not existing parameters and expect 404
         mockMvc.perform(get("/" + VERSION + "/parameters/" + UUID.randomUUID()))
                 .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetDefaultLimitReductions() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/v1/parameters/default-limit-reductions")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseContent = mvcResult.getResponse().getContentAsString();
+        List<LimitReductionsByVoltageLevel> limitReductions = mapper.readValue(responseContent, new TypeReference<>() { });
+
+        assertNotNull(limitReductions);
+        assertFalse(limitReductions.isEmpty());
     }
 
     @Test
