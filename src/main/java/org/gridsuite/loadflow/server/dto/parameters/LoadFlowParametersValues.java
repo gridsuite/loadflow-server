@@ -21,6 +21,7 @@ import java.util.Map;
 @Builder
 public class LoadFlowParametersValues {
     private String provider;
+    private Float limitReduction; // Only for providers other than OpenLoadFlow
     private LoadFlowParameters commonParameters;
     private Map<String, String> specificParameters;
 

@@ -41,6 +41,9 @@ public class LoadFlowParametersEntity {
     @Column(name = "provider")
     private String provider;
 
+    @Column(name = "limitReduction")
+    private Float limitReduction; // Only for providers other than OpenLoadFlow
+
     @Column(name = "voltageInitMode")
     @Enumerated(EnumType.STRING)
     private LoadFlowParameters.VoltageInitMode voltageInitMode;
@@ -140,6 +143,7 @@ public class LoadFlowParametersEntity {
                 });
             }
             provider = loadFlowParametersInfos.getProvider();
+            limitReduction = loadFlowParametersInfos.getLimitReduction();
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);

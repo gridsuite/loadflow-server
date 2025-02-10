@@ -123,6 +123,7 @@ public class LoadFlowParametersService {
         return LoadFlowParametersInfos.builder()
                 .uuid(entity.getId())
                 .provider(entity.getProvider())
+                .limitReduction(entity.getLimitReduction())
                 .commonParameters(entity.toLoadFlowParameters())
                 .specificParametersPerProvider(entity.getSpecificParameters().stream()
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
@@ -135,6 +136,7 @@ public class LoadFlowParametersService {
     public LoadFlowParametersValues toLoadFlowParametersValues(LoadFlowParametersEntity entity) {
         return LoadFlowParametersValues.builder()
                 .provider(entity.getProvider())
+                .limitReduction(entity.getLimitReduction())
                 .commonParameters(entity.toLoadFlowParameters())
                 .specificParameters(entity.getSpecificParameters().stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(entity.getProvider()))
@@ -147,6 +149,7 @@ public class LoadFlowParametersService {
     public LoadFlowParametersValues toLoadFlowParametersValues(String provider, LoadFlowParametersEntity entity) {
         return LoadFlowParametersValues.builder()
                 .provider(provider)
+                .limitReduction(entity.getLimitReduction())
                 .commonParameters(entity.toLoadFlowParameters())
                 .specificParameters(entity.getSpecificParameters().stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))

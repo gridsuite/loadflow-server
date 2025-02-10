@@ -13,6 +13,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.Setter;
+
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import com.powsybl.ws.commons.computation.service.AbstractComputationRunContext;
 import com.powsybl.ws.commons.computation.dto.ReportInfos;
@@ -23,8 +25,9 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
+@Setter
 public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersValues> {
-    private final Float limitReduction;
+    private Float limitReduction;
     private final UUID parametersUuid;
 
     public LoadFlowParameters buildParameters() {
