@@ -61,7 +61,7 @@ public class LoadFlowParametersService {
     }
 
     private Float getDefaultLimitReductionValueForProvider(String provider) {
-        return limitReductionService.getProviders().contains(provider) ? DEFAULT_LIMIT_REDUCTION_VALUE : null;
+        return !limitReductionService.getProviders().contains(provider) ? DEFAULT_LIMIT_REDUCTION_VALUE : null;
     }
 
     public UUID createParameters(LoadFlowParametersInfos parametersInfos) {
