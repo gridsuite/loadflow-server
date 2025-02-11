@@ -7,7 +7,7 @@
     </changeSet>
     <changeSet author="labidiayo" id="1739195477964-2">
         <update tableName="load_flow_parameters">
-            <column name="limit_reduction" valueNumeric="1"/>
+            <column name="limit_reduction" valueNumeric="0.8"/>
             <where>provider IN ('Hades2', 'DynaFlow')</where>
         </update>
     </changeSet>

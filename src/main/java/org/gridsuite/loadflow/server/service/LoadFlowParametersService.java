@@ -28,7 +28,7 @@ import com.powsybl.loadflow.LoadFlowParameters;
 @Service
 public class LoadFlowParametersService {
 
-    private static final Float DEFAULT_LIMIT_REDUCTION_VALUE = 1f;
+    private static final Float DEFAULT_LIMIT_REDUCTION_VALUE = 0.8f;
 
     private final LoadFlowParametersRepository loadFlowParametersRepository;
 
