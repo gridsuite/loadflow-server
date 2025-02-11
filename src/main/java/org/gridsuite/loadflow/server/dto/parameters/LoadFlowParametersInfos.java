@@ -33,8 +33,7 @@ public class LoadFlowParametersInfos {
 
     private List<LimitReductionsByVoltageLevel> limitReductions;
 
-    // Only for providers other than OpenLoadFlow
-    private Float limitReduction;
+    private Float limitReduction; // Only for providers other than OpenLoadFlow
 
     public LoadFlowParametersEntity toEntity() {
         return new LoadFlowParametersEntity(this);
