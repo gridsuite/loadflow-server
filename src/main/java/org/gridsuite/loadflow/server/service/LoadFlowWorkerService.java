@@ -213,13 +213,13 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 violations = Security.checkLimitsDc(network, new DefaultLimitReductionsApplier(createLimitReductions(loadFlowRunContext)), lfCommonParams.getDcPowerFactor());
 
             } else {
-                violations = Security.checkLimitsDc(network, loadFlowRunContext.getLimitReduction(), lfCommonParams.getDcPowerFactor());
+                violations = Security.checkLimitsDc(network, loadFlowRunContext.getParameters().getLimitReduction(), lfCommonParams.getDcPowerFactor());
             }
         } else {
             if (limitReductionService.getProviders().contains(loadFlowRunContext.getProvider())) {
                 violations = Security.checkLimits(network, new DefaultLimitReductionsApplier(createLimitReductions(loadFlowRunContext)));
             } else {
-                violations = Security.checkLimits(network, loadFlowRunContext.getLimitReduction());
+                violations = Security.checkLimits(network, loadFlowRunContext.getParameters().getLimitReduction());
             }
 
         }

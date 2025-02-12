@@ -58,7 +58,6 @@ public class LoadFlowController {
                                     @Parameter(description = "reportUuid") @RequestParam(name = "reportUuid", required = false) UUID reportId,
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
-                                    @Parameter(description = "The limit reduction") @RequestParam(name = "limitReduction", required = false, defaultValue = "0.8F") Float limitReduction,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
@@ -68,7 +67,6 @@ public class LoadFlowController {
                 .receiver(receiver)
                 .reportInfos(ReportInfos.builder().reportUuid(reportId).reporterId(reportName).computationType(reportType).build())
                 .userId(userId)
-                .limitReduction(limitReduction)
                 .parametersUuid(parametersUuid)
                 .build();
         UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);

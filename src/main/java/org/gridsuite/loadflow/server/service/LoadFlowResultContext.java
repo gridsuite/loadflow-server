@@ -16,15 +16,12 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.UncheckedIOException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
 import static com.powsybl.ws.commons.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
-    public static final String HEADER_LIMIT_REDUCTION = "limitReduction";
 
     public LoadFlowResultContext(UUID resultUuid, LoadFlowRunContext runContext) {
         super(resultUuid, runContext);
@@ -49,8 +46,6 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         UUID reportUuid = headers.get(REPORT_UUID_HEADER) != null ? UUID.fromString((String) headers.get(REPORT_UUID_HEADER)) : null;
         String reporterId = headers.containsKey(REPORTER_ID_HEADER) ? (String) headers.get(REPORTER_ID_HEADER) : null;
         String reportType = headers.containsKey(REPORT_TYPE_HEADER) ? (String) headers.get(REPORT_TYPE_HEADER) : null;
-        String limitReductionStr = (String) headers.get(HEADER_LIMIT_REDUCTION);
-        Float limitReduction = limitReductionStr != null ? Float.parseFloat(limitReductionStr) : null;
 
         LoadFlowRunContext runContext =
                 LoadFlowRunContext.builder()
@@ -61,20 +56,8 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .parameters(parameters)
                         .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).computationType(reportType).build())
                         .userId(userId)
-                        .limitReduction(limitReduction)
                         .build();
 
         return new LoadFlowResultContext(resultUuid, runContext);
-    }
-
-    @Override
-    protected Map<String, String> getSpecificMsgHeaders(ObjectMapper ignoredObjectMapper) {
-        Map<String, String> specificMsgHeaders = new HashMap<>();
-        if (getRunContext().getLimitReduction() != null) {
-            specificMsgHeaders.put(
-                    HEADER_LIMIT_REDUCTION,
-                    getRunContext().getLimitReduction().toString());
-        }
-        return specificMsgHeaders;
     }
 }
