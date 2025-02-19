@@ -28,6 +28,8 @@ import com.powsybl.loadflow.LoadFlowParameters;
 @Service
 public class LoadFlowParametersService {
 
+    private static final Float DEFAULT_LIMIT_REDUCTION_VALUE = 0.8f;
+
     private final LoadFlowParametersRepository loadFlowParametersRepository;
 
     private final LimitReductionService limitReductionService;
@@ -48,6 +50,18 @@ public class LoadFlowParametersService {
         }
         List<List<Double>> limitReductionsValues = entity.toLimitReductionsValues();
         return Optional.of(limitReductionsValues.isEmpty() ? limitReductionService.createDefaultLimitReductions() : limitReductionService.createLimitReductions(limitReductionsValues));
+    }
+
+    private Optional<Float> getLimitReductionValueForProvider(LoadFlowParametersEntity entity) {
+        // Only for providers other than OpenLoadFlow
+        if (!limitReductionService.getProviders().contains(entity.getProvider())) {
+            return Optional.of(entity.getLimitReduction() != null ? entity.getLimitReduction() : DEFAULT_LIMIT_REDUCTION_VALUE);
+        }
+        return Optional.empty();
+    }
+
+    private Float getDefaultLimitReductionValueForProvider(String provider) {
+        return !limitReductionService.getProviders().contains(provider) ? DEFAULT_LIMIT_REDUCTION_VALUE : null;
     }
 
     public UUID createParameters(LoadFlowParametersInfos parametersInfos) {
@@ -103,6 +117,7 @@ public class LoadFlowParametersService {
     public LoadFlowParametersInfos getDefaultParametersValues(String provider) {
         return LoadFlowParametersInfos.builder()
                 .provider(provider)
+                .limitReduction(getDefaultLimitReductionValueForProvider(provider))
                 .commonParameters(LoadFlowParameters.load())
                 .specificParametersPerProvider(Map.of())
                 .limitReductions(limitReductionService.createDefaultLimitReductions()).build();
@@ -123,6 +138,7 @@ public class LoadFlowParametersService {
         return LoadFlowParametersInfos.builder()
                 .uuid(entity.getId())
                 .provider(entity.getProvider())
+                .limitReduction(getLimitReductionValueForProvider(entity).orElse(null))
                 .commonParameters(entity.toLoadFlowParameters())
                 .specificParametersPerProvider(entity.getSpecificParameters().stream()
                         .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider,
@@ -135,6 +151,7 @@ public class LoadFlowParametersService {
     public LoadFlowParametersValues toLoadFlowParametersValues(LoadFlowParametersEntity entity) {
         return LoadFlowParametersValues.builder()
                 .provider(entity.getProvider())
+                .limitReduction(getLimitReductionValueForProvider(entity).orElse(null))
                 .commonParameters(entity.toLoadFlowParameters())
                 .specificParameters(entity.getSpecificParameters().stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(entity.getProvider()))
@@ -147,6 +164,7 @@ public class LoadFlowParametersService {
     public LoadFlowParametersValues toLoadFlowParametersValues(String provider, LoadFlowParametersEntity entity) {
         return LoadFlowParametersValues.builder()
                 .provider(provider)
+                .limitReduction(getLimitReductionValueForProvider(entity).orElse(null))
                 .commonParameters(entity.toLoadFlowParameters())
                 .specificParameters(entity.getSpecificParameters().stream()
                         .filter(p -> p.getProvider().equalsIgnoreCase(provider))
