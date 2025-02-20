@@ -68,10 +68,12 @@ public class LoadFlowParametersService {
         return loadFlowParametersRepository.save(parametersInfos.toEntity()).getId();
     }
 
+    @Transactional(readOnly = true)
     public Optional<LoadFlowParametersInfos> getParameters(UUID parametersUuid) {
         return loadFlowParametersRepository.findById(parametersUuid).map(this::toLoadFlowParametersInfos);
     }
 
+    @Transactional(readOnly = true)
     public Optional<LoadFlowParametersValues> getParametersValues(UUID parametersUuid, String provider) {
         return loadFlowParametersRepository.findById(parametersUuid).map(entity -> toLoadFlowParametersValues(provider, entity));
     }
