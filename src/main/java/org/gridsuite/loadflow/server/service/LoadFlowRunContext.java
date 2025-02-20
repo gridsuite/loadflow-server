@@ -24,7 +24,6 @@ import java.util.UUID;
  */
 @Getter
 public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersValues> {
-    private final Float limitReduction;
     private final UUID parametersUuid;
 
     public LoadFlowParameters buildParameters() {
@@ -47,9 +46,8 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
 
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportInfos reportInfos, String userId,
-                              Float limitReduction, LoadFlowParametersValues parameters, UUID parametersUuid) {
+                              LoadFlowParametersValues parameters, UUID parametersUuid) {
         super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters);
-        this.limitReduction = limitReduction;
         this.parametersUuid = parametersUuid;
     }
 }
