@@ -91,6 +91,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     }
 
     @Override
+    @Transactional
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
         // set provider and parameters
@@ -140,6 +141,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         return slackBusResults.stream().map(slackBusResultEntity -> new SlackBusResult(slackBusResultEntity.getId(), slackBusResultEntity.getActivePowerMismatch())).toList();
     }
 
+    @Transactional(readOnly = true)
     public LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
         AtomicReference<Long> startTime = new AtomicReference<>();
         startTime.set(System.nanoTime());
