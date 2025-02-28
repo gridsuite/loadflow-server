@@ -107,6 +107,7 @@ public class FilterService {
         return List.of();
     }
 
+    // TODO : here build a filter from filters UUIDs => add to the expert filter ??
     private ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
         List<AbstractExpertRule> nominalVRules = List.of();
         if (globalFilter.getNominalV() != null) {
@@ -118,21 +119,28 @@ public class FilterService {
             countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
         }
 
-        if (nominalVRules.isEmpty() && countryCodRules.isEmpty()) {
+        // extract the rules from all the filters
+        List<AbstractExpertRule> genericFiltersRules = List.of();
+        if (globalFilter.getGenericFilter() !=  null) {
+
+        }
+
+        if (nominalVRules.isEmpty() && countryCodRules.isEmpty() && genericFiltersRules.isEmpty()) {
             return null;
         }
 
-        if (countryCodRules.isEmpty()) {
+        /*if (countryCodRules.isEmpty()) {
             return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, nominalVRules));
         }
 
         if (nominalVRules.isEmpty()) {
             return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, countryCodRules));
-        }
+        }*/
 
         List<AbstractExpertRule> andRules = new ArrayList<>();
         andRules.addAll(nominalVRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, nominalVRules)) : nominalVRules);
         andRules.addAll(countryCodRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, countryCodRules)) : countryCodRules);
+        andRules.addAll(genericFiltersRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, genericFiltersRules)) : genericFiltersRules);
         AbstractExpertRule andCombination = createOrCombinator(CombinatorType.AND, andRules);
 
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
@@ -159,8 +167,13 @@ public class FilterService {
         List<String> subjectIdsFromEvalFilter = new ArrayList<>();
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
+            // TODO : ?? use getFilterEquipmentsFromUuid on globalFilter.genericFiler ? Need a filter service ??
             if (expertFilter != null) {
-                subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(IdentifiableAttributes::getId).toList());
+                List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null)
+                        .stream()
+                        .map(IdentifiableAttributes::getId)
+                        .toList();
+                subjectIdsFromEvalFilter.addAll(identifiables);
             }
         }
 

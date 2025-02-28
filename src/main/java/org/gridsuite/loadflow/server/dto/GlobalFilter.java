@@ -24,5 +24,7 @@ public class GlobalFilter {
 
     List<Country> countryCode;
 
+    List<String> genericFilter; // UUIDs of the filters
+
     List<LimitViolationType> limitViolationsTypes;
 }
