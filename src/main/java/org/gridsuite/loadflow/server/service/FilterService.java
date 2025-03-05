@@ -13,6 +13,8 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolationType;
 import lombok.NonNull;
+import org.apache.commons.collections4.CollectionUtils;
+import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.CombinatorExpertRule;
@@ -26,22 +28,57 @@ import org.gridsuite.filter.utils.expertfilter.FieldType;
 import org.gridsuite.filter.utils.expertfilter.OperatorType;
 import org.gridsuite.loadflow.server.dto.GlobalFilter;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
 public class FilterService {
+    public static final String FILTERS_NOT_FOUND = "Filters not found";
+
+    private static final String FILTER_SERVER_API_VERSION = "v1";
+
+    private static final String DELIMITER = "/";
+
+    private static String filterServerBaseUri;
+
+    private final RestTemplate restTemplate = new RestTemplate();
     private final NetworkStoreService networkStoreService;
 
     public FilterService(
-            NetworkStoreService networkStoreService) {
+            NetworkStoreService networkStoreService,
+            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri
+    ) {
         this.networkStoreService = networkStoreService;
+        setFilterServerBaseUri(filterServerBaseUri);
+    }
+
+    public static void setFilterServerBaseUri(String filterServerBaseUri) {
+        FilterService.filterServerBaseUri = filterServerBaseUri;
+    }
+
+    public List<AbstractFilter> getFilters(List<UUID> filtersUuids) {
+        var ids = !filtersUuids.isEmpty() ? "?ids=" + filtersUuids.stream().map(UUID::toString).collect(Collectors.joining(",")) : "";
+        String path = UriComponentsBuilder.fromPath(DELIMITER + FILTER_SERVER_API_VERSION + "/filters/metadata" + ids)
+                .buildAndExpand()
+                .toUriString();
+        try {
+            return restTemplate.exchange(filterServerBaseUri + path, HttpMethod.GET, null, new ParameterizedTypeReference<List<AbstractFilter>>() { }).getBody();
+        } catch (HttpStatusCodeException e) {
+            throw new PowsyblException(FILTERS_NOT_FOUND + " [" + filtersUuids + "]");
+        }
     }
 
     private List<AbstractExpertRule> createNumberExpertRules(List<String> values, FieldType fieldType) {
@@ -107,7 +144,6 @@ public class FilterService {
         return List.of();
     }
 
-    // TODO : here build a filter from filters UUIDs => add to the expert filter ??
     private ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
         List<AbstractExpertRule> nominalVRules = List.of();
         if (globalFilter.getNominalV() != null) {
@@ -119,28 +155,21 @@ public class FilterService {
             countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
         }
 
-        // extract the rules from all the filters
-        List<AbstractExpertRule> genericFiltersRules = List.of();
-        if (globalFilter.getGenericFilter() !=  null) {
-
-        }
-
-        if (nominalVRules.isEmpty() && countryCodRules.isEmpty() && genericFiltersRules.isEmpty()) {
+        if (nominalVRules.isEmpty() && countryCodRules.isEmpty()) {
             return null;
         }
 
-        /*if (countryCodRules.isEmpty()) {
+        if (countryCodRules.isEmpty()) {
             return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, nominalVRules));
         }
 
         if (nominalVRules.isEmpty()) {
             return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, countryCodRules));
-        }*/
+        }
 
         List<AbstractExpertRule> andRules = new ArrayList<>();
         andRules.addAll(nominalVRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, nominalVRules)) : nominalVRules);
         andRules.addAll(countryCodRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, countryCodRules)) : countryCodRules);
-        andRules.addAll(genericFiltersRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, genericFiltersRules)) : genericFiltersRules);
         AbstractExpertRule andCombination = createOrCombinator(CombinatorType.AND, andRules);
 
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
@@ -164,17 +193,40 @@ public class FilterService {
 
         Network network = getNetwork(networkUuid, variantId);
 
+        List<AbstractFilter> genericFilters = List.of();
+        if (!CollectionUtils.isEmpty(globalFilter.getGenericFilter())) {
+            genericFilters = getFilters(globalFilter.getGenericFilter());
+        }
+
         List<String> subjectIdsFromEvalFilter = new ArrayList<>();
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
+            List<String> idsFromSimpleFilters = new ArrayList<>();
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
-            // TODO : ?? use getFilterEquipmentsFromUuid on globalFilter.genericFiler ? Need a filter service ??
             if (expertFilter != null) {
                 List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null)
                         .stream()
                         .map(IdentifiableAttributes::getId)
                         .toList();
-                subjectIdsFromEvalFilter.addAll(identifiables);
+                idsFromSimpleFilters.addAll(identifiables);
             }
+            if (!CollectionUtils.isEmpty(genericFilters)) {
+                for (AbstractFilter filter : genericFilters) {
+                    if (filter.getEquipmentType() == equipmentType) {
+                        List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
+                                .stream()
+                                .map(IdentifiableAttributes::getId)
+                                .toList();
+
+                        if (idsFromSimpleFilters.isEmpty()) {
+                            idsFromSimpleFilters = identifiables;
+                        } else {
+                            idsFromSimpleFilters = idsFromSimpleFilters.stream()
+                                    .filter(f -> identifiables.contains(f)).toList(); // je ne devrais garder que ce qui est commun à tous les filtres, pas additionner le tout
+                        }
+                    }
+                }
+            }
+            subjectIdsFromEvalFilter.addAll(idsFromSimpleFilters);
         }
 
         return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
