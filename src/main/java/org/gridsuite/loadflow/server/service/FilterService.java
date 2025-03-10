@@ -55,6 +55,7 @@ public class FilterService {
     private static String filterServerBaseUri;
 
     private final RestTemplate restTemplate = new RestTemplate();
+
     private final NetworkStoreService networkStoreService;
 
     public FilterService(
@@ -198,17 +199,19 @@ public class FilterService {
             genericFilters = getFilters(globalFilter.getGenericFilter());
         }
 
-        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+        List<String> subjectIdsFromEvalFilter = null;
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
-            List<String> idsFromSimpleFilters = new ArrayList<>();
+            List<List<String>> idsFilteredThroughEachFilter = new ArrayList<>();
+
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
                 List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null)
                         .stream()
                         .map(IdentifiableAttributes::getId)
                         .toList();
-                idsFromSimpleFilters.addAll(identifiables);
+                idsFilteredThroughEachFilter.add(new ArrayList<>(identifiables));
             }
+
             if (!CollectionUtils.isEmpty(genericFilters)) {
                 for (AbstractFilter filter : genericFilters) {
                     if (filter.getEquipmentType() == equipmentType) {
@@ -217,19 +220,25 @@ public class FilterService {
                                 .map(IdentifiableAttributes::getId)
                                 .toList();
 
-                        if (idsFromSimpleFilters.isEmpty()) {
-                            idsFromSimpleFilters = identifiables;
-                        } else {
-                            idsFromSimpleFilters = idsFromSimpleFilters.stream()
-                                    .filter(f -> identifiables.contains(f)).toList(); // je ne devrais garder que ce qui est commun à tous les filtres, pas additionner le tout
-                        }
+                        idsFilteredThroughEachFilter.add(new ArrayList<>(identifiables));
                     }
                 }
             }
-            subjectIdsFromEvalFilter.addAll(idsFromSimpleFilters);
+
+            // combine all the results into one list
+            if (!idsFilteredThroughEachFilter.isEmpty()) {
+                for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
+                    if (subjectIdsFromEvalFilter == null) {
+                        subjectIdsFromEvalFilter = new ArrayList<>(idsFiltered);
+                    } else {
+                        subjectIdsFromEvalFilter = subjectIdsFromEvalFilter.stream()
+                                .filter(idsFiltered::contains).toList();
+                    }
+                }
+            }
         }
 
-        return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
+        return (subjectIdsFromEvalFilter == null || subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
             List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
     }
 
