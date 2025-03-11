@@ -199,7 +199,7 @@ public class FilterService {
             genericFilters = getFilters(globalFilter.getGenericFilter());
         }
 
-        Map<EquipmentType, List<String>> subjectIdsByEquipmtType = new HashMap<>();
+        EnumMap<EquipmentType, List<String>> subjectIdsByEquipmtType = new EnumMap<>(EquipmentType.class);
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
             subjectIdsByEquipmtType.put(equipmentType, null);
             List<List<String>> idsFilteredThroughEachFilter = new ArrayList<>();
@@ -228,14 +228,12 @@ public class FilterService {
 
             // combine the results
             // attention : generic filters all uses AND operand between them while other filters use OR between them
-            if (!idsFilteredThroughEachFilter.isEmpty()) {
-                for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
-                    if (subjectIdsByEquipmtType.get(equipmentType) == null) {
-                        subjectIdsByEquipmtType.put(equipmentType, new ArrayList<>(idsFiltered));
-                    } else {
-                        subjectIdsByEquipmtType.put(equipmentType, subjectIdsByEquipmtType.get(equipmentType).stream()
-                                .filter(idsFiltered::contains).toList());
-                    }
+            for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
+                if (!subjectIdsByEquipmtType.containsKey(equipmentType)) {
+                    subjectIdsByEquipmtType.put(equipmentType, new ArrayList<>(idsFiltered));
+                } else {
+                    subjectIdsByEquipmtType.put(equipmentType, subjectIdsByEquipmtType.get(equipmentType).stream()
+                            .filter(idsFiltered::contains).toList());
                 }
             }
         }
