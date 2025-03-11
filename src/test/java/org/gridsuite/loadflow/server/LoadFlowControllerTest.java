@@ -442,16 +442,16 @@ public class LoadFlowControllerTest {
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
             // get limit violations with filters and different globalFilters
-            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.CURRENT)), 4);
-            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
-            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(LimitViolationType.CURRENT)), 4);
-            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
+            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(), List.of(LimitViolationType.CURRENT)), 4);
 
         }
     }
 
-    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
-        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).limitViolationsTypes(limitViolationTypes).build();
+    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<UUID> genericFiltersUuid, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
+        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).genericFilter(genericFiltersUuid).limitViolationsTypes(limitViolationTypes).build();
         return new ObjectMapper().writeValueAsString(globalFilter);
     }
 

@@ -199,8 +199,9 @@ public class FilterService {
             genericFilters = getFilters(globalFilter.getGenericFilter());
         }
 
-        List<String> subjectIdsFromEvalFilter = null;
+        Map<EquipmentType, List<String>> subjectIdsByEquipmtType = new HashMap<>();
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
+            subjectIdsByEquipmtType.put(equipmentType, null);
             List<List<String>> idsFilteredThroughEachFilter = new ArrayList<>();
 
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
@@ -225,20 +226,25 @@ public class FilterService {
                 }
             }
 
-            // combine all the results into one list
+            // combine the results
+            // attention : generic filters all uses AND operand between them while other filters use OR between them
             if (!idsFilteredThroughEachFilter.isEmpty()) {
                 for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
-                    if (subjectIdsFromEvalFilter == null) {
-                        subjectIdsFromEvalFilter = new ArrayList<>(idsFiltered);
+                    if (subjectIdsByEquipmtType.get(equipmentType) == null) {
+                        subjectIdsByEquipmtType.put(equipmentType, new ArrayList<>(idsFiltered));
                     } else {
-                        subjectIdsFromEvalFilter = subjectIdsFromEvalFilter.stream()
-                                .filter(idsFiltered::contains).toList();
+                        subjectIdsByEquipmtType.put(equipmentType, subjectIdsByEquipmtType.get(equipmentType).stream()
+                                .filter(idsFiltered::contains).toList());
                     }
                 }
             }
         }
 
-        return (subjectIdsFromEvalFilter == null || subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
+        // combine all the results into one list
+        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+        subjectIdsByEquipmtType.values().forEach(subjectIdsFromEvalFilter::addAll);
+
+        return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
             List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
     }
 
