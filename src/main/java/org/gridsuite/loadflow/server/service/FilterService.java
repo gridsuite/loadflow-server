@@ -228,12 +228,14 @@ public class FilterService {
 
             // combine the results
             // attention : generic filters all uses AND operand between them while other filters use OR between them
-            for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
-                if (!subjectIdsByEquipmtType.containsKey(equipmentType)) {
-                    subjectIdsByEquipmtType.put(equipmentType, new ArrayList<>(idsFiltered));
-                } else {
-                    subjectIdsByEquipmtType.put(equipmentType, subjectIdsByEquipmtType.get(equipmentType).stream()
-                            .filter(idsFiltered::contains).toList());
+            if (!idsFilteredThroughEachFilter.isEmpty()) {
+                for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
+                    if (subjectIdsByEquipmtType.get(equipmentType) == null) {
+                        subjectIdsByEquipmtType.put(equipmentType, new ArrayList<>(idsFiltered));
+                    } else {
+                        subjectIdsByEquipmtType.put(equipmentType, subjectIdsByEquipmtType.get(equipmentType).stream()
+                                .filter(idsFiltered::contains).toList());
+                    }
                 }
             }
         }
