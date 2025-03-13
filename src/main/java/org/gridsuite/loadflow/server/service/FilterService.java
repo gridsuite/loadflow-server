@@ -71,6 +71,9 @@ public class FilterService {
     }
 
     public List<AbstractFilter> getFilters(List<UUID> filtersUuids) {
+        if (CollectionUtils.isEmpty(filtersUuids)) {
+            return List.of();
+        }
         var ids = !filtersUuids.isEmpty() ? "?ids=" + filtersUuids.stream().map(UUID::toString).collect(Collectors.joining(",")) : "";
         String path = UriComponentsBuilder.fromPath(DELIMITER + FILTER_SERVER_API_VERSION + "/filters/metadata" + ids)
                 .buildAndExpand()
@@ -194,10 +197,7 @@ public class FilterService {
 
         Network network = getNetwork(networkUuid, variantId);
 
-        List<AbstractFilter> genericFilters = List.of();
-        if (!CollectionUtils.isEmpty(globalFilter.getGenericFilter())) {
-            genericFilters = getFilters(globalFilter.getGenericFilter());
-        }
+        final List<AbstractFilter> genericFilters = getFilters(globalFilter.getGenericFilter());
 
         EnumMap<EquipmentType, List<String>> subjectIdsByEquipmtType = new EnumMap<>(EquipmentType.class);
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
@@ -227,7 +227,7 @@ public class FilterService {
             }
 
             // combine the results
-            // attention : generic filters all uses AND operand between them while other filters use OR between them
+            // attention : generic filters all use AND operand between them while other filters use OR between them
             if (!idsFilteredThroughEachFilter.isEmpty()) {
                 for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
                     if (subjectIdsByEquipmtType.get(equipmentType) == null) {
@@ -242,7 +242,9 @@ public class FilterService {
 
         // combine all the results into one list
         List<String> subjectIdsFromEvalFilter = new ArrayList<>();
-        subjectIdsByEquipmtType.values().forEach(subjectIdsFromEvalFilter::addAll);
+        subjectIdsByEquipmtType.values().forEach(idsList ->
+                Optional.ofNullable(idsList).ifPresent(subjectIdsFromEvalFilter::addAll)
+        );
 
         return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
             List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));

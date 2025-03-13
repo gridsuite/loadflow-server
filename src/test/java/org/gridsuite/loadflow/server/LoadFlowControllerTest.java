@@ -457,7 +457,6 @@ public class LoadFlowControllerTest {
             assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
-            List<UUID> filterIds = List.of(FILTER_ID_1);
             // get limit violations with filters and different globalFilters
             assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.CURRENT)), 4);
             assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
@@ -465,6 +464,7 @@ public class LoadFlowControllerTest {
             assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(), List.of(LimitViolationType.CURRENT)), 4);
 
             // generic filter
+            List<UUID> filterIds = List.of(FILTER_ID_1);
             List<IdentifierListFilterEquipmentAttributes> filterEquipmentAttributes = List.of(
                     new IdentifierListFilterEquipmentAttributes("NHV1_NHV2_1", 30.));
             AbstractFilter filter = new IdentifierListFilter(
