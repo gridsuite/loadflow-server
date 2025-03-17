@@ -248,7 +248,7 @@ public class LoadFlowControllerTest {
                     .andExpect(status().isNotFound());
 
             // test one result deletion
-            mockMvc.perform(delete("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString()))
                     .andExpect(status().isOk());
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
