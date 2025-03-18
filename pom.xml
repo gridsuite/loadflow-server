@@ -56,6 +56,8 @@
         Caused by: java.io.InvalidClassException: org.antlr.v4.runtime.atn.ATN; Could not deserialize ATN with version 4 (expected 3).
         -->
         <antlr4.version>4.10.1</antlr4.version>
+        <sonar.organization>gridsuite</sonar.organization>
+        <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
     </properties>
 
     <build>
