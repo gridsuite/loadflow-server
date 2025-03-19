@@ -215,7 +215,9 @@ public class FilterService {
                 }
             }
 
-            if (idsFilteredThroughEachFilter.isEmpty()) { continue; }
+            if (idsFilteredThroughEachFilter.isEmpty()) {
+                continue;
+            }
             // combine the results
             // attention : generic filters all use AND operand between them while other filters use OR between them
             for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
