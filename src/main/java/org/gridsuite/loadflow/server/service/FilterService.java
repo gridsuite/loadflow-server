@@ -28,6 +28,7 @@ import org.gridsuite.filter.utils.expertfilter.FieldType;
 import org.gridsuite.filter.utils.expertfilter.OperatorType;
 import org.gridsuite.loadflow.server.dto.GlobalFilter;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
@@ -205,22 +206,13 @@ public class FilterService {
 
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
-                List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null)
-                        .stream()
-                        .map(IdentifiableAttributes::getId)
-                        .toList();
-                idsFilteredThroughEachFilter.add(new ArrayList<>(identifiables));
+                idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network)));
             }
 
             if (!CollectionUtils.isEmpty(genericFilters)) {
                 for (AbstractFilter filter : genericFilters) {
                     if (filter.getEquipmentType() == equipmentType) {
-                        List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
-                                .stream()
-                                .map(IdentifiableAttributes::getId)
-                                .toList();
-
-                        idsFilteredThroughEachFilter.add(new ArrayList<>(identifiables));
+                        idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network)));
                     }
                 }
             }
@@ -246,6 +238,18 @@ public class FilterService {
 
         return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
             List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
+    }
+
+    /**
+     * @return list of the ids filtered from the network through the filter
+     */
+    @NotNull
+    private static List<String> filterNetwork(AbstractFilter filter, Network network) {
+        List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
+                .stream()
+                .map(IdentifiableAttributes::getId)
+                .toList();
+        return identifiables;
     }
 
     private Set<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
