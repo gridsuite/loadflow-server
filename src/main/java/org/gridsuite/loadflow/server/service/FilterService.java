@@ -209,11 +209,9 @@ public class FilterService {
                 idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network)));
             }
 
-            if (!CollectionUtils.isEmpty(genericFilters)) {
-                for (AbstractFilter filter : genericFilters) {
-                    if (filter.getEquipmentType() == equipmentType) {
-                        idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network)));
-                    }
+            for (AbstractFilter filter : genericFilters) {
+                if (filter.getEquipmentType() == equipmentType) {
+                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network)));
                 }
             }
 
@@ -245,11 +243,10 @@ public class FilterService {
      */
     @NotNull
     private static List<String> filterNetwork(AbstractFilter filter, Network network) {
-        List<String> identifiables = FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
+        return FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
                 .stream()
                 .map(IdentifiableAttributes::getId)
                 .toList();
-        return identifiables;
     }
 
     private Set<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
