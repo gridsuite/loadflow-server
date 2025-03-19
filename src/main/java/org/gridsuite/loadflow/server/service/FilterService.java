@@ -75,7 +75,7 @@ public class FilterService {
         if (CollectionUtils.isEmpty(filtersUuids)) {
             return List.of();
         }
-        var ids = !filtersUuids.isEmpty() ? "?ids=" + filtersUuids.stream().map(UUID::toString).collect(Collectors.joining(",")) : "";
+        var ids = "?ids=" + filtersUuids.stream().map(UUID::toString).collect(Collectors.joining(","));
         String path = UriComponentsBuilder.fromPath(DELIMITER + FILTER_SERVER_API_VERSION + "/filters/metadata" + ids)
                 .buildAndExpand()
                 .toUriString();
@@ -215,16 +215,15 @@ public class FilterService {
                 }
             }
 
+            if (idsFilteredThroughEachFilter.isEmpty()) { continue; }
             // combine the results
             // attention : generic filters all use AND operand between them while other filters use OR between them
-            if (!idsFilteredThroughEachFilter.isEmpty()) {
-                for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
-                    // if there was already a filtered list for this equipment type : AND filtering :
-                    subjectIdsByEquipmentType.computeIfPresent(equipmentType, (key, value) -> value.stream()
-                            .filter(idsFiltered::contains).toList());
-                    // otherwise, initialisation :
-                    subjectIdsByEquipmentType.computeIfAbsent(equipmentType, key -> new ArrayList<>(idsFiltered));
-                }
+            for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
+                // if there was already a filtered list for this equipment type : AND filtering :
+                subjectIdsByEquipmentType.computeIfPresent(equipmentType, (key, value) -> value.stream()
+                        .filter(idsFiltered::contains).toList());
+                // otherwise, initialisation :
+                subjectIdsByEquipmentType.computeIfAbsent(equipmentType, key -> new ArrayList<>(idsFiltered));
             }
         }
 
