@@ -199,9 +199,8 @@ public class FilterService {
 
         final List<AbstractFilter> genericFilters = getFilters(globalFilter.getGenericFilter());
 
-        EnumMap<EquipmentType, List<String>> subjectIdsByEquipmtType = new EnumMap<>(EquipmentType.class);
+        EnumMap<EquipmentType, List<String>> subjectIdsByEquipmentType = new EnumMap<>(EquipmentType.class);
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
-            subjectIdsByEquipmtType.put(equipmentType, null);
             List<List<String>> idsFilteredThroughEachFilter = new ArrayList<>();
 
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
@@ -230,19 +229,18 @@ public class FilterService {
             // attention : generic filters all use AND operand between them while other filters use OR between them
             if (!idsFilteredThroughEachFilter.isEmpty()) {
                 for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
-                    if (subjectIdsByEquipmtType.get(equipmentType) == null) {
-                        subjectIdsByEquipmtType.put(equipmentType, new ArrayList<>(idsFiltered));
-                    } else {
-                        subjectIdsByEquipmtType.put(equipmentType, subjectIdsByEquipmtType.get(equipmentType).stream()
-                                .filter(idsFiltered::contains).toList());
-                    }
+                    // if there was already a filtered list for this equipment type : AND filtering :
+                    subjectIdsByEquipmentType.computeIfPresent(equipmentType, (key, value) -> value.stream()
+                            .filter(idsFiltered::contains).toList());
+                    // otherwise, initialisation :
+                    subjectIdsByEquipmentType.computeIfAbsent(equipmentType, key -> new ArrayList<>(idsFiltered));
                 }
             }
         }
 
         // combine all the results into one list
         List<String> subjectIdsFromEvalFilter = new ArrayList<>();
-        subjectIdsByEquipmtType.values().forEach(idsList ->
+        subjectIdsByEquipmentType.values().forEach(idsList ->
                 Optional.ofNullable(idsList).ifPresent(subjectIdsFromEvalFilter::addAll)
         );
 
