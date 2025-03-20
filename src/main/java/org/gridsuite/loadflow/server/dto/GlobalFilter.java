@@ -11,6 +11,7 @@ import com.powsybl.security.LimitViolationType;
 import lombok.*;
 
 import java.util.List;
+import java.util.UUID;
 
 /**
  * @author maissa Souissi <maissa.souissi at rte-france.com>
@@ -23,6 +24,8 @@ public class GlobalFilter {
     List<String> nominalV;
 
     List<Country> countryCode;
+
+    List<UUID> genericFilter;
 
     List<LimitViolationType> limitViolationsTypes;
 }
