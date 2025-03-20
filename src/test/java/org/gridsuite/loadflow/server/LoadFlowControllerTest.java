@@ -6,6 +6,8 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -31,8 +33,13 @@ import com.powsybl.ws.commons.computation.service.ExecutionService;
 import com.powsybl.ws.commons.computation.service.NotificationService;
 import com.powsybl.ws.commons.computation.service.ReportService;
 import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
+import org.gridsuite.filter.AbstractFilter;
+import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
+import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
+import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.gridsuite.loadflow.server.service.FilterService;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
@@ -50,6 +57,7 @@ import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ContextConfiguration;
@@ -64,6 +72,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 
+import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static com.powsybl.ws.commons.computation.service.NotificationService.HEADER_USER_ID;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
@@ -90,6 +99,7 @@ public class LoadFlowControllerTest {
     private static final UUID OTHER_RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5a");
     private static final UUID REPORT_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120002");
     private static final UUID PARAMETERS_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120003");
+    private static final UUID FILTER_ID_1 = UUID.fromString("762b72a8-8c0f-11ed-a1eb-0242ac120003");
 
     private static final String VARIANT_1_ID = "variant_1";
     private static final String VARIANT_2_ID = "variant_2";
@@ -121,6 +131,7 @@ public class LoadFlowControllerTest {
     private ObjectMapper mapper;
     private Network network;
     private Network network1;
+    protected WireMockServer wireMockServer;
 
     private static void assertResultsEquals(LoadFlowResult result, org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto) {
         assertEquals(result.getComponentResults().size(), resultDto.getComponentResults().size());
@@ -187,6 +198,11 @@ public class LoadFlowControllerTest {
                 .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build();
         doReturn(loadFlowParametersValues).when(loadFlowParametersService).getParametersValues(any());
+
+        wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
+        wireMockServer.start();
+        FilterService.setFilterServerBaseUri(wireMockServer.baseUrl());
+
         // purge messages
         while (output.receive(1000, "loadflow.result") != null) {
         }
@@ -442,16 +458,31 @@ public class LoadFlowControllerTest {
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
             // get limit violations with filters and different globalFilters
-            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.CURRENT)), 4);
-            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
-            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(LimitViolationType.CURRENT)), 4);
-            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
+            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(), List.of(LimitViolationType.CURRENT)), 4);
 
+            // generic filter
+            List<UUID> filterIds = List.of(FILTER_ID_1);
+            List<IdentifierListFilterEquipmentAttributes> filterEquipmentAttributes = List.of(
+                    new IdentifierListFilterEquipmentAttributes("NHV1_NHV2_1", 30.));
+            AbstractFilter filter = new IdentifierListFilter(
+                    FILTER_ID_1,
+                    new Date(),
+                    EquipmentType.LINE,
+                    filterEquipmentAttributes
+            );
+            wireMockServer.stubFor(WireMock.get(WireMock.urlMatching("/v1/filters/metadata\\?ids=" + FILTER_ID_1))
+                    .willReturn(WireMock.ok()
+                            .withBody(mapper.writeValueAsString(List.of(filter)))
+                            .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))).getId();
+            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), filterIds, List.of(LimitViolationType.CURRENT)), 2);
         }
     }
 
-    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
-        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).limitViolationsTypes(limitViolationTypes).build();
+    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<UUID> genericFiltersUuid, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
+        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).genericFilter(genericFiltersUuid).limitViolationsTypes(limitViolationTypes).build();
         return new ObjectMapper().writeValueAsString(globalFilter);
     }
 

@@ -13,6 +13,8 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolationType;
 import lombok.NonNull;
+import org.apache.commons.collections4.CollectionUtils;
+import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
 import org.gridsuite.filter.expertfilter.expertrule.CombinatorExpertRule;
@@ -26,22 +28,62 @@ import org.gridsuite.filter.utils.expertfilter.FieldType;
 import org.gridsuite.filter.utils.expertfilter.OperatorType;
 import org.gridsuite.loadflow.server.dto.GlobalFilter;
 import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.RestTemplate;
 import org.springframework.web.server.ResponseStatusException;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
 public class FilterService {
+    public static final String FILTERS_NOT_FOUND = "Filters not found";
+
+    private static final String FILTER_SERVER_API_VERSION = "v1";
+
+    private static final String DELIMITER = "/";
+
+    private static String filterServerBaseUri;
+
+    private final RestTemplate restTemplate = new RestTemplate();
+
     private final NetworkStoreService networkStoreService;
 
     public FilterService(
-            NetworkStoreService networkStoreService) {
+            NetworkStoreService networkStoreService,
+            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri
+    ) {
         this.networkStoreService = networkStoreService;
+        setFilterServerBaseUri(filterServerBaseUri);
+    }
+
+    public static void setFilterServerBaseUri(String filterServerBaseUri) {
+        FilterService.filterServerBaseUri = filterServerBaseUri;
+    }
+
+    public List<AbstractFilter> getFilters(List<UUID> filtersUuids) {
+        if (CollectionUtils.isEmpty(filtersUuids)) {
+            return List.of();
+        }
+        var ids = "?ids=" + filtersUuids.stream().map(UUID::toString).collect(Collectors.joining(","));
+        String path = UriComponentsBuilder.fromPath(DELIMITER + FILTER_SERVER_API_VERSION + "/filters/metadata" + ids)
+                .buildAndExpand()
+                .toUriString();
+        try {
+            return restTemplate.exchange(filterServerBaseUri + path, HttpMethod.GET, null, new ParameterizedTypeReference<List<AbstractFilter>>() { }).getBody();
+        } catch (HttpStatusCodeException e) {
+            throw new PowsyblException(FILTERS_NOT_FOUND + " [" + filtersUuids + "]");
+        }
     }
 
     private List<AbstractExpertRule> createNumberExpertRules(List<String> values, FieldType fieldType) {
@@ -156,16 +198,56 @@ public class FilterService {
 
         Network network = getNetwork(networkUuid, variantId);
 
-        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+        final List<AbstractFilter> genericFilters = getFilters(globalFilter.getGenericFilter());
+
+        EnumMap<EquipmentType, List<String>> subjectIdsByEquipmentType = new EnumMap<>(EquipmentType.class);
         for (EquipmentType equipmentType : getEquipmentTypes(globalFilter.getLimitViolationsTypes())) {
+            List<List<String>> idsFilteredThroughEachFilter = new ArrayList<>();
+
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
-                subjectIdsFromEvalFilter.addAll(FilterServiceUtils.getIdentifiableAttributes(expertFilter, network, null).stream().map(IdentifiableAttributes::getId).toList());
+                idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network)));
+            }
+
+            for (AbstractFilter filter : genericFilters) {
+                if (filter.getEquipmentType() == equipmentType) {
+                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network)));
+                }
+            }
+
+            if (idsFilteredThroughEachFilter.isEmpty()) {
+                continue;
+            }
+            // combine the results
+            // attention : generic filters all use AND operand between them while other filters use OR between them
+            for (List<String> idsFiltered : idsFilteredThroughEachFilter) {
+                // if there was already a filtered list for this equipment type : AND filtering :
+                subjectIdsByEquipmentType.computeIfPresent(equipmentType, (key, value) -> value.stream()
+                        .filter(idsFiltered::contains).toList());
+                // otherwise, initialisation :
+                subjectIdsByEquipmentType.computeIfAbsent(equipmentType, key -> new ArrayList<>(idsFiltered));
             }
         }
 
+        // combine all the results into one list
+        List<String> subjectIdsFromEvalFilter = new ArrayList<>();
+        subjectIdsByEquipmentType.values().forEach(idsList ->
+                Optional.ofNullable(idsList).ifPresent(subjectIdsFromEvalFilter::addAll)
+        );
+
         return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
             List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
+    }
+
+    /**
+     * @return list of the ids filtered from the network through the filter
+     */
+    @NotNull
+    private static List<String> filterNetwork(AbstractFilter filter, Network network) {
+        return FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
+                .stream()
+                .map(IdentifiableAttributes::getId)
+                .toList();
     }
 
     private Set<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
