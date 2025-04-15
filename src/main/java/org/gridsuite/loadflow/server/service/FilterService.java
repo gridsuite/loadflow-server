@@ -237,7 +237,7 @@ public class FilterService {
         );
 
         return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
-            List.of(new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.IN, subjectIdsFromEvalFilter, Column.SUBJECT_ID.toString()));
+            List.of(new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.IN, subjectIdsFromEvalFilter, Column.SUBJECT_ID.columnName()));
     }
 
     /**

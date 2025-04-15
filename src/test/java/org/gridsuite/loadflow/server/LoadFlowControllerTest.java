@@ -26,6 +26,7 @@ import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -490,8 +491,8 @@ public class LoadFlowControllerTest {
         var uriComponentsBuilder = UriComponentsBuilder.fromPath("/" + VERSION + "/results/" + RESULT_UUID + "/limit-violations");
 
         // Creating a list of resource filters
-        List<ResourceFilter> resourceFilters = List.of(
-                new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE));
+        List<ResourceFilterDTO> resourceFilters = List.of(
+                new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.EQUALS, new String[]{"CURRENT"}, Column.LIMIT_TYPE.columnName()));
         String stringFilters = new ObjectMapper().writeValueAsString(resourceFilters);
 
         if (!StringUtils.isEmpty(stringFilters)) {
@@ -571,16 +572,16 @@ public class LoadFlowControllerTest {
     private String buildFilterUrl(boolean hasChildFilter) {
         String filterUrl = "";
         try {
-            List<ResourceFilter> filters = List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "NHV1_NHV2", ResourceFilter.Column.SUBJECT_ID),
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1500", ResourceFilter.Column.LIMIT),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200", ResourceFilter.Column.VALUE),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
+            List<ResourceFilterDTO> filters = List.of(new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "NHV1_NHV2", Column.SUBJECT_ID.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.EQUALS, new String[]{"CURRENT"}, Column.LIMIT_TYPE.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "1500", Column.LIMIT.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.LESS_THAN_OR_EQUAL, "1200", Column.VALUE.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "2", Column.UP_COMING_OVERLOAD.columnName())
             );
-            List<ResourceFilter> childFilters = List.of(
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ACTIVE_POWER_MISMATCH),
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "slackBusId1", ResourceFilter.Column.ID),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ITERATION_COUNT)
+            List<ResourceFilterDTO> childFilters = List.of(
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ACTIVE_POWER_MISMATCH.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "slackBusId1", Column.ID.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ITERATION_COUNT.columnName())
             );
 
             String jsonFilters = new ObjectMapper().writeValueAsString(hasChildFilter ? childFilters : filters);
@@ -596,18 +597,18 @@ public class LoadFlowControllerTest {
     private String buildFilterUrlWithTolerance(boolean hasChildFilter) {
         String filterUrl = "";
         try {
-            List<ResourceFilter> filters = List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "NHV1_NHV2", ResourceFilter.Column.SUBJECT_ID),
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.EQUALS, new String[]{"CURRENT"}, ResourceFilter.Column.LIMIT_TYPE),
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.CONTAINS, new String[]{"limit1"}, ResourceFilter.Column.LIMIT_NAME),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "1499.99999", ResourceFilter.Column.LIMIT),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.LESS_THAN_OR_EQUAL, "1200.00001", ResourceFilter.Column.VALUE),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "66.66665", ResourceFilter.Column.OVERLOAD),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.NOT_EQUAL, "2", ResourceFilter.Column.UP_COMING_OVERLOAD)
+            List<ResourceFilterDTO> filters = List.of(new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "NHV1_NHV2", Column.SUBJECT_ID.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.EQUALS, new String[]{"CURRENT"}, Column.LIMIT_TYPE.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.CONTAINS, new String[]{"limit1"}, Column.LIMIT_NAME.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "1499.99999", Column.LIMIT.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.LESS_THAN_OR_EQUAL, "1200.00001", Column.VALUE.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "66.66665", Column.OVERLOAD.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "2", Column.UP_COMING_OVERLOAD.columnName())
             );
-            List<ResourceFilter> childFilters = List.of(
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ACTIVE_POWER_MISMATCH),
-                    new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.STARTS_WITH, "slackBusId1", ResourceFilter.Column.ID),
-                    new ResourceFilter(ResourceFilter.DataType.NUMBER, ResourceFilter.Type.GREATER_THAN_OR_EQUAL, "3", ResourceFilter.Column.ITERATION_COUNT)
+            List<ResourceFilterDTO> childFilters = List.of(
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ACTIVE_POWER_MISMATCH.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "slackBusId1", Column.ID.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ITERATION_COUNT.columnName())
             );
 
             String jsonFilters = new ObjectMapper().writeValueAsString(hasChildFilter ? childFilters : filters);

@@ -78,7 +78,7 @@ public final class SpecificationBuilder {
     }
 
     public static boolean isParentFilter(ResourceFilterDTO filter) {
-        return !List.of(Column.ID, Column.ACTIVE_POWER_MISMATCH).contains(filter.column());
+        return !List.of(Column.ID.columnName(), Column.ACTIVE_POWER_MISMATCH.columnName()).contains(filter.column());
     }
 
     public static <T> Specification<T> getSlackBusResultsSpecifications(
