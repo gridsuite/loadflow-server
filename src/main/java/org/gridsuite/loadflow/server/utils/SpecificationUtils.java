@@ -8,8 +8,8 @@
 
 package org.gridsuite.loadflow.server.utils;
 
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import jakarta.persistence.criteria.*;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.springframework.data.jpa.repository.query.EscapeCharacter;
 import org.springframework.util.CollectionUtils;
 
@@ -30,16 +30,16 @@ public final class SpecificationUtils {
     public static void addPredicate(CriteriaBuilder criteriaBuilder,
                                     Path<?> path,
                                     List<Predicate> predicates,
-                                    ResourceFilter filter) {
+                                    ResourceFilterDTO filter) {
 
-        String dotSeparatedField = filter.column().columnName();
+        String dotSeparatedField = filter.column();
         addPredicate(criteriaBuilder, path, predicates, filter, dotSeparatedField);
     }
 
     public static void addPredicate(CriteriaBuilder criteriaBuilder,
                                     Path<?> path,
                                     List<Predicate> predicates,
-                                    ResourceFilter filter,
+                                    ResourceFilterDTO filter,
                                     String fieldName) {
         Predicate predicate = filterToPredicate(criteriaBuilder, path, filter, fieldName);
         if (predicate != null) {
@@ -53,7 +53,7 @@ public final class SpecificationUtils {
      */
     public static Predicate filterToPredicate(CriteriaBuilder criteriaBuilder,
                                               Path<?> path,
-                                              ResourceFilter filter,
+                                              ResourceFilterDTO filter,
                                               String field) {
         // expression targets field to filter on
         Expression<String> expression = path.get(field);
@@ -75,19 +75,19 @@ public final class SpecificationUtils {
 
     /**
      * Returns atomic {@link Predicate} depending on {@code filter.dataType()} and {@code filter.type()}
-     * @throws UnsupportedOperationException if {@link ResourceFilter.DataType filter.type} not supported or {@code filter.value} is {@code null}
+     * @throws UnsupportedOperationException if {@link ResourceFilterDTO.DataType filter.type} not supported or {@code filter.value} is {@code null}
      */
-    public static Predicate filterToAtomicPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, Object value) {
-        if (ResourceFilter.DataType.TEXT == filter.dataType()) {
+    public static Predicate filterToAtomicPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilterDTO filter, Object value) {
+        if (ResourceFilterDTO.DataType.TEXT == filter.dataType()) {
             return createTextPredicate(criteriaBuilder, expression, filter, (String) value);
         }
-        if (ResourceFilter.DataType.NUMBER == filter.dataType()) {
+        if (ResourceFilterDTO.DataType.NUMBER == filter.dataType()) {
             return createNumberPredicate(criteriaBuilder, expression, filter.type(), (String) value, filter.tolerance());
         }
         throw new IllegalArgumentException("The filter type " + filter.type() + " is not supported with the data type " + filter.dataType());
     }
 
-    private static Predicate createTextPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilter filter, String value) {
+    private static Predicate createTextPredicate(CriteriaBuilder criteriaBuilder, Expression<?> expression, ResourceFilterDTO filter, String value) {
         String escapedFilterValue = EscapeCharacter.DEFAULT.escape(value);
         if (escapedFilterValue == null) {
             throw new UnsupportedOperationException("Filter text values can not be null");
@@ -107,7 +107,7 @@ public final class SpecificationUtils {
 
     private static Predicate createNumberPredicate(CriteriaBuilder criteriaBuilder,
                                                    Expression<?> expression,
-                                                   ResourceFilter.Type comparator,
+                                                   ResourceFilterDTO.Type comparator,
                                                    String filterValue,
                                                    Double filterTolerance) {
         double tolerance;

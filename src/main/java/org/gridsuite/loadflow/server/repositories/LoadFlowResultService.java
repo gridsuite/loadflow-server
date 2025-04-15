@@ -7,11 +7,11 @@
 package org.gridsuite.loadflow.server.repositories;
 
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import lombok.AllArgsConstructor;
 import com.powsybl.ws.commons.computation.service.AbstractComputationResultService;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
 import org.gridsuite.loadflow.server.entities.*;
 import org.gridsuite.loadflow.server.repositories.parameters.SlackBusResultRepository;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
@@ -136,13 +136,13 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return globalEntity != null ? globalEntity.getStatus() : null;
     }
 
-    public List<ComponentResultEntity> findComponentResults(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+    public List<ComponentResultEntity> findComponentResults(UUID resultUuid, List<ResourceFilterDTO> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
         Specification<ComponentResultEntity> specification = SpecificationBuilder.buildLoadflowResultSpecifications(resultUuid, resourceFilters);
         return componentResultRepository.findAll(specification, sort);
     }
 
-    public List<SlackBusResultEntity> findSlackBusResults(List<ComponentResultEntity> componentResultEntities, List<ResourceFilter> resourceFilters) {
+    public List<SlackBusResultEntity> findSlackBusResults(List<ComponentResultEntity> componentResultEntities, List<ResourceFilterDTO> resourceFilters) {
         List<UUID> componentResultUuids = componentResultEntities.stream()
                     .map(ComponentResultEntity::getComponentResultUuid)
                     .toList();

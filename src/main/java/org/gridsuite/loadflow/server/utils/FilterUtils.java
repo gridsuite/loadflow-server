@@ -9,16 +9,16 @@ package org.gridsuite.loadflow.server.utils;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.gridsuite.loadflow.server.dto.GlobalFilter;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
 
 import java.util.List;
 
 /**
  * @author maissa Souissi <maissa.souissi at rte-france.com>
  */
-public final class FilterUtils {
+public final class FilterUtils { // TODO à déplacer vers ws-commons ??
 
     // Utility class, so no constructor
     private FilterUtils() {
@@ -35,7 +35,7 @@ public final class FilterUtils {
         }
     }
 
-    public static List<ResourceFilter> fromStringFiltersToDTO(String stringFilters, ObjectMapper objectMapper) {
+    public static List<ResourceFilterDTO> fromStringFiltersToDTO(String stringFilters, ObjectMapper objectMapper) {
         return fromStringToDTO(stringFilters, objectMapper, new TypeReference<>() {
         }, List.of());
     }

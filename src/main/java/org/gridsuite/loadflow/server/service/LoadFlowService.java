@@ -16,6 +16,7 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
@@ -151,7 +152,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         if (loadFlowResultEntity == null) {
             return null;
         }
-        List<ResourceFilter> resourceFilters = fromStringFiltersToDTO(stringFilters);
+        List<ResourceFilterDTO> resourceFilters = fromStringFiltersToDTO(stringFilters);
         List<ComponentResultEntity> componentResults = resultService.findComponentResults(resultUuid, resourceFilters, sort);
         boolean hasChildFilter = resourceFilters.stream().anyMatch(resourceFilter -> !SpecificationBuilder.isParentFilter(resourceFilter));
         List<SlackBusResultEntity> slackBusResultEntities = new ArrayList<>();
@@ -178,10 +179,10 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         }
 
         // get resource filters and global filters
-        List<ResourceFilter> resourceFilters = FilterUtils.fromStringFiltersToDTO(stringFilters, objectMapper);
+        List<ResourceFilterDTO> resourceFilters = FilterUtils.fromStringFiltersToDTO(stringFilters, objectMapper);
         GlobalFilter globalFilter = FilterUtils.fromStringGlobalFiltersToDTO(stringGlobalFilters, objectMapper);
         if (globalFilter != null) {
-            List<ResourceFilter> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
+            List<ResourceFilterDTO> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
             if (!resourceGlobalFilters.isEmpty()) {
                 resourceFilters.addAll(resourceGlobalFilters);
             } else {
@@ -207,17 +208,17 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         return resultService.findComputingStatus(resultUuid);
     }
 
-    public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+    public List<LimitViolationEntity> findLimitViolations(UUID resultUuid, List<ResourceFilterDTO> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
         return findLimitViolationsEntities(resultUuid, resourceFilters, sort);
     }
 
-    private List<LimitViolationEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilter> resourceFilters, Sort sort) {
+    private List<LimitViolationEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilterDTO> resourceFilters, Sort sort) {
         Specification<LimitViolationEntity> specification = SpecificationBuilder.buildLimitViolationsSpecifications(limitViolationUuid, resourceFilters);
         return limitViolationRepository.findAll(specification, sort);
     }
 
-    public List<ResourceFilter> fromStringFiltersToDTO(String stringFilters) {
+    public List<ResourceFilterDTO> fromStringFiltersToDTO(String stringFilters) {
         if (StringUtils.isEmpty(stringFilters)) {
             return List.of();
         }

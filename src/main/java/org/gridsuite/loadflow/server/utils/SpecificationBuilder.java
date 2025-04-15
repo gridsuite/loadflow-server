@@ -6,8 +6,9 @@
  */
 package org.gridsuite.loadflow.server.utils;
 
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import jakarta.persistence.criteria.*;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.gridsuite.loadflow.server.dto.Column;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.springframework.data.jpa.domain.Specification;
@@ -35,7 +36,7 @@ public final class SpecificationBuilder {
 
     private static <T> Specification<T> buildSpecifications(
             UUID uuid,
-            List<ResourceFilter> filters,
+            List<ResourceFilterDTO> filters,
             String fieldName,
             String uuidFieldName,
             boolean withJoin
@@ -45,7 +46,7 @@ public final class SpecificationBuilder {
             // user filters on main entity
             filters.stream().filter(SpecificationBuilder::isParentFilter).forEach(filter -> SpecificationUtils.addPredicate(criteriaBuilder, root, predicates, filter));
             predicates.add(root.get(fieldName).get(uuidFieldName).in(List.of(uuid)));
-            List<ResourceFilter> childrenFilters = filters.stream().filter(resourceFilter -> !isParentFilter(resourceFilter)).toList();
+            List<ResourceFilterDTO> childrenFilters = filters.stream().filter(resourceFilter -> !isParentFilter(resourceFilter)).toList();
             if (withJoin) {
                 if (!childrenFilters.isEmpty()) {
                     // use filters on OneToMany collection - needed here to filter main entities that would have empty collection when filters are applied
@@ -64,25 +65,25 @@ public final class SpecificationBuilder {
 
     public static Specification<LimitViolationEntity> buildLimitViolationsSpecifications(
             UUID limitViolationsUuid,
-            List<ResourceFilter> filters
+            List<ResourceFilterDTO> filters
     ) {
         return buildSpecifications(limitViolationsUuid, filters, LOADFLOW_RESULT_FIELD_NAME, RESULT_UUID_FIELD_NAME, false);
     }
 
     public static Specification<ComponentResultEntity> buildLoadflowResultSpecifications(
             UUID componentResultUuid,
-            List<ResourceFilter> filters
+            List<ResourceFilterDTO> filters
     ) {
         return buildSpecifications(componentResultUuid, filters, LOADFLOW_RESULT_FIELD_NAME, RESULT_UUID_FIELD_NAME, true);
     }
 
-    public static boolean isParentFilter(ResourceFilter filter) {
-        return !List.of(ResourceFilter.Column.ID, ResourceFilter.Column.ACTIVE_POWER_MISMATCH).contains(filter.column());
+    public static boolean isParentFilter(ResourceFilterDTO filter) {
+        return !List.of(Column.ID, Column.ACTIVE_POWER_MISMATCH).contains(filter.column());
     }
 
     public static <T> Specification<T> getSlackBusResultsSpecifications(
            List<UUID> componentResultUuids,
-            List<ResourceFilter> filters
+            List<ResourceFilterDTO> filters
     ) {
         return (root, query, criteriaBuilder) -> {
             List<Predicate> predicates = new ArrayList<>();
