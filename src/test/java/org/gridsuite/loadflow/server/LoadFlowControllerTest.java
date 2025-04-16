@@ -26,6 +26,7 @@ import com.powsybl.security.BusBreakerViolationLocation;
 import com.powsybl.security.LimitViolation;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
+import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;

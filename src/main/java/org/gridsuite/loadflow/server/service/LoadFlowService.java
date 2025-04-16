@@ -16,7 +16,10 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
+import com.powsybl.ws.commons.computation.ComputationException;
+import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
+import com.powsybl.ws.commons.computation.utils.FilterUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.loadflow.server.dto.*;
@@ -30,8 +33,6 @@ import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import com.powsybl.ws.commons.computation.service.AbstractComputationService;
 import com.powsybl.ws.commons.computation.service.NotificationService;
 import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
-import org.gridsuite.loadflow.server.utils.FilterUtils;
-import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.gridsuite.loadflow.server.utils.SpecificationBuilder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -226,7 +227,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             return objectMapper.readValue(stringFilters, new TypeReference<>() {
             });
         } catch (JsonProcessingException e) {
-            throw new LoadflowException(LoadflowException.Type.INVALID_FILTER_FORMAT);
+            throw new ComputationException(ComputationException.Type.INVALID_FILTER_FORMAT);
         }
     }
 }
