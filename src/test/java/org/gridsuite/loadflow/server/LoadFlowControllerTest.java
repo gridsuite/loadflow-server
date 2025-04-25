@@ -41,6 +41,7 @@ import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAt
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.service.FilterService;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
@@ -300,7 +301,7 @@ public class LoadFlowControllerTest {
 
             // get loadflow limit violations
             result = mockMvc.perform(get(
-                            "/" + VERSION + "/results/{resultUuid}/limit-violations", RESULT_UUID))
+                            "/" + VERSION + "/results/{resultUuid}/limit-violations?sort=limitName,asc", RESULT_UUID))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andReturn();
@@ -448,7 +449,7 @@ public class LoadFlowControllerTest {
             doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&sort=limitName,asc&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -580,8 +581,10 @@ public class LoadFlowControllerTest {
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "2", Column.UP_COMING_OVERLOAD.columnName())
             );
             List<ResourceFilterDTO> childFilters = List.of(
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ACTIVE_POWER_MISMATCH.columnName()),
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "slackBusId1", Column.ID.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3",
+                            ComponentResultEntity.Fields.slackBusResults + "." + Column.ACTIVE_POWER_MISMATCH.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "slackBusId1",
+                            ComponentResultEntity.Fields.slackBusResults + "." + Column.ID.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ITERATION_COUNT.columnName())
             );
 
@@ -600,15 +603,17 @@ public class LoadFlowControllerTest {
         try {
             List<ResourceFilterDTO> filters = List.of(new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "NHV1_NHV2", Column.SUBJECT_ID.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.EQUALS, new String[]{"CURRENT"}, Column.LIMIT_TYPE.columnName()),
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.CONTAINS, new String[]{"limit1"}, Column.LIMIT_NAME.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.CONTAINS, new String[]{"limit1", "limit2"}, Column.LIMIT_NAME.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "1499.99999", Column.LIMIT.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.LESS_THAN_OR_EQUAL, "1200.00001", Column.VALUE.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "66.66665", Column.OVERLOAD.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "2", Column.UP_COMING_OVERLOAD.columnName())
             );
             List<ResourceFilterDTO> childFilters = List.of(
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ACTIVE_POWER_MISMATCH.columnName()),
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "slackBusId1", Column.ID.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3",
+                            ComponentResultEntity.Fields.slackBusResults + "." + Column.ACTIVE_POWER_MISMATCH.columnName()),
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.STARTS_WITH, "slackBusId1",
+                            ComponentResultEntity.Fields.slackBusResults + "." + Column.ID.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3", Column.ITERATION_COUNT.columnName())
             );
 
@@ -823,9 +828,9 @@ public class LoadFlowControllerTest {
     private static final class LimitViolationsMock {
         static List<LimitViolation> limitViolations = List.of(
                 new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1000, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.ONE),
-                new LimitViolation("NHV1_NHV2_2", "lineName2", LimitViolationType.CURRENT, "limit2", 300, 900, 0.7F, 1000, TwoSides.TWO));
+                new LimitViolation("NHV1_NHV2_1", "lineName2", LimitViolationType.CURRENT, "limit2", 60, 1500, 0.7F, 1000, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
+                new LimitViolation("NHV1_NHV2_2", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, TwoSides.TWO));
     }
 
     @Test
@@ -857,7 +862,7 @@ public class LoadFlowControllerTest {
 
             // get loadflow limit violations
             result = mockMvc.perform(get(
-                            "/" + VERSION + "/results/{resultUuid}/limit-violations", RESULT_UUID))
+                            "/" + VERSION + "/results/{resultUuid}/limit-violations?sort=locationId,asc", RESULT_UUID))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andReturn();

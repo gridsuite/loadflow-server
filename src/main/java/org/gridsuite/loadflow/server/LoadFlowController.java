@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
 import com.powsybl.ws.commons.computation.dto.ReportInfos;
@@ -44,9 +45,11 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 public class LoadFlowController {
 
     private final LoadFlowService loadFlowService;
+    private final LoadFlowResultService loadFlowResultService;
 
-    public LoadFlowController(LoadFlowService loadFlowService) {
+    public LoadFlowController(LoadFlowService loadFlowService, LoadFlowResultService loadFlowResultService) {
         this.loadFlowService = loadFlowService;
+        this.loadFlowResultService = loadFlowResultService;
     }
 
     @PostMapping(value = "/networks/{networkUuid}/run-and-save", produces = APPLICATION_JSON_VALUE)
@@ -81,7 +84,7 @@ public class LoadFlowController {
                                                     @Parameter(description = "Filters") @RequestParam(name = "filters", required = false) String stringFilters,
                                                     @Parameter(description = "Sort parameters") Sort sort) {
         String decodedStringFilters = stringFilters != null ? URLDecoder.decode(stringFilters, StandardCharsets.UTF_8) : null;
-        LoadFlowResult result = loadFlowService.getResult(resultUuid, decodedStringFilters, sort);
+        LoadFlowResult result = loadFlowResultService.getResult(resultUuid, decodedStringFilters, sort);
         return result != null ? ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result)
                 : ResponseEntity.notFound().build();
     }
@@ -157,7 +160,7 @@ public class LoadFlowController {
     ) {
         String decodedStringFilters = filters != null ? URLDecoder.decode(filters, StandardCharsets.UTF_8) : null;
         String decodedStringGlobalFilters = globalFilters != null ? URLDecoder.decode(globalFilters, StandardCharsets.UTF_8) : null;
-        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(resultUuid, decodedStringFilters, decodedStringGlobalFilters, sort, networkUuid, variantId);
+        List<LimitViolationInfos> result = loadFlowResultService.getLimitViolationsInfos(resultUuid, decodedStringFilters, decodedStringGlobalFilters, sort, networkUuid, variantId);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 
@@ -165,14 +168,14 @@ public class LoadFlowController {
     @Operation(summary = "Get the list of limit types values")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of limit types values by result"))
     public ResponseEntity<List<LimitViolationType>> getLimitTypes(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getLimitTypes(resultUuid));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowResultService.getLimitTypes(resultUuid));
     }
 
     @GetMapping(value = "/results/{resultUuid}/branch-sides", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get the list of branch sides values")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of branch sides values by result"))
     public ResponseEntity<List<TwoSides>> getBranchSides(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getBranchSides(resultUuid));
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowResultService.getBranchSides(resultUuid));
     }
 
     @GetMapping(value = "/results/{resultUuid}/computation-status", produces = APPLICATION_JSON_VALUE)
