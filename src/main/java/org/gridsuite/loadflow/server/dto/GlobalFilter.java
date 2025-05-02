@@ -8,9 +8,13 @@ package org.gridsuite.loadflow.server.dto;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.security.LimitViolationType;
-import lombok.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -28,4 +32,7 @@ public class GlobalFilter {
     List<UUID> genericFilter;
 
     List<LimitViolationType> limitViolationsTypes;
+
+    Map<String, List<String>> properties;
+    Map<String, String> propertiesFieldType;
 }
