@@ -33,6 +33,5 @@ public class GlobalFilter {
 
     List<LimitViolationType> limitViolationsTypes;
 
-    Map<String, List<String>> properties;
-    Map<String, String> propertiesFieldType;
+    Map<String, List<String>> substationProperty;
 }

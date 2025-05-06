@@ -164,24 +164,14 @@ public class FilterService {
         return List.of();
     }
 
-    private List<FieldType> getPropertiesFieldType(EquipmentType equipmentType, String propertyFiledType) {
-        if (propertyFiledType.equals("substation")) {
-            if (equipmentType.equals(EquipmentType.LINE)) {
-                return List.of(FieldType.SUBSTATION_PROPERTIES_1, FieldType.SUBSTATION_PROPERTIES_2);
-            }
-            if (equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER) || equipmentType.equals(EquipmentType.VOLTAGE_LEVEL)) {
-                return List.of(FieldType.SUBSTATION_PROPERTIES);
-            }
+    private List<FieldType> getSubstationPropertiesFieldTypes(EquipmentType equipmentType) {
+        if (equipmentType.equals(EquipmentType.LINE)) {
+            return List.of(FieldType.SUBSTATION_PROPERTIES_1, FieldType.SUBSTATION_PROPERTIES_2);
         }
-        if (propertyFiledType.equals("voltagelevel")) {
-            if (equipmentType.equals(EquipmentType.LINE) || equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER)) {
-                return List.of(FieldType.VOLTAGE_LEVEL_ID_1, FieldType.VOLTAGE_LEVEL_ID_2);
-            }
-            if (equipmentType.equals(EquipmentType.VOLTAGE_LEVEL)) {
-                return List.of(FieldType.FREE_PROPERTIES);
-            }
+        if (equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER) || equipmentType.equals(EquipmentType.VOLTAGE_LEVEL)) {
+            return List.of(FieldType.SUBSTATION_PROPERTIES);
         }
-        if (propertyFiledType.equals("element")) {
+        if (equipmentType.equals(EquipmentType.SUBSTATION)) {
             return List.of(FieldType.FREE_PROPERTIES);
         }
         return List.of();
@@ -199,10 +189,13 @@ public class FilterService {
         }
 
         List<AbstractExpertRule> propertiesRules = new ArrayList<>();
-        if (globalFilter.getProperties() != null) {
-            globalFilter.getProperties().forEach((property, propertiesValue) ->
-                propertiesRules.addAll(createPropertiesRules(property, propertiesValue,
-                    getPropertiesFieldType(equipmentType, globalFilter.getPropertiesFieldType().get(property)))));
+        if (globalFilter.getSubstationProperty() != null) {
+            globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
+                propertiesRules.addAll(createPropertiesRules(
+                        propertyName,
+                        propertiesValues,
+                        getSubstationPropertiesFieldTypes(equipmentType)
+                )));
         }
 
         if (nominalVRules.isEmpty() && countryCodRules.isEmpty() && propertiesRules.isEmpty()) {
