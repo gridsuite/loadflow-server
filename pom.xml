@@ -58,6 +58,7 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
+        <powsybl-ws-commons.version>1.24.0</powsybl-ws-commons.version><!-- should be removed once gridsuite-dependencies is upgraded-->
     </properties>
 
     <build>
@@ -138,6 +139,7 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
+            <version>1.24.0-SNAPSHOT</version> <!-- TODO tmp : à remplacer par num de version avant de pousser -->
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
