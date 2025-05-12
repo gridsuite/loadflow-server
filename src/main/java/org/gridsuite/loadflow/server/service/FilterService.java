@@ -189,7 +189,7 @@ public class FilterService {
         }
 
         List<AbstractExpertRule> propertiesRules = new ArrayList<>();
-        if (globalFilter.getSubstationProperty() != null) {
+        if (globalFilter.getSubstationProperty() != null && !globalFilter.getSubstationProperty().isEmpty()) {
             globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
                 propertiesRules.addAll(createPropertiesRules(
                         propertyName,
