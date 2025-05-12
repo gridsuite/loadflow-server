@@ -496,11 +496,11 @@ public class LoadFlowControllerTest {
                     List.of(LimitViolationType.CURRENT)
             ), 4);
             assertLimitViolations(createStringGlobalFilter(
-                    List.of(),
+                    null,
                     Map.of("whateverPropertyToTestGlobalFilters", List.of("badValue")),
-                    List.of(),
-                    List.of(),
-                    List.of()
+                    null,
+                    null,
+                    List.of(LimitViolationType.CURRENT)
             ), 0);
 
             // generic filter

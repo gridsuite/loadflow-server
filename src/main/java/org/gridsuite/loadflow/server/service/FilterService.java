@@ -171,9 +171,6 @@ public class FilterService {
         if (equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER) || equipmentType.equals(EquipmentType.VOLTAGE_LEVEL)) {
             return List.of(FieldType.SUBSTATION_PROPERTIES);
         }
-        if (equipmentType.equals(EquipmentType.SUBSTATION)) {
-            return List.of(FieldType.FREE_PROPERTIES);
-        }
         return List.of();
     }
 
