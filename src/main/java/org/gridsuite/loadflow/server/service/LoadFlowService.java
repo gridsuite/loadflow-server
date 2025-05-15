@@ -94,6 +94,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     @Transactional
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
+        params.getCommonParameters().setTransformerVoltageControlOn(loadFlowRunContext.isWithTapChanger());
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
         loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());
