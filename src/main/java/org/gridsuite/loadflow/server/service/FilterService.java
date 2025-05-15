@@ -168,10 +168,7 @@ public class FilterService {
         if (equipmentType.equals(EquipmentType.LINE)) {
             return List.of(FieldType.SUBSTATION_PROPERTIES_1, FieldType.SUBSTATION_PROPERTIES_2);
         }
-        if (equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER) || equipmentType.equals(EquipmentType.VOLTAGE_LEVEL)) {
-            return List.of(FieldType.SUBSTATION_PROPERTIES);
-        }
-        return List.of();
+        return List.of(FieldType.SUBSTATION_PROPERTIES);
     }
 
     private ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
