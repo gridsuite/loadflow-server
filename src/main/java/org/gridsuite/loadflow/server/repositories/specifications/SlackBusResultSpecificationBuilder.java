@@ -19,6 +19,9 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 import java.util.UUID;
 
+/**
+ * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com>
+ */
 @Service
 public class SlackBusResultSpecificationBuilder extends AbstractCommonSpecificationBuilder<SlackBusResultEntity> {
     private static final String COMPONENT_RESULT = "componentResult";

@@ -22,6 +22,9 @@ import java.util.UUID;
 
 import static org.gridsuite.loadflow.server.repositories.specifications.LimitViolationsSpecificationBuilder.RESULT_UUID_FIELD_NAME;
 
+/**
+ * @author Mathieu Deharbe <mathieu.deharbe at rte-france.com>
+ */
 @Service
 public class ComponentResultSpecificationBuilder extends AbstractCommonSpecificationBuilder<ComponentResultEntity> {
 
