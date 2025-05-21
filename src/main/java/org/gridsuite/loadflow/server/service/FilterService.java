@@ -187,19 +187,25 @@ public class FilterService implements FilterLoader {
         List<AbstractExpertRule> countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
         andRules.addAll(createCombination(CombinatorType.OR, countryCodRules));
 
-        List<AbstractExpertRule> propertiesRules = new ArrayList<>();
-        globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
-                propertiesRules.addAll(createPropertiesRules(
-                        propertyName,
-                        propertiesValues,
-                        getSubstationPropertiesFieldTypes(equipmentType)
-                )));
-        andRules.addAll(createCombination(CombinatorType.OR, propertiesRules));
+        if (globalFilter.getSubstationProperty() != null) {
+            List<AbstractExpertRule> propertiesRules = new ArrayList<>();
+            globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
+                    propertiesRules.addAll(createPropertiesRules(
+                            propertyName,
+                            propertiesValues,
+                            getSubstationPropertiesFieldTypes(equipmentType)
+                    )));
+            andRules.addAll(createCombination(CombinatorType.OR, propertiesRules));
+        }
 
         // between them the various global filter rules are AND combinated
         AbstractExpertRule andCombination = CombinatorExpertRule.builder().combinator(CombinatorType.AND).rules(andRules).build();
 
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
+    }
+
+    private AbstractExpertRule createOrCombinator(List<AbstractExpertRule> rules) {
+        return CombinatorExpertRule.builder().combinator(CombinatorType.OR).rules(rules).build();
     }
 
     private List<AbstractExpertRule> createCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
@@ -217,7 +223,7 @@ public class FilterService implements FilterLoader {
     private ExpertFilter buildExpertFilterWithVoltageLevelIdsCriteria(UUID filterUuid, EquipmentType equipmentType) {
         AbstractExpertRule voltageLevelId1Rule = createVoltageLevelIdRule(filterUuid, TwoSides.ONE);
         AbstractExpertRule voltageLevelId2Rule = createVoltageLevelIdRule(filterUuid, TwoSides.TWO);
-        AbstractExpertRule orCombination = createOrCombinator(CombinatorType.OR, List.of(voltageLevelId1Rule, voltageLevelId2Rule));
+        AbstractExpertRule orCombination = createOrCombinator(List.of(voltageLevelId1Rule, voltageLevelId2Rule));
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, orCombination);
     }
 
