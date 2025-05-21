@@ -87,12 +87,14 @@ public class FilterService implements FilterLoader {
 
     private List<AbstractExpertRule> createNumberExpertRules(List<String> values, FieldType fieldType) {
         List<AbstractExpertRule> rules = new ArrayList<>();
-        for (String value : values) {
-            rules.add(NumberExpertRule.builder()
-                    .value(Double.valueOf(value))
-                    .field(fieldType)
-                    .operator(OperatorType.EQUALS)
-                    .build());
+        if (values != null) {
+            for (String value : values) {
+                rules.add(NumberExpertRule.builder()
+                        .value(Double.valueOf(value))
+                        .field(fieldType)
+                        .operator(OperatorType.EQUALS)
+                        .build());
+            }
         }
         return rules;
     }
@@ -109,12 +111,14 @@ public class FilterService implements FilterLoader {
 
     private List<AbstractExpertRule> createEnumExpertRules(List<Country> values, FieldType fieldType) {
         List<AbstractExpertRule> rules = new ArrayList<>();
-        for (Country value : values) {
-            rules.add(EnumExpertRule.builder()
-                    .value(value.toString())
-                    .field(fieldType)
-                    .operator(OperatorType.EQUALS)
-                    .build());
+        if (values != null) {
+            for (Country value : values) {
+                rules.add(EnumExpertRule.builder()
+                        .value(value.toString())
+                        .field(fieldType)
+                        .operator(OperatorType.EQUALS)
+                        .build());
+            }
         }
         return rules;
     }
@@ -175,39 +179,31 @@ public class FilterService implements FilterLoader {
 
     private ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
         List<AbstractExpertRule> andRules = new ArrayList<>();
-        if (globalFilter.getNominalV() != null && !globalFilter.getNominalV().isEmpty()) {
-            List<AbstractExpertRule> nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
-            // among themselves the various global filter rules are OR combinated
-            andRules.addAll(nominalVRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, nominalVRules)) : nominalVRules);
-        }
 
-        if (globalFilter.getCountryCode() != null && !globalFilter.getCountryCode().isEmpty()) {
-            List<AbstractExpertRule> countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
-            andRules.addAll(countryCodRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, countryCodRules)) : countryCodRules);
-        }
+        // among themselves the various global filter rules are OR combinated
+        List<AbstractExpertRule> nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
+        andRules.addAll(createCombination(CombinatorType.OR, nominalVRules));
 
-        if (globalFilter.getSubstationProperty() != null && !globalFilter.getSubstationProperty().isEmpty()) {
-            List<AbstractExpertRule> propertiesRules = new ArrayList<>();
-            globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
+        List<AbstractExpertRule> countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
+        andRules.addAll(createCombination(CombinatorType.OR, countryCodRules));
+
+        List<AbstractExpertRule> propertiesRules = new ArrayList<>();
+        globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
                 propertiesRules.addAll(createPropertiesRules(
                         propertyName,
                         propertiesValues,
                         getSubstationPropertiesFieldTypes(equipmentType)
                 )));
-            andRules.addAll(propertiesRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, propertiesRules)) : propertiesRules);
-        }
+        andRules.addAll(createCombination(CombinatorType.OR, propertiesRules));
 
-        if (andRules.isEmpty()) {
-            return null;
-        }
         // between them the various global filter rules are AND combinated
-        AbstractExpertRule andCombination = createOrCombinator(CombinatorType.AND, andRules);
+        AbstractExpertRule andCombination = CombinatorExpertRule.builder().combinator(CombinatorType.AND).rules(andRules).build();
 
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
     }
 
-    private AbstractExpertRule createOrCombinator(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
-        return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
+    private List<AbstractExpertRule> createCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
+        return rules.size() > 1 ? List.of(CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build()) : rules;
     }
 
     private AbstractExpertRule createVoltageLevelIdRule(UUID filterUuid, TwoSides side) {
