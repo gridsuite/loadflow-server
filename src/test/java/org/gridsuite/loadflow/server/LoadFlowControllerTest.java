@@ -516,15 +516,13 @@ public class LoadFlowControllerTest {
                             .withBody(mapper.writeValueAsString(List.of(lineFilter)))
                             .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))).getId();
 
-            /*assertLimitViolations(createStringGlobalFilter(
+            assertLimitViolations(createStringGlobalFilter(
                     List.of(),
                     Map.of(),
                     List.of(Country.FR),
-                    filterIds,
+                    List.of(FILTER_ID_1),
                     List.of(LimitViolationType.CURRENT)
-            ), 2);*/
-
-            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(FILTER_ID_1), List.of(LimitViolationType.CURRENT)), 2);
+            ), 2);
 
             // generic filter with voltage level filter
             AbstractFilter votageLevelFilter = new IdentifierListFilter(
@@ -538,7 +536,13 @@ public class LoadFlowControllerTest {
                     .withBody(mapper.writeValueAsString(List.of(votageLevelFilter)))
                     .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))).getId();
 
-            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(FILTER_ID_2), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of(),
+                    Map.of(),
+                    List.of(Country.FR),
+                    List.of(FILTER_ID_2),
+                    List.of(LimitViolationType.CURRENT)
+            ), 4);
         }
     }
 
