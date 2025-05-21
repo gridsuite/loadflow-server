@@ -9,12 +9,14 @@ package org.gridsuite.loadflow.server.service;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolationType;
 import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.filter.AbstractFilter;
+import org.gridsuite.filter.FilterLoader;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
 import org.gridsuite.filter.expertfilter.expertrule.*;
 import org.gridsuite.filter.identifierlistfilter.IdentifiableAttributes;
@@ -43,7 +45,7 @@ import java.util.stream.Collectors;
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
-public class FilterService {
+public class FilterService implements FilterLoader {
     public static final String FILTERS_NOT_FOUND = "Filters not found";
 
     private static final String FILTER_SERVER_API_VERSION = "v1";
@@ -208,6 +210,21 @@ public class FilterService {
         return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
     }
 
+    private AbstractExpertRule createVoltageLevelIdRule(UUID filterUuid, TwoSides side) {
+        return FilterUuidExpertRule.builder()
+            .operator(OperatorType.IS_PART_OF)
+            .field(side == TwoSides.ONE ? FieldType.VOLTAGE_LEVEL_ID_1 : FieldType.VOLTAGE_LEVEL_ID_2)
+            .values(Set.of(filterUuid.toString()))
+            .build();
+    }
+
+    private ExpertFilter buildExpertFilterWithVoltageLevelIdsCriteria(UUID filterUuid, EquipmentType equipmentType) {
+        AbstractExpertRule voltageLevelId1Rule = createVoltageLevelIdRule(filterUuid, TwoSides.ONE);
+        AbstractExpertRule voltageLevelId2Rule = createVoltageLevelIdRule(filterUuid, TwoSides.TWO);
+        AbstractExpertRule orCombination = createOrCombinator(CombinatorType.OR, List.of(voltageLevelId1Rule, voltageLevelId2Rule));
+        return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, orCombination);
+    }
+
     private Network getNetwork(UUID networkUuid, String variantId) {
         try {
             Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
@@ -230,12 +247,15 @@ public class FilterService {
 
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
-                idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network)));
+                idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network, this)));
             }
 
             for (AbstractFilter filter : genericFilters) {
                 if (filter.getEquipmentType() == equipmentType) {
-                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network)));
+                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network, this)));
+                } else if (filter.getEquipmentType() == EquipmentType.VOLTAGE_LEVEL) {
+                    ExpertFilter expertFilterWithVoltageLevelIdsCriteria = buildExpertFilterWithVoltageLevelIdsCriteria(filter.getId(), equipmentType);
+                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilterWithVoltageLevelIdsCriteria, network, this)));
                 }
             }
 
@@ -267,8 +287,8 @@ public class FilterService {
      * @return list of the ids filtered from the network through the filter
      */
     @NotNull
-    private static List<String> filterNetwork(AbstractFilter filter, Network network) {
-        return FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
+    private static List<String> filterNetwork(AbstractFilter filter, Network network, FilterLoader filterLoader) {
+        return FilterServiceUtils.getIdentifiableAttributes(filter, network, filterLoader)
                 .stream()
                 .map(IdentifiableAttributes::getId)
                 .toList();
