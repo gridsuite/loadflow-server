@@ -182,10 +182,10 @@ public class FilterService implements FilterLoader {
 
         // among themselves the various global filter rules are OR combinated
         List<AbstractExpertRule> nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
-        createOptionalCombination(CombinatorType.OR, nominalVRules).ifPresent(andRules::add);
+        createOrCombination(nominalVRules).ifPresent(andRules::add);
 
         List<AbstractExpertRule> countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
-        createOptionalCombination(CombinatorType.OR, countryCodRules).ifPresent(andRules::add);
+        createOrCombination(countryCodRules).ifPresent(andRules::add);
 
         if (globalFilter.getSubstationProperty() != null) {
             List<AbstractExpertRule> propertiesRules = new ArrayList<>();
@@ -195,7 +195,7 @@ public class FilterService implements FilterLoader {
                             propertiesValues,
                             getSubstationPropertiesFieldTypes(equipmentType)
                     )));
-            createOptionalCombination(CombinatorType.OR, propertiesRules).ifPresent(andRules::add);
+            createOrCombination(propertiesRules).ifPresent(andRules::add);
         }
 
         // between them the various global filter rules are AND combinated
@@ -208,11 +208,11 @@ public class FilterService implements FilterLoader {
         return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
     }
 
-    private Optional<AbstractExpertRule> createOptionalCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
+    private Optional<AbstractExpertRule> createOrCombination(List<AbstractExpertRule> rules) {
         if (rules.isEmpty()) {
             return Optional.empty();
         }
-        return Optional.of(rules.size() > 1 ? createCombination(combinatorType, rules) : rules.getFirst());
+        return Optional.of(rules.size() > 1 ? createCombination(CombinatorType.OR, rules) : rules.getFirst());
     }
 
     private AbstractExpertRule createVoltageLevelIdRule(UUID filterUuid, TwoSides side) {
