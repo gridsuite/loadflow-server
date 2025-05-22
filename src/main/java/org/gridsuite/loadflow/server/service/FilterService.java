@@ -99,7 +99,7 @@ public class FilterService implements FilterLoader {
         return rules;
     }
 
-    private AbstractExpertRule createPropertiesExpertRules(String property, List<String> propertiesValues, FieldType fieldType) {
+    private AbstractExpertRule createPropertiesRule(String property, List<String> propertiesValues, FieldType fieldType) {
         return PropertiesExpertRule.builder()
             .combinator(CombinatorType.OR)
             .operator(OperatorType.IN)
@@ -142,7 +142,7 @@ public class FilterService implements FilterLoader {
     private List<AbstractExpertRule> createPropertiesRules(String property, List<String> propertiesValues, List<FieldType> propertiesFieldTypes) {
         List<AbstractExpertRule> propertiesRules = new ArrayList<>();
         for (FieldType fieldType : propertiesFieldTypes) {
-            propertiesRules.add(createPropertiesExpertRules(property, propertiesValues, fieldType));
+            propertiesRules.add(createPropertiesRule(property, propertiesValues, fieldType));
         }
         return propertiesRules;
     }
