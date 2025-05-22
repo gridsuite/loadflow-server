@@ -182,10 +182,10 @@ public class FilterService implements FilterLoader {
 
         // among themselves the various global filter rules are OR combinated
         List<AbstractExpertRule> nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
-        andRules.addAll(createCombination(CombinatorType.OR, nominalVRules));
+        createOrCombination(nominalVRules).ifPresent(andRules::add);
 
         List<AbstractExpertRule> countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
-        andRules.addAll(createCombination(CombinatorType.OR, countryCodRules));
+        createOrCombination(countryCodRules).ifPresent(andRules::add);
 
         if (globalFilter.getSubstationProperty() != null) {
             List<AbstractExpertRule> propertiesRules = new ArrayList<>();
@@ -195,21 +195,24 @@ public class FilterService implements FilterLoader {
                             propertiesValues,
                             getSubstationPropertiesFieldTypes(equipmentType)
                     )));
-            andRules.addAll(createCombination(CombinatorType.OR, propertiesRules));
+            createOrCombination(propertiesRules).ifPresent(andRules::add);
         }
 
         // between them the various global filter rules are AND combinated
-        AbstractExpertRule andCombination = CombinatorExpertRule.builder().combinator(CombinatorType.AND).rules(andRules).build();
+        AbstractExpertRule andCombination = createCombination(CombinatorType.AND, andRules);
 
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
     }
 
-    private AbstractExpertRule createOrCombinator(List<AbstractExpertRule> rules) {
-        return CombinatorExpertRule.builder().combinator(CombinatorType.OR).rules(rules).build();
+    private AbstractExpertRule createCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
+        return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
     }
 
-    private List<AbstractExpertRule> createCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
-        return rules.size() > 1 ? List.of(CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build()) : rules;
+    private Optional<AbstractExpertRule> createOrCombination(List<AbstractExpertRule> rules) {
+        if (rules.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(rules.size() > 1 ? createCombination(CombinatorType.OR, rules) : rules.getFirst());
     }
 
     private AbstractExpertRule createVoltageLevelIdRule(UUID filterUuid, TwoSides side) {
@@ -223,7 +226,7 @@ public class FilterService implements FilterLoader {
     private ExpertFilter buildExpertFilterWithVoltageLevelIdsCriteria(UUID filterUuid, EquipmentType equipmentType) {
         AbstractExpertRule voltageLevelId1Rule = createVoltageLevelIdRule(filterUuid, TwoSides.ONE);
         AbstractExpertRule voltageLevelId2Rule = createVoltageLevelIdRule(filterUuid, TwoSides.TWO);
-        AbstractExpertRule orCombination = createOrCombinator(List.of(voltageLevelId1Rule, voltageLevelId2Rule));
+        AbstractExpertRule orCombination = createCombination(CombinatorType.OR, List.of(voltageLevelId1Rule, voltageLevelId2Rule));
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, orCombination);
     }
 
