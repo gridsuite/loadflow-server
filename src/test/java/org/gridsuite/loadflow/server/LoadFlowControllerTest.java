@@ -784,7 +784,7 @@ public class LoadFlowControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-        assertEquals(LoadFlowStatus.NOT_DONE.name(), result.getResponse().getContentAsString());
+        assertEquals(LoadFlowStatus.NOT_DONE, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
     }
 
     @SneakyThrows
