@@ -162,12 +162,12 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
 
     public List<ComponentResultEntity> findComponentResults(UUID resultUuid, List<ResourceFilterDTO> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
-        Specification<ComponentResultEntity> specification = componentResultSpecificationBuilder.buildSpecification(resultUuid, resourceFilters, true);
+        Specification<ComponentResultEntity> specification = componentResultSpecificationBuilder.buildSpecification(resultUuid, resourceFilters);
         return componentResultRepository.findAll(specification, sort);
     }
 
     private List<LimitViolationEntity> findLimitViolationsEntities(UUID limitViolationUuid, List<ResourceFilterDTO> resourceFilters, Sort sort) {
-        Specification<LimitViolationEntity> specification = limitViolationsSpecificationBuilder.buildSpecification(limitViolationUuid, resourceFilters, true);
+        Specification<LimitViolationEntity> specification = limitViolationsSpecificationBuilder.buildSpecification(limitViolationUuid, resourceFilters);
         return limitViolationRepository.findAll(specification, sort);
     }
 
