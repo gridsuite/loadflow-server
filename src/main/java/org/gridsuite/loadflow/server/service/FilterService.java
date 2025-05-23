@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server.service;
 import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolationType;
@@ -17,11 +18,9 @@ import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.filter.AbstractFilter;
+import org.gridsuite.filter.FilterLoader;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
-import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
-import org.gridsuite.filter.expertfilter.expertrule.CombinatorExpertRule;
-import org.gridsuite.filter.expertfilter.expertrule.EnumExpertRule;
-import org.gridsuite.filter.expertfilter.expertrule.NumberExpertRule;
+import org.gridsuite.filter.expertfilter.expertrule.*;
 import org.gridsuite.filter.identifierlistfilter.IdentifiableAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.filter.utils.FilterServiceUtils;
@@ -47,7 +46,7 @@ import java.util.stream.Collectors;
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
-public class FilterService {
+public class FilterService implements FilterLoader {
     public static final String FILTERS_NOT_FOUND = "Filters not found";
 
     private static final String FILTER_SERVER_API_VERSION = "v1";
@@ -89,24 +88,38 @@ public class FilterService {
 
     private List<AbstractExpertRule> createNumberExpertRules(List<String> values, FieldType fieldType) {
         List<AbstractExpertRule> rules = new ArrayList<>();
-        for (String value : values) {
-            rules.add(NumberExpertRule.builder()
-                    .value(Double.valueOf(value))
-                    .field(fieldType)
-                    .operator(OperatorType.EQUALS)
-                    .build());
+        if (values != null) {
+            for (String value : values) {
+                rules.add(NumberExpertRule.builder()
+                        .value(Double.valueOf(value))
+                        .field(fieldType)
+                        .operator(OperatorType.EQUALS)
+                        .build());
+            }
         }
         return rules;
     }
 
+    private AbstractExpertRule createPropertiesRule(String property, List<String> propertiesValues, FieldType fieldType) {
+        return PropertiesExpertRule.builder()
+            .combinator(CombinatorType.OR)
+            .operator(OperatorType.IN)
+            .field(fieldType)
+            .propertyName(property)
+            .propertyValues(propertiesValues)
+            .build();
+    }
+
     private List<AbstractExpertRule> createEnumExpertRules(List<Country> values, FieldType fieldType) {
         List<AbstractExpertRule> rules = new ArrayList<>();
-        for (Country value : values) {
-            rules.add(EnumExpertRule.builder()
-                    .value(value.toString())
-                    .field(fieldType)
-                    .operator(OperatorType.EQUALS)
-                    .build());
+        if (values != null) {
+            for (Country value : values) {
+                rules.add(EnumExpertRule.builder()
+                        .value(value.toString())
+                        .field(fieldType)
+                        .operator(OperatorType.EQUALS)
+                        .build());
+            }
         }
         return rules;
     }
@@ -125,6 +138,14 @@ public class FilterService {
             countryCodeRules.addAll(createEnumExpertRules(countryCodeList, fieldType));
         }
         return countryCodeRules;
+    }
+
+    private List<AbstractExpertRule> createPropertiesRules(String property, List<String> propertiesValues, List<FieldType> propertiesFieldTypes) {
+        List<AbstractExpertRule> propertiesRules = new ArrayList<>();
+        for (FieldType fieldType : propertiesFieldTypes) {
+            propertiesRules.add(createPropertiesRule(property, propertiesValues, fieldType));
+        }
+        return propertiesRules;
     }
 
     private List<FieldType> getNominalVoltageFieldType(EquipmentType equipmentType) {
@@ -150,39 +171,64 @@ public class FilterService {
         return List.of();
     }
 
+    private List<FieldType> getSubstationPropertiesFieldTypes(EquipmentType equipmentType) {
+        if (equipmentType.equals(EquipmentType.LINE)) {
+            return List.of(FieldType.SUBSTATION_PROPERTIES_1, FieldType.SUBSTATION_PROPERTIES_2);
+        }
+        return List.of(FieldType.SUBSTATION_PROPERTIES);
+    }
+
     private ExpertFilter buildExpertFilter(GlobalFilter globalFilter, EquipmentType equipmentType) {
-        List<AbstractExpertRule> nominalVRules = List.of();
-        if (globalFilter.getNominalV() != null) {
-            nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
-        }
-
-        List<AbstractExpertRule> countryCodRules = List.of();
-        if (globalFilter.getCountryCode() != null) {
-            countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
-        }
-
-        if (nominalVRules.isEmpty() && countryCodRules.isEmpty()) {
-            return null;
-        }
-
-        if (countryCodRules.isEmpty()) {
-            return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, nominalVRules));
-        }
-
-        if (nominalVRules.isEmpty()) {
-            return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, createOrCombinator(CombinatorType.OR, countryCodRules));
-        }
-
         List<AbstractExpertRule> andRules = new ArrayList<>();
-        andRules.addAll(nominalVRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, nominalVRules)) : nominalVRules);
-        andRules.addAll(countryCodRules.size() > 1 ? List.of(createOrCombinator(CombinatorType.OR, countryCodRules)) : countryCodRules);
-        AbstractExpertRule andCombination = createOrCombinator(CombinatorType.AND, andRules);
+
+        // among themselves the various global filter rules are OR combinated
+        List<AbstractExpertRule> nominalVRules = createNominalVoltageRules(globalFilter.getNominalV(), getNominalVoltageFieldType(equipmentType));
+        createOrCombination(nominalVRules).ifPresent(andRules::add);
+
+        List<AbstractExpertRule> countryCodRules = createCountryCodeRules(globalFilter.getCountryCode(), getCountryCodeFieldType(equipmentType));
+        createOrCombination(countryCodRules).ifPresent(andRules::add);
+
+        if (globalFilter.getSubstationProperty() != null) {
+            List<AbstractExpertRule> propertiesRules = new ArrayList<>();
+            globalFilter.getSubstationProperty().forEach((propertyName, propertiesValues) ->
+                    propertiesRules.addAll(createPropertiesRules(
+                            propertyName,
+                            propertiesValues,
+                            getSubstationPropertiesFieldTypes(equipmentType)
+                    )));
+            createOrCombination(propertiesRules).ifPresent(andRules::add);
+        }
+
+        // between them the various global filter rules are AND combinated
+        AbstractExpertRule andCombination = createCombination(CombinatorType.AND, andRules);
 
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
     }
 
-    private AbstractExpertRule createOrCombinator(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
+    private AbstractExpertRule createCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
         return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
+    }
+
+    private Optional<AbstractExpertRule> createOrCombination(List<AbstractExpertRule> rules) {
+        if (rules.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(rules.size() > 1 ? createCombination(CombinatorType.OR, rules) : rules.getFirst());
+    }
+
+    private AbstractExpertRule createVoltageLevelIdRule(UUID filterUuid, TwoSides side) {
+        return FilterUuidExpertRule.builder()
+            .operator(OperatorType.IS_PART_OF)
+            .field(side == TwoSides.ONE ? FieldType.VOLTAGE_LEVEL_ID_1 : FieldType.VOLTAGE_LEVEL_ID_2)
+            .values(Set.of(filterUuid.toString()))
+            .build();
+    }
+
+    private ExpertFilter buildExpertFilterWithVoltageLevelIdsCriteria(UUID filterUuid, EquipmentType equipmentType) {
+        AbstractExpertRule voltageLevelId1Rule = createVoltageLevelIdRule(filterUuid, TwoSides.ONE);
+        AbstractExpertRule voltageLevelId2Rule = createVoltageLevelIdRule(filterUuid, TwoSides.TWO);
+        AbstractExpertRule orCombination = createCombination(CombinatorType.OR, List.of(voltageLevelId1Rule, voltageLevelId2Rule));
+        return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, orCombination);
     }
 
     private Network getNetwork(UUID networkUuid, String variantId) {
@@ -207,12 +253,15 @@ public class FilterService {
 
             ExpertFilter expertFilter = buildExpertFilter(globalFilter, equipmentType);
             if (expertFilter != null) {
-                idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network)));
+                idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilter, network, this)));
             }
 
             for (AbstractFilter filter : genericFilters) {
                 if (filter.getEquipmentType() == equipmentType) {
-                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network)));
+                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(filter, network, this)));
+                } else if (filter.getEquipmentType() == EquipmentType.VOLTAGE_LEVEL) {
+                    ExpertFilter expertFilterWithVoltageLevelIdsCriteria = buildExpertFilterWithVoltageLevelIdsCriteria(filter.getId(), equipmentType);
+                    idsFilteredThroughEachFilter.add(new ArrayList<>(filterNetwork(expertFilterWithVoltageLevelIdsCriteria, network, this)));
                 }
             }
 
@@ -244,8 +293,8 @@ public class FilterService {
      * @return list of the ids filtered from the network through the filter
      */
     @NotNull
-    private static List<String> filterNetwork(AbstractFilter filter, Network network) {
-        return FilterServiceUtils.getIdentifiableAttributes(filter, network, null)
+    private static List<String> filterNetwork(AbstractFilter filter, Network network, FilterLoader filterLoader) {
+        return FilterServiceUtils.getIdentifiableAttributes(filter, network, filterLoader)
                 .stream()
                 .map(IdentifiableAttributes::getId)
                 .toList();
