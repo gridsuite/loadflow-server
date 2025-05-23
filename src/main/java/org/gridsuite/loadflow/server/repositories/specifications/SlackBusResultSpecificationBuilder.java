@@ -33,11 +33,6 @@ public class SlackBusResultSpecificationBuilder extends AbstractCommonSpecificat
     }
 
     @Override
-    public Specification<SlackBusResultEntity> addSpecificFilterWhenChildrenFilters() {
-        return null;
-    }
-
-    @Override
     public String getIdFieldName() {
         return SlackBusResultEntity.Fields.slackBusResulttUuid;
     }
@@ -58,10 +53,5 @@ public class SlackBusResultSpecificationBuilder extends AbstractCommonSpecificat
     @Override
     public Path<UUID> getResultIdPath(Root<SlackBusResultEntity> root) {
         return root.get(COMPONENT_RESULT).get(COMPONENT_RESULT_UUID);
-    }
-
-    @Override
-    public Specification<SlackBusResultEntity> addSpecificFilterWhenNoChildrenFilter() {
-        return this.addSpecificFilterWhenChildrenFilters();
     }
 }
