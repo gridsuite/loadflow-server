@@ -25,11 +25,11 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.ws.commons.computation.service.*;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
-import com.powsybl.ws.commons.computation.service.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
@@ -88,7 +88,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return runner.runAsync(
                 runContext.getNetwork(),
                 runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
-                executionService.getComputationManager(),
+                runContext.getComputationManager(),
                 params,
                 runContext.getReportNode());
     }
