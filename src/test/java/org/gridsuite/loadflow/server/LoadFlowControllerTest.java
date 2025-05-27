@@ -100,6 +100,7 @@ public class LoadFlowControllerTest {
     private static final UUID REPORT_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120002");
     private static final UUID PARAMETERS_UUID = UUID.fromString("762b7298-8c0f-11ed-a1eb-0242ac120003");
     private static final UUID FILTER_ID_1 = UUID.fromString("762b72a8-8c0f-11ed-a1eb-0242ac120003");
+    private static final UUID FILTER_ID_2 = UUID.fromString("762b72b8-7c0f-11ed-a1eb-0242ac120003");
 
     private static final String VARIANT_1_ID = "variant_1";
     private static final String VARIANT_2_ID = "variant_2";
@@ -170,6 +171,8 @@ public class LoadFlowControllerTest {
 
         // network store service mocking
         network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits(new NetworkFactoryImpl());
+        Substation substation = network.getSubstation("P2");
+        substation.setProperty("whateverPropertyToTestGlobalFilters", "okValue");
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
@@ -458,31 +461,105 @@ public class LoadFlowControllerTest {
             assertEquals("me", resultMessage.getHeaders().get("receiver"));
 
             // get limit violations with filters and different globalFilters
-            assertLimitViolations(createStringGlobalFilter(List.of("380", "150"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.CURRENT)), 4);
-            assertLimitViolations(createStringGlobalFilter(List.of("24"), List.of(Country.FR, Country.IT), List.of(), List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)), 0);
-            assertLimitViolations(createStringGlobalFilter(List.of("380"), List.of(), List.of(), List.of(LimitViolationType.CURRENT)), 4);
-            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), List.of(), List.of(LimitViolationType.CURRENT)), 4);
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of("380", "150"),
+                    Map.of(),
+                    List.of(Country.FR, Country.IT),
+                    List.of(),
+                    List.of(LimitViolationType.CURRENT)
+            ), 4);
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of("24"),
+                    Map.of(),
+                    List.of(Country.FR, Country.IT),
+                    List.of(),
+                    List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)
+            ), 0);
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of("380"),
+                    Map.of(),
+                    List.of(),
+                    List.of(),
+                    List.of(LimitViolationType.CURRENT)
+            ), 4);
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of(),
+                    Map.of(),
+                    List.of(Country.FR),
+                    List.of(),
+                    List.of(LimitViolationType.CURRENT)
+            ), 4);
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of(),
+                    Map.of("whateverPropertyToTestGlobalFilters", List.of("okValue")),
+                    List.of(Country.FR),
+                    List.of(),
+                    List.of(LimitViolationType.CURRENT)
+            ), 4);
+            assertLimitViolations(createStringGlobalFilter(
+                    null,
+                    Map.of("whateverPropertyToTestGlobalFilters", List.of("badValue")),
+                    null,
+                    null,
+                    List.of(LimitViolationType.CURRENT)
+            ), 0);
 
-            // generic filter
-            List<UUID> filterIds = List.of(FILTER_ID_1);
-            List<IdentifierListFilterEquipmentAttributes> filterEquipmentAttributes = List.of(
-                    new IdentifierListFilterEquipmentAttributes("NHV1_NHV2_1", 30.));
-            AbstractFilter filter = new IdentifierListFilter(
+            // generic filter with line filter
+            AbstractFilter lineFilter = new IdentifierListFilter(
                     FILTER_ID_1,
                     new Date(),
                     EquipmentType.LINE,
-                    filterEquipmentAttributes
-            );
+                    List.of(new IdentifierListFilterEquipmentAttributes("NHV1_NHV2_1", 30.)));
+
             wireMockServer.stubFor(WireMock.get(WireMock.urlMatching("/v1/filters/metadata\\?ids=" + FILTER_ID_1))
                     .willReturn(WireMock.ok()
-                            .withBody(mapper.writeValueAsString(List.of(filter)))
+                            .withBody(mapper.writeValueAsString(List.of(lineFilter)))
                             .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))).getId();
-            assertLimitViolations(createStringGlobalFilter(List.of(), List.of(Country.FR), filterIds, List.of(LimitViolationType.CURRENT)), 2);
+
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of(),
+                    Map.of(),
+                    List.of(Country.FR),
+                    List.of(FILTER_ID_1),
+                    List.of(LimitViolationType.CURRENT)
+            ), 2);
+
+            // generic filter with voltage level filter
+            AbstractFilter votageLevelFilter = new IdentifierListFilter(
+                FILTER_ID_2,
+                new Date(),
+                EquipmentType.VOLTAGE_LEVEL,
+                List.of(new IdentifierListFilterEquipmentAttributes("VLHV1", 30.)));
+
+            wireMockServer.stubFor(WireMock.get(WireMock.urlMatching("/v1/filters/metadata\\?ids=" + FILTER_ID_2))
+                .willReturn(WireMock.ok()
+                    .withBody(mapper.writeValueAsString(List.of(votageLevelFilter)))
+                    .withHeader(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE))).getId();
+
+            assertLimitViolations(createStringGlobalFilter(
+                    List.of(),
+                    Map.of(),
+                    List.of(Country.FR),
+                    List.of(FILTER_ID_2),
+                    List.of(LimitViolationType.CURRENT)
+            ), 4);
         }
     }
 
-    private String createStringGlobalFilter(List<String> nominalVs, List<Country> countryCodes, List<UUID> genericFiltersUuid, List<LimitViolationType> limitViolationTypes) throws JsonProcessingException {
-        GlobalFilter globalFilter = GlobalFilter.builder().nominalV(nominalVs).countryCode(countryCodes).genericFilter(genericFiltersUuid).limitViolationsTypes(limitViolationTypes).build();
+    private String createStringGlobalFilter(
+            List<String> nominalVs,
+            Map<String, List<String>> substationProperty,
+            List<Country> countryCodes,
+            List<UUID> genericFiltersUuid,
+            List<LimitViolationType> limitViolationTypes
+    ) throws JsonProcessingException {
+        GlobalFilter globalFilter = GlobalFilter.builder()
+                .nominalV(nominalVs)
+                .substationProperty(substationProperty)
+                .countryCode(countryCodes)
+                .genericFilter(genericFiltersUuid)
+                .limitViolationsTypes(limitViolationTypes)
+                .build();
         return new ObjectMapper().writeValueAsString(globalFilter);
     }
 
@@ -707,7 +784,7 @@ public class LoadFlowControllerTest {
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andReturn();
-        assertEquals(LoadFlowStatus.NOT_DONE.name(), result.getResponse().getContentAsString());
+        assertEquals(LoadFlowStatus.NOT_DONE, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
     }
 
     @SneakyThrows
