@@ -28,7 +28,6 @@ import com.powsybl.security.limitreduction.LimitReduction;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.repositories.LoadFlowResultService;
 import com.powsybl.ws.commons.computation.service.*;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;

@@ -8,6 +8,7 @@ package org.gridsuite.loadflow.server.entities;
 
 import jakarta.persistence.*;
 import lombok.*;
+import lombok.experimental.FieldNameConstants;
 
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ import java.util.UUID;
 @AllArgsConstructor
 @Getter
 @Builder
+@FieldNameConstants
 @Entity
 public class SlackBusResultEntity {
     @Id

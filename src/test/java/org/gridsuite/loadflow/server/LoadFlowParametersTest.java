@@ -14,6 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import com.powsybl.ws.commons.computation.ComputationException;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
@@ -21,7 +22,6 @@ import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntit
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
-import org.gridsuite.loadflow.server.utils.LoadflowException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -86,37 +86,37 @@ class LoadFlowParametersTest {
 
         List<LimitReductionsByVoltageLevel.VoltageLevel> vls = limitReductionService.getVoltageLevels();
         limitReductionService.setVoltageLevels(List.of());
-        assertEquals("No configuration for voltage levels", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("No configuration for voltage levels", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
         limitReductionService.setVoltageLevels(vls);
 
         List<LimitReductionsByVoltageLevel.LimitDuration> lrs = limitReductionService.getLimitDurations();
         limitReductionService.setLimitDurations(List.of());
-        assertEquals("No configuration for limit durations", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("No configuration for limit durations", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
         limitReductionService.setLimitDurations(lrs);
 
         limitReductionService.setDefaultValues(List.of());
-        assertEquals("No values provided", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("No values provided", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of()));
-        assertEquals("No values provided", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("No values provided", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of(1.0)));
-        assertEquals("Not enough values provided for voltage levels", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("Not enough values provided for voltage levels", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of(1.0), List.of(1.0), List.of(1.0)));
-        assertEquals("Too many values provided for voltage levels", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("Too many values provided for voltage levels", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of(1.0), List.of(1.0)));
-        assertEquals("Not enough values provided for limit durations", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("Not enough values provided for limit durations", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of(1.0, 1.0, 1.0, 1.0, 1.0), List.of(1.0)));
-        assertEquals("Number of values for a voltage level is incorrect", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("Number of values for a voltage level is incorrect", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of(1.0, 1.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0, 1.0)));
-        assertEquals("Too many values provided for limit durations", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("Too many values provided for limit durations", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
         limitReductionService.setDefaultValues(List.of(List.of(2.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0)));
-        assertEquals("Value not between 0 and 1", assertThrows(LoadflowException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        assertEquals("Value not between 0 and 1", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
     }
 
     @Test
