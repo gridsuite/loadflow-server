@@ -59,7 +59,7 @@ public class LoadFlowController {
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
-                                    @Parameter(description = "withTapChanger") @RequestParam(name = "withTapChanger", required = false) boolean withTapChanger,
+                                    @Parameter(description = "withRatioTapChangers") @RequestParam(name = "withRatioTapChangers", required = false) boolean withRatioTapChangers,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
@@ -69,7 +69,7 @@ public class LoadFlowController {
                 .reportInfos(ReportInfos.builder().reportUuid(reportId).reporterId(reportName).computationType(reportType).build())
                 .userId(userId)
                 .parametersUuid(parametersUuid)
-                .withTapChanger(withTapChanger)
+                .withRatioTapChangers(withRatioTapChangers)
                 .build();
         UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
