@@ -34,10 +34,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -237,5 +234,13 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     @Override
     public Consumer<Message<String>> consumeCancel() {
         return super.consumeCancel();
+    }
+
+    @Override
+    protected void sendResultMessage(AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult ignoredResult) {
+        Map<String, Object> additionalData = new HashMap<>();
+        additionalData.put("withRatioTapChangers", resultContext.getRunContext().isWithRatioTapChangers());
+        notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
+            resultContext.getRunContext().getUserId(), additionalData);
     }
 }

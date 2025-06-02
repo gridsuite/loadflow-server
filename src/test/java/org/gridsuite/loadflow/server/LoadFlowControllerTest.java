@@ -945,4 +945,18 @@ public class LoadFlowControllerTest {
         }
     }
 
+    @Test
+    public void testCreateRunningStatus() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(post("/" + VERSION + "/results/running-status"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        UUID resultUuid = mapper.readValue(mvcResult.getResponse().getContentAsString(), UUID.class);
+
+        MvcResult result = mockMvc.perform(get(
+                "/" + VERSION + "/results/{resultUuid}/status", resultUuid))
+            .andExpect(status().isOk())
+            .andReturn();
+        assertEquals(LoadFlowStatus.RUNNING, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
+    }
 }

@@ -48,9 +48,6 @@ public class LoadFlowParametersEntity {
     @Enumerated(EnumType.STRING)
     private LoadFlowParameters.VoltageInitMode voltageInitMode;
 
-    @Column(name = "transformerVoltageControlOn", columnDefinition = "boolean default false", nullable = false)
-    private boolean transformerVoltageControlOn = false;
-
     @Column(name = "useReactiveLimits", columnDefinition = "boolean default true", nullable = false)
     private boolean useReactiveLimits = true;
 
@@ -165,7 +162,6 @@ public class LoadFlowParametersEntity {
 
     private void assignCommonValues(LoadFlowParameters allCommonValues) {
         voltageInitMode = allCommonValues.getVoltageInitMode();
-        transformerVoltageControlOn = allCommonValues.isTransformerVoltageControlOn();
         useReactiveLimits = allCommonValues.isUseReactiveLimits();
         phaseShifterRegulationOn = allCommonValues.isPhaseShifterRegulationOn();
         twtSplitShuntAdmittance = allCommonValues.isTwtSplitShuntAdmittance();
@@ -196,7 +192,6 @@ public class LoadFlowParametersEntity {
     public LoadFlowParameters toLoadFlowParameters() {
         return LoadFlowParameters.load()
                 .setVoltageInitMode(this.getVoltageInitMode())
-                .setTransformerVoltageControlOn(this.isTransformerVoltageControlOn())
                 .setUseReactiveLimits(this.isUseReactiveLimits())
                 .setPhaseShifterRegulationOn(this.isPhaseShifterRegulationOn())
                 .setTwtSplitShuntAdmittance(this.isTwtSplitShuntAdmittance())
