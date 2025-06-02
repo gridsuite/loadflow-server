@@ -80,8 +80,6 @@ public class LoadFlowController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.runAndSaveResult(loadFlowRunContext));
     }
 
-
-
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a loadflow result from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow result"),
