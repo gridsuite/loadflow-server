@@ -51,6 +51,7 @@ import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -945,4 +946,18 @@ public class LoadFlowControllerTest {
         }
     }
 
+    @Test
+    public void testCreateRunningStatus() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(post("/" + VERSION + "/results/running-status"))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        UUID resultUuid = mapper.readValue(mvcResult.getResponse().getContentAsString(), UUID.class);
+
+        MvcResult result = mockMvc.perform(get(
+                "/" + VERSION + "/results/{resultUuid}/status", resultUuid))
+            .andExpect(status().isOk())
+            .andReturn();
+        assertEquals(LoadFlowStatus.RUNNING, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
+    }
 }

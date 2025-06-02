@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
+import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -29,6 +30,7 @@ import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import static com.powsybl.ws.commons.computation.service.NotificationService.HEADER_USER_ID;
@@ -44,9 +46,11 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 public class LoadFlowController {
 
     private final LoadFlowService loadFlowService;
+    private final UuidGeneratorService uuidGeneratorService;
 
-    public LoadFlowController(LoadFlowService loadFlowService) {
+    public LoadFlowController(LoadFlowService loadFlowService, UuidGeneratorService uuidGeneratorService) {
         this.loadFlowService = loadFlowService;
+        this.uuidGeneratorService = uuidGeneratorService;
     }
 
     @PostMapping(value = "/networks/{networkUuid}/run-and-save", produces = APPLICATION_JSON_VALUE)
@@ -59,10 +63,12 @@ public class LoadFlowController {
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
-                                    @Parameter(description = "withRatioTapChangers") @RequestParam(name = "withRatioTapChangers", required = false) boolean withRatioTapChangers,
+                                    @Parameter(description = "withRatioTapChangers") @RequestParam(name = "withRatioTapChangers", required = false, defaultValue = "false") Boolean withRatioTapChangers,
+                                    @Parameter(description = "resultUuid") @RequestParam(name = "resultUuid", required = false) Optional<UUID> resultUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
+                .resultUuid(resultUuid.orElse(uuidGeneratorService.generate()))
                 .networkUuid(networkUuid)
                 .variantId(variantId)
                 .receiver(receiver)
@@ -71,9 +77,10 @@ public class LoadFlowController {
                 .parametersUuid(parametersUuid)
                 .withRatioTapChangers(withRatioTapChangers)
                 .build();
-        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.runAndSaveResult(loadFlowRunContext));
     }
+
+
 
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get a loadflow result from the database")
@@ -109,6 +116,13 @@ public class LoadFlowController {
     public ResponseEntity<Void> invalidateStatus(@Parameter(description = "Result uuids") @RequestParam(name = "resultUuid") List<UUID> resultUuids) {
         loadFlowService.setStatus(resultUuids, LoadFlowStatus.NOT_DONE);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(value = "/results/running-status", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create running status for a random UUID then return it")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status has been invalidated")})
+    public ResponseEntity<UUID> createRunningStatus() {
+        return ResponseEntity.ok().body(loadFlowService.createRunningStatus());
     }
 
     @PutMapping(value = "/results/{resultUuid}/stop", produces = APPLICATION_JSON_VALUE)

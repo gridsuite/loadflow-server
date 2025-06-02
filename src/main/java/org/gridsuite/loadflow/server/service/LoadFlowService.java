@@ -72,6 +72,12 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         this.limitViolationRepository = limitViolationRepository;
     }
 
+    public UUID createRunningStatus() {
+        UUID randomUuid = uuidGeneratorService.generate();
+        setStatus(List.of(randomUuid), LoadFlowStatus.RUNNING);
+        return randomUuid;
+    }
+
     @Override
     public List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
@@ -98,7 +104,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
         loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());
-        UUID resultUuid = uuidGeneratorService.generate();
+        UUID resultUuid = loadFlowRunContext.getResultUuid();
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);

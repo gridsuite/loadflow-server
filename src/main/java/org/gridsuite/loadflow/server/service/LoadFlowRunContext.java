@@ -26,6 +26,7 @@ import java.util.UUID;
 public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersValues> {
     private final UUID parametersUuid;
     private final boolean withRatioTapChangers;
+    private final UUID resultUuid;
 
     public LoadFlowParameters buildParameters() {
         LoadFlowParameters params = getParameters() == null || getParameters().getCommonParameters() == null ?
@@ -47,9 +48,10 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
 
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportInfos reportInfos, String userId,
-                              LoadFlowParametersValues parameters, UUID parametersUuid, boolean withRatioTapChangers) {
+                              LoadFlowParametersValues parameters, UUID parametersUuid, boolean withRatioTapChangers, UUID resultUuid) {
         super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters);
         this.parametersUuid = parametersUuid;
         this.withRatioTapChangers = withRatioTapChangers;
+        this.resultUuid = resultUuid;
     }
 }
