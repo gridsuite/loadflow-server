@@ -139,7 +139,7 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
-            <version>1.25.0-SNAPSHOT</version> <!-- TODO tmp : à remplacer par num de version avant de pousser -->
+            <version>${powsybl-ws-commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
