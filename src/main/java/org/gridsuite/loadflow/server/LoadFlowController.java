@@ -100,9 +100,8 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}/status", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get the loadflow status from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status")})
-    public ResponseEntity<String> getStatus(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
-        LoadFlowStatus status = loadFlowService.getStatus(resultUuid);
-        return ResponseEntity.ok().body(status != null ? status.name() : null);
+    public ResponseEntity<LoadFlowStatus> getStatus(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
+        return ResponseEntity.ok().body(loadFlowService.getStatus(resultUuid));
     }
 
     @PutMapping(value = "/results/invalidate-status", produces = APPLICATION_JSON_VALUE)
