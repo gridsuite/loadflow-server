@@ -17,7 +17,6 @@ import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
-import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import com.powsybl.ws.commons.computation.service.AbstractComputationService;
 import com.powsybl.ws.commons.computation.service.NotificationService;
 import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
@@ -46,7 +45,6 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
-                           LimitViolationRepository limitViolationRepository,
                            @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;

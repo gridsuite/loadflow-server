@@ -46,7 +46,7 @@ import static com.powsybl.ws.commons.computation.utils.FilterUtils.fromStringFil
 @AllArgsConstructor
 @Service
 public class LoadFlowResultService extends AbstractComputationResultService<LoadFlowStatus> {
-    protected static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowService.class);
+    protected static final Logger LOGGER = LoggerFactory.getLogger(LoadFlowResultService.class);
 
     private GlobalStatusRepository globalStatusRepository;
 
@@ -177,7 +177,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         startTime.set(System.nanoTime());
         Objects.requireNonNull(resultUuid);
         org.gridsuite.loadflow.server.dto.LoadFlowResult loadFlowResult;
-        LoadFlowResultEntity loadFlowResultEntity = findResults(resultUuid).orElse(null);
+        LoadFlowResultEntity loadFlowResultEntity = this.findResults(resultUuid).orElse(null);
         if (loadFlowResultEntity == null) {
             return null;
         }
