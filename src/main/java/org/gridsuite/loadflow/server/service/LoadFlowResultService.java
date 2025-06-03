@@ -139,7 +139,6 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         resultRepository.deleteByResultUuid(resultUuid);
     }
 
-    @Transactional(readOnly = true)
     public Optional<LoadFlowResultEntity> findResults(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
         return resultRepository.findByResultUuid(resultUuid);
@@ -177,7 +176,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         startTime.set(System.nanoTime());
         Objects.requireNonNull(resultUuid);
         org.gridsuite.loadflow.server.dto.LoadFlowResult loadFlowResult;
-        LoadFlowResultEntity loadFlowResultEntity = this.findResults(resultUuid).orElse(null);
+        LoadFlowResultEntity loadFlowResultEntity = findResults(resultUuid).orElse(null);
         if (loadFlowResultEntity == null) {
             return null;
         }
