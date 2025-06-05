@@ -88,7 +88,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return runner.runAsync(
                 runContext.getNetwork(),
                 runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
-                runContext.getComputationManager(),
+                executionService.getComputationManager(),
                 params,
                 runContext.getReportNode());
     }
