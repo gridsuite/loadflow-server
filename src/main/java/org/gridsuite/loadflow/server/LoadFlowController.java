@@ -64,11 +64,12 @@ public class LoadFlowController {
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
                                     @Parameter(description = "withRatioTapChangers") @RequestParam(name = "withRatioTapChangers", required = false, defaultValue = "false") Boolean withRatioTapChangers,
-                                    @Parameter(description = "resultUuid") @RequestParam(name = "resultUuid", required = false) Optional<UUID> resultUuid,
+                                    @Parameter(description = "resultUuid") @RequestParam(name = "resultUuid", required = false) UUID resultUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
+        UUID resultUuidToRun = resultUuid != null ? resultUuid : uuidGeneratorService.generate();
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
-                .resultUuid(resultUuid.orElse(uuidGeneratorService.generate()))
+                .resultUuid(resultUuidToRun)
                 .networkUuid(networkUuid)
                 .variantId(variantId)
                 .receiver(receiver)
@@ -118,9 +119,9 @@ public class LoadFlowController {
 
     @PostMapping(value = "/results/running-status", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Create running status for a random UUID then return it")
-    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status has been invalidated")})
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status has been created")})
     public ResponseEntity<UUID> createRunningStatus() {
-        return ResponseEntity.ok().body(loadFlowService.createRunningStatus());
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.createRunningStatus());
     }
 
     @PutMapping(value = "/results/{resultUuid}/stop", produces = APPLICATION_JSON_VALUE)

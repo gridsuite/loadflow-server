@@ -39,6 +39,7 @@ import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAt
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.service.FilterService;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
@@ -133,6 +134,8 @@ public class LoadFlowControllerTest {
     private Network network;
     private Network network1;
     protected WireMockServer wireMockServer;
+    @Autowired
+    private GlobalStatusRepository globalStatusRepository;
 
     private static void assertResultsEquals(LoadFlowResult result, org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto) {
         assertEquals(result.getComponentResults().size(), resultDto.getComponentResults().size());
@@ -958,5 +961,6 @@ public class LoadFlowControllerTest {
             .andExpect(status().isOk())
             .andReturn();
         assertEquals(LoadFlowStatus.RUNNING, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
+        assertEquals(LoadFlowStatus.RUNNING, globalStatusRepository.findByResultUuid(resultUuid).getStatus());
     }
 }
