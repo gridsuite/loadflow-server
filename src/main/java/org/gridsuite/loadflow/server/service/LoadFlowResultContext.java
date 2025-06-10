@@ -54,6 +54,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .receiver(receiver)
                         .provider(provider)
                         .parameters(parameters)
+                        .withRatioTapChangers(parameters.getCommonParameters().isTransformerVoltageControlOn())
                         .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).computationType(reportType).build())
                         .userId(userId)
                         .build();

@@ -33,10 +33,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -51,6 +48,7 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
     private final LimitReductionService limitReductionService;
     public static final String DEFAULT_PROVIDER = "OpenLoadFlow";
+    public static final String HEADER_WITH_RATIO_TAP_CHANGERS = "withRatioTapChangers";
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultService resultService,
@@ -236,5 +234,13 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     @Override
     public Consumer<Message<String>> consumeCancel() {
         return super.consumeCancel();
+    }
+
+    @Override
+    protected void sendResultMessage(AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult ignoredResult) {
+        Map<String, Object> additionalData = new HashMap<>();
+        additionalData.put(HEADER_WITH_RATIO_TAP_CHANGERS, resultContext.getRunContext().isWithRatioTapChangers());
+        notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
+            resultContext.getRunContext().getUserId(), additionalData);
     }
 }
