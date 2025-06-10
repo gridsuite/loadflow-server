@@ -13,6 +13,8 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolationType;
+import com.powsybl.ws.commons.computation.dto.GlobalFilter;
+import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import lombok.NonNull;
 import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.filter.AbstractFilter;
@@ -25,8 +27,7 @@ import org.gridsuite.filter.utils.FilterServiceUtils;
 import org.gridsuite.filter.utils.expertfilter.CombinatorType;
 import org.gridsuite.filter.utils.expertfilter.FieldType;
 import org.gridsuite.filter.utils.expertfilter.OperatorType;
-import org.gridsuite.loadflow.server.dto.GlobalFilter;
-import org.gridsuite.loadflow.server.dto.ResourceFilter;
+import org.gridsuite.loadflow.server.dto.Column;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.ParameterizedTypeReference;
@@ -240,7 +241,7 @@ public class FilterService implements FilterLoader {
         }
     }
 
-    public List<ResourceFilter> getResourceFilters(@NonNull UUID networkUuid, @NonNull String variantId, @NonNull GlobalFilter globalFilter) {
+    public List<ResourceFilterDTO> getResourceFilters(@NonNull UUID networkUuid, @NonNull String variantId, @NonNull GlobalFilter globalFilter) {
 
         Network network = getNetwork(networkUuid, variantId);
 
@@ -285,7 +286,7 @@ public class FilterService implements FilterLoader {
         );
 
         return (subjectIdsFromEvalFilter.isEmpty()) ? List.of() :
-            List.of(new ResourceFilter(ResourceFilter.DataType.TEXT, ResourceFilter.Type.IN, subjectIdsFromEvalFilter, ResourceFilter.Column.SUBJECT_ID));
+            List.of(new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.IN, subjectIdsFromEvalFilter, Column.SUBJECT_ID.columnName()));
     }
 
     /**

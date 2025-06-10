@@ -13,6 +13,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.experimental.FieldNameConstants;
 
 import java.util.UUID;
 
@@ -24,6 +25,7 @@ import java.util.UUID;
 @Getter
 @Builder
 @Entity
+@FieldNameConstants
 @Table(name = "limitViolation", indexes = {
     @Index(name = "limitViolation_resultUuid_idx", columnList = "resultUuid")
 })

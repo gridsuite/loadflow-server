@@ -13,6 +13,7 @@ import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
+import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -47,6 +48,9 @@ class LoadFlowServiceTest {
 
     @Autowired
     private LoadFlowService loadFlowService;
+
+    @Autowired
+    private LoadFlowResultService loadFlowResultService;
 
     private static final UUID RESULT_UUID = UUID.randomUUID();
 
@@ -88,7 +92,7 @@ class LoadFlowServiceTest {
     void assertResultExistsWhenResultDoesNotExistShouldReturnEmptyResult() {
         UUID nonExistingUuid = UUID.randomUUID();
         when(limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(nonExistingUuid)).thenReturn(false);
-        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(nonExistingUuid, null, null, null, null, null);
+        List<LimitViolationInfos> result = loadFlowResultService.getLimitViolationsInfos(nonExistingUuid, null, null, null, null, null);
         assertEquals(0, result.size());
     }
 
@@ -102,7 +106,7 @@ class LoadFlowServiceTest {
         when(limitViolationRepository.findAll(any(Specification.class), eq(sort)))
                 .thenReturn(LimitViolationsMock.limitViolationEntities);
 
-        List<LimitViolationInfos> result = loadFlowService.getLimitViolationsInfos(RESULT_UUID, stringFilters, null, sort, null, null);
+        List<LimitViolationInfos> result = loadFlowResultService.getLimitViolationsInfos(RESULT_UUID, stringFilters, null, sort, null, null);
 
         assertNotNull(result);
         assertEquals(LimitViolationsMock.limitViolationEntities.size(), result.size());
