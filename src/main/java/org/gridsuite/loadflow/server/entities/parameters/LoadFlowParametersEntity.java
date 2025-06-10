@@ -144,7 +144,9 @@ public class LoadFlowParametersEntity {
         }
         assignCommonValues(allCommonValues);
         assignSpecificValues(allSpecificValuesEntities);
-        assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+        if (loadFlowParametersInfos != null) {
+            assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+        }
     }
 
     private void assignLimitReductions(@Nullable List<List<Double>> values) {
