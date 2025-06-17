@@ -35,6 +35,7 @@ import com.powsybl.ws.commons.computation.service.ExecutionService;
 import com.powsybl.ws.commons.computation.service.NotificationService;
 import com.powsybl.ws.commons.computation.service.ReportService;
 import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
+import org.assertj.core.api.Assertions;
 import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
@@ -113,7 +114,8 @@ public class LoadFlowControllerTest {
 
     private static final List<LimitViolation> LIMIT_VIOLATIONS_WITH_LOCATION = List.of(
             new LimitViolation("VLGEN", "", LimitViolationType.LOW_VOLTAGE, "limit1", 60, 1500, 0.7F, 1300, ThreeSides.TWO, new BusBreakerViolationLocation(List.of("NHV1"))),
-            new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))));
+            new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))),
+            new LimitViolation("l3", LimitViolationType.CURRENT, "limit3", Integer.MAX_VALUE, 10, 1, 11, TwoSides.ONE));
 
     @Autowired
     private OutputDestination output;
@@ -945,10 +947,8 @@ public class LoadFlowControllerTest {
                     .andReturn();
             List<LimitViolationInfos> limitViolations = mapper.readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
             });
-            assertEquals(2, limitViolations.size());
-            // check that the subject id is equal to the Bus Id
-            assertEquals("VLHV1_0", limitViolations.get(0).getLocationId());
-            assertEquals("VLHV2_0", limitViolations.get(1).getLocationId());
+            assertEquals(3, limitViolations.size());
+            Assertions.assertThat(limitViolations.stream().map(LimitViolationInfos::getLocationId)).hasSameElementsAs(Arrays.asList(null, "VLHV1_0", "VLHV2_0"));
         }
     }
 

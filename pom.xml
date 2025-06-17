@@ -58,7 +58,7 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
-        <powsybl-ws-commons.version>1.25.0</powsybl-ws-commons.version><!-- should be removed once gridsuite-dependencies is upgraded-->
+        <powsybl-ws-commons.version>1.25.1</powsybl-ws-commons.version><!-- should be removed once gridsuite-dependencies is upgraded-->
     </properties>
 
     <build>
