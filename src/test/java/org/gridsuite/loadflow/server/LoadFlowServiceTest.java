@@ -1,18 +1,29 @@
 package org.gridsuite.loadflow.server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.security.*;
+import com.powsybl.ws.commons.computation.dto.ReportInfos;
+import com.powsybl.ws.commons.computation.service.NotificationService;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
+import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.messaging.Message;
 
 import java.util.Arrays;
 import java.util.List;
@@ -29,6 +40,12 @@ class LoadFlowServiceTest {
     @MockBean
     private LimitViolationRepository limitViolationRepository;
 
+    @MockBean
+    private LoadFlowParametersService loadFlowParametersService;
+
+    @MockBean
+    private NotificationService notificationService;
+
     @Autowired
     private LoadFlowService loadFlowService;
 
@@ -36,6 +53,9 @@ class LoadFlowServiceTest {
     private LoadFlowResultService loadFlowResultService;
 
     private static final UUID RESULT_UUID = UUID.randomUUID();
+
+    @Autowired
+    private ObjectMapper objectMapper;
 
     private static final class LimitViolationsMock {
         static List<LimitViolationEntity> limitViolationEntities = Arrays.asList(
@@ -93,4 +113,32 @@ class LoadFlowServiceTest {
         verify(limitViolationRepository, times(1)).findAll(any(Specification.class), eq(sort));
     }
 
+    @Test
+    void runWithRatioTapChangersAndResultUuid() throws JsonProcessingException {
+        UUID resultUuid = UUID.randomUUID();
+        boolean withRatioTapChangers = true;
+        UUID parametersUuid = UUID.randomUUID();
+
+        Mockito.when(loadFlowParametersService.getParametersValues(parametersUuid)).thenReturn(
+            LoadFlowParametersValues.builder()
+                .commonParameters(LoadFlowParameters.load())
+                .build()
+        );
+
+        loadFlowService.runAndSaveResult(LoadFlowRunContext.builder()
+            .resultUuid(resultUuid)
+            .userId("userId")
+            .networkUuid(UUID.randomUUID())
+            .parametersUuid(parametersUuid)
+            .withRatioTapChangers(withRatioTapChangers)
+            .reportInfos(Mockito.mock(ReportInfos.class))
+            .build());
+
+        ArgumentCaptor<Message<String>> runMessageCaptor = ArgumentCaptor.forClass(Message.class);
+        verify(notificationService).sendRunMessage(runMessageCaptor.capture());
+
+        LoadFlowParametersValues loadFlowParameters = objectMapper.readValue(runMessageCaptor.getValue().getPayload(), LoadFlowParametersValues.class);
+        assertEquals(withRatioTapChangers, loadFlowParameters.getCommonParameters().isTransformerVoltageControlOn());
+        assertEquals(resultUuid.toString(), runMessageCaptor.getValue().getHeaders().get("resultUuid"));
+    }
 }

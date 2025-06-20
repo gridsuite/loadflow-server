@@ -50,6 +50,12 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         this.parametersService = parametersService;
     }
 
+    public UUID createRunningStatus() {
+        UUID randomUuid = uuidGeneratorService.generate();
+        setStatus(List.of(randomUuid), LoadFlowStatus.RUNNING);
+        return randomUuid;
+    }
+
     @Override
     public List<String> getProviders() {
         return LoadFlowProvider.findAll().stream()
@@ -72,10 +78,11 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     @Transactional
     public UUID runAndSaveResult(LoadFlowRunContext loadFlowRunContext) {
         LoadFlowParametersValues params = parametersService.getParametersValues(loadFlowRunContext.getParametersUuid());
+        params.getCommonParameters().setTransformerVoltageControlOn(loadFlowRunContext.isWithRatioTapChangers());
         // set provider and parameters
         loadFlowRunContext.setParameters(params);
         loadFlowRunContext.setProvider(params.getProvider() != null ? params.getProvider() : getDefaultProvider());
-        UUID resultUuid = uuidGeneratorService.generate();
+        UUID resultUuid = loadFlowRunContext.getResultUuid();
 
         // update status to running status
         setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);

@@ -9,6 +9,7 @@ package org.gridsuite.loadflow.server;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
+import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -45,10 +46,12 @@ import static org.springframework.http.MediaType.TEXT_PLAIN_VALUE;
 public class LoadFlowController {
 
     private final LoadFlowService loadFlowService;
+    private final UuidGeneratorService uuidGeneratorService;
     private final LoadFlowResultService loadFlowResultService;
 
-    public LoadFlowController(LoadFlowService loadFlowService, LoadFlowResultService loadFlowResultService) {
+    public LoadFlowController(LoadFlowService loadFlowService, LoadFlowResultService loadFlowResultService, UuidGeneratorService uuidGeneratorService) {
         this.loadFlowService = loadFlowService;
+        this.uuidGeneratorService = uuidGeneratorService;
         this.loadFlowResultService = loadFlowResultService;
     }
 
@@ -62,18 +65,22 @@ public class LoadFlowController {
                                     @Parameter(description = "reporterId") @RequestParam(name = "reporterId", required = false) String reportName,
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
+                                    @Parameter(description = "withRatioTapChangers") @RequestParam(name = "withRatioTapChangers", required = false, defaultValue = "false") Boolean withRatioTapChangers,
+                                    @Parameter(description = "resultUuid") @RequestParam(name = "resultUuid", required = false) UUID resultUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
+        UUID resultUuidToRun = resultUuid != null ? resultUuid : uuidGeneratorService.generate();
         LoadFlowRunContext loadFlowRunContext = LoadFlowRunContext.builder()
+                .resultUuid(resultUuidToRun)
                 .networkUuid(networkUuid)
                 .variantId(variantId)
                 .receiver(receiver)
                 .reportInfos(ReportInfos.builder().reportUuid(reportId).reporterId(reportName).computationType(reportType).build())
                 .userId(userId)
                 .parametersUuid(parametersUuid)
+                .withRatioTapChangers(withRatioTapChangers)
                 .build();
-        UUID resultUuid = loadFlowService.runAndSaveResult(loadFlowRunContext);
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(resultUuid);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.runAndSaveResult(loadFlowRunContext));
     }
 
     @GetMapping(value = "/results/{resultUuid}", produces = APPLICATION_JSON_VALUE)
@@ -110,6 +117,13 @@ public class LoadFlowController {
     public ResponseEntity<Void> invalidateStatus(@Parameter(description = "Result uuids") @RequestParam(name = "resultUuid") List<UUID> resultUuids) {
         loadFlowService.setStatus(resultUuids, LoadFlowStatus.NOT_DONE);
         return ResponseEntity.ok().build();
+    }
+
+    @PostMapping(value = "/results/running-status", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Create running status for a random UUID then return it")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status has been created")})
+    public ResponseEntity<UUID> createRunningStatus() {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.createRunningStatus());
     }
 
     @PutMapping(value = "/results/{resultUuid}/stop", produces = APPLICATION_JSON_VALUE)
