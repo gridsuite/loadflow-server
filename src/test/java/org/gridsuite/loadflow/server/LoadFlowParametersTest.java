@@ -335,7 +335,7 @@ class LoadFlowParametersTest {
 
         String newProvider = "newProvider";
 
-        mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider")
+        mockMvc.perform(put(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider")
                 .content(newProvider))
                 .andExpect(status().isOk()).andReturn();
 
@@ -350,7 +350,7 @@ class LoadFlowParametersTest {
 
         UUID parametersUuid = saveAndReturnId(parameters);
 
-        mockMvc.perform(patch(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
+        mockMvc.perform(put(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
                 .andExpect(status().isOk()).andReturn();
 
         LoadFlowParametersEntity securityAnalysisParametersEntity = parametersRepository.findById(parametersUuid).orElseThrow();
