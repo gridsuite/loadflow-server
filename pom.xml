@@ -58,6 +58,8 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
+        <!-- TODO network-store.version remove when migration powsybl -->
+        <network-store-client.version>1.27.1</network-store-client.version>
     </properties>
 
     <build>
@@ -97,6 +99,24 @@
                 <groupId>org.antlr</groupId>
                 <artifactId>antlr4</artifactId>
                 <version>${antlr4.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-client</artifactId>
+                <version>${network-store-client.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-iidm-impl</artifactId>
+                <version>${network-store-client.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-model</artifactId>
+                <version>${network-store-client.version}</version>
             </dependency>
             <!-- imports -->
             <dependency>
