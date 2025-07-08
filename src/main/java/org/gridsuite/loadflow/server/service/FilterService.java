@@ -6,21 +6,20 @@
  */
 package org.gridsuite.loadflow.server.service;
 
-import com.powsybl.commons.PowsyblException;
 import com.powsybl.iidm.network.Country;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
+import com.powsybl.ws.commons.computation.service.AbstractFilterService;
 import lombok.NonNull;
-import org.apache.commons.collections4.CollectionUtils;
 import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.FilterLoader;
 import org.gridsuite.filter.expertfilter.ExpertFilter;
-import org.gridsuite.filter.expertfilter.expertrule.*;
+import org.gridsuite.filter.expertfilter.expertrule.AbstractExpertRule;
+import org.gridsuite.filter.expertfilter.expertrule.FilterUuidExpertRule;
 import org.gridsuite.filter.identifierlistfilter.IdentifiableAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.filter.utils.FilterServiceUtils;
@@ -30,98 +29,20 @@ import org.gridsuite.filter.utils.expertfilter.OperatorType;
 import org.gridsuite.loadflow.server.dto.Column;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.ParameterizedTypeReference;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.HttpStatusCodeException;
-import org.springframework.web.client.RestTemplate;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.*;
-import java.util.stream.Collectors;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
  */
 @Service
-public class FilterService implements FilterLoader {
-    public static final String FILTERS_NOT_FOUND = "Filters not found";
-
-    private static final String FILTER_SERVER_API_VERSION = "v1";
-
-    private static final String DELIMITER = "/";
-
-    private static String filterServerBaseUri;
-
-    private final RestTemplate restTemplate = new RestTemplate();
-
-    private final NetworkStoreService networkStoreService;
+public class FilterService extends AbstractFilterService {
 
     public FilterService(
             NetworkStoreService networkStoreService,
-            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri
-    ) {
-        this.networkStoreService = networkStoreService;
-        setFilterServerBaseUri(filterServerBaseUri);
-    }
-
-    public static void setFilterServerBaseUri(String filterServerBaseUri) {
-        FilterService.filterServerBaseUri = filterServerBaseUri;
-    }
-
-    public List<AbstractFilter> getFilters(List<UUID> filtersUuids) {
-        if (CollectionUtils.isEmpty(filtersUuids)) {
-            return List.of();
-        }
-        var ids = "?ids=" + filtersUuids.stream().map(UUID::toString).collect(Collectors.joining(","));
-        String path = UriComponentsBuilder.fromPath(DELIMITER + FILTER_SERVER_API_VERSION + "/filters/metadata" + ids)
-                .buildAndExpand()
-                .toUriString();
-        try {
-            return restTemplate.exchange(filterServerBaseUri + path, HttpMethod.GET, null, new ParameterizedTypeReference<List<AbstractFilter>>() { }).getBody();
-        } catch (HttpStatusCodeException e) {
-            throw new PowsyblException(FILTERS_NOT_FOUND + " [" + filtersUuids + "]");
-        }
-    }
-
-    private List<AbstractExpertRule> createNumberExpertRules(List<String> values, FieldType fieldType) {
-        List<AbstractExpertRule> rules = new ArrayList<>();
-        if (values != null) {
-            for (String value : values) {
-                rules.add(NumberExpertRule.builder()
-                        .value(Double.valueOf(value))
-                        .field(fieldType)
-                        .operator(OperatorType.EQUALS)
-                        .build());
-            }
-        }
-        return rules;
-    }
-
-    private AbstractExpertRule createPropertiesRule(String property, List<String> propertiesValues, FieldType fieldType) {
-        return PropertiesExpertRule.builder()
-            .combinator(CombinatorType.OR)
-            .operator(OperatorType.IN)
-            .field(fieldType)
-            .propertyName(property)
-            .propertyValues(propertiesValues)
-            .build();
-    }
-
-    private List<AbstractExpertRule> createEnumExpertRules(List<Country> values, FieldType fieldType) {
-        List<AbstractExpertRule> rules = new ArrayList<>();
-        if (values != null) {
-            for (Country value : values) {
-                rules.add(EnumExpertRule.builder()
-                        .value(value.toString())
-                        .field(fieldType)
-                        .operator(OperatorType.EQUALS)
-                        .build());
-            }
-        }
-        return rules;
+            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri) {
+        super(networkStoreService, filterServerBaseUri);
     }
 
     private List<AbstractExpertRule> createNominalVoltageRules(List<String> nominalVoltageList, List<FieldType> nominalFieldTypes) {
@@ -148,7 +69,7 @@ public class FilterService implements FilterLoader {
         return propertiesRules;
     }
 
-    private List<FieldType> getNominalVoltageFieldType(EquipmentType equipmentType) {
+    protected List<FieldType> getNominalVoltageFieldType(EquipmentType equipmentType) {
         boolean isLineOrTwoWT = equipmentType.equals(EquipmentType.LINE) || equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER);
         if (isLineOrTwoWT) {
             return List.of(FieldType.NOMINAL_VOLTAGE_1, FieldType.NOMINAL_VOLTAGE_2);
@@ -159,7 +80,7 @@ public class FilterService implements FilterLoader {
         return List.of();
     }
 
-    private List<FieldType> getCountryCodeFieldType(EquipmentType equipmentType) {
+    protected List<FieldType> getCountryCodeFieldType(EquipmentType equipmentType) {
         boolean isLVoltageLevelOrTwoWT = equipmentType.equals(EquipmentType.VOLTAGE_LEVEL) || equipmentType.equals(EquipmentType.TWO_WINDINGS_TRANSFORMER);
         if (isLVoltageLevelOrTwoWT) {
             return List.of(FieldType.COUNTRY);
@@ -171,7 +92,7 @@ public class FilterService implements FilterLoader {
         return List.of();
     }
 
-    private List<FieldType> getSubstationPropertiesFieldTypes(EquipmentType equipmentType) {
+    protected List<FieldType> getSubstationPropertiesFieldTypes(EquipmentType equipmentType) {
         if (equipmentType.equals(EquipmentType.LINE)) {
             return List.of(FieldType.SUBSTATION_PROPERTIES_1, FieldType.SUBSTATION_PROPERTIES_2);
         }
@@ -205,17 +126,6 @@ public class FilterService implements FilterLoader {
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, andCombination);
     }
 
-    private AbstractExpertRule createCombination(CombinatorType combinatorType, List<AbstractExpertRule> rules) {
-        return CombinatorExpertRule.builder().combinator(combinatorType).rules(rules).build();
-    }
-
-    private Optional<AbstractExpertRule> createOrCombination(List<AbstractExpertRule> rules) {
-        if (rules.isEmpty()) {
-            return Optional.empty();
-        }
-        return Optional.of(rules.size() > 1 ? createCombination(CombinatorType.OR, rules) : rules.getFirst());
-    }
-
     private AbstractExpertRule createVoltageLevelIdRule(UUID filterUuid, TwoSides side) {
         return FilterUuidExpertRule.builder()
             .operator(OperatorType.IS_PART_OF)
@@ -229,16 +139,6 @@ public class FilterService implements FilterLoader {
         AbstractExpertRule voltageLevelId2Rule = createVoltageLevelIdRule(filterUuid, TwoSides.TWO);
         AbstractExpertRule orCombination = createCombination(CombinatorType.OR, List.of(voltageLevelId1Rule, voltageLevelId2Rule));
         return new ExpertFilter(UUID.randomUUID(), new Date(), equipmentType, orCombination);
-    }
-
-    private Network getNetwork(UUID networkUuid, String variantId) {
-        try {
-            Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
-            network.getVariantManager().setWorkingVariant(variantId);
-            return network;
-        } catch (PowsyblException e) {
-            throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage());
-        }
     }
 
     public List<ResourceFilterDTO> getResourceFilters(@NonNull UUID networkUuid, @NonNull String variantId, @NonNull GlobalFilter globalFilter) {
