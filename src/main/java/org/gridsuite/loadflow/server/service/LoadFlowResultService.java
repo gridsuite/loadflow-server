@@ -224,9 +224,9 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         List<ResourceFilterDTO> resourceFilters = fromStringFiltersToDTO(stringFilters, objectMapper);
         GlobalFilter globalFilter = FilterUtils.fromStringGlobalFiltersToDTO(stringGlobalFilters, objectMapper);
         if (globalFilter != null) {
-            List<ResourceFilterDTO> resourceGlobalFilters = filterService.getResourceFilters(networkUuid, variantId, globalFilter);
-            if (!resourceGlobalFilters.isEmpty()) {
-                resourceFilters.addAll(resourceGlobalFilters);
+            Optional<ResourceFilterDTO> resourceGlobalFilters = filterService.getResourceFilter(networkUuid, variantId, globalFilter);
+            if (resourceGlobalFilters.isPresent()) {
+                resourceFilters.add(resourceGlobalFilters.get());
             } else {
                 return List.of();
             }
