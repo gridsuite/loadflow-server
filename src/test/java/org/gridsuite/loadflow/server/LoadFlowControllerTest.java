@@ -28,10 +28,7 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
-import com.powsybl.ws.commons.computation.service.ExecutionService;
-import com.powsybl.ws.commons.computation.service.NotificationService;
-import com.powsybl.ws.commons.computation.service.ReportService;
-import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
+import com.powsybl.ws.commons.computation.service.*;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -70,6 +67,7 @@ import org.springframework.messaging.Message;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -134,6 +132,8 @@ public class LoadFlowControllerTest {
     private LoadFlowParametersService loadFlowParametersService;
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
+    @Autowired
+    private FilterService filterService;
     @Autowired
     LimitReductionService limitReductionService;
     @Autowired
@@ -214,8 +214,7 @@ public class LoadFlowControllerTest {
 
         wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
         wireMockServer.start();
-        //FilterService.setFilterServerBaseUri(wireMockServer.baseUrl());
-
+        ReflectionTestUtils.setField(filterService, "filterServerBaseUri", wireMockServer.baseUrl());
         // purge messages
         while (output.receive(1000, "loadflow.result") != null) {
         }
