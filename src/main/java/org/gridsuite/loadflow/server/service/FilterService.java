@@ -164,7 +164,7 @@ public class FilterService extends AbstractFilterService {
         }
 
         // Start with the first list
-        List<String> result = new ArrayList<>(idsFilteredThroughEachFilter.get(0));
+        List<String> result = new ArrayList<>(idsFilteredThroughEachFilter.getFirst());
 
         // Apply AND operation with each subsequent list
         for (int i = 1; i < idsFilteredThroughEachFilter.size(); i++) {
