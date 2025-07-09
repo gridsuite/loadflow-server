@@ -6,20 +6,21 @@
  */
 package org.gridsuite.loadflow.server.service;
 
-import com.powsybl.iidm.network.Network;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import com.powsybl.ws.commons.computation.service.AbstractFilterService;
 import lombok.NonNull;
-import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.Column;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+import java.util.stream.Stream;
 
 /**
  * @author Maissa Souissi <maissa.souissi at rte-france.com>
@@ -34,44 +35,24 @@ public class FilterService extends AbstractFilterService {
     }
 
     public Optional<ResourceFilterDTO> getResourceFilter(@NonNull UUID networkUuid, @NonNull String variantId, @NonNull GlobalFilter globalFilter) {
-        Network network = getNetwork(networkUuid, variantId);
-        List<AbstractFilter> genericFilters = getFilters(globalFilter.getGenericFilter());
-
         // Get equipment types from violation types
-        Set<EquipmentType> equipmentTypes = getEquipmentTypes(globalFilter.getLimitViolationsTypes());
+        List<EquipmentType> equipmentTypes = getEquipmentTypes(globalFilter.getLimitViolationsTypes());
 
-        // Filter equipments by type
-        Map<EquipmentType, List<String>> subjectIdsByEquipmentType = filterEquipmentsByType(
-                network, globalFilter, genericFilters, new ArrayList<>(equipmentTypes)
-        );
-
-        // Combine all results into one list
-        List<String> subjectIdsFromEvalFilter = subjectIdsByEquipmentType.values().stream()
-                .filter(Objects::nonNull)
-                .flatMap(List::stream)
-                .toList();
-
-        return subjectIdsFromEvalFilter.isEmpty() ? Optional.empty() :
-                Optional.of(new ResourceFilterDTO(
-                        ResourceFilterDTO.DataType.TEXT,
-                        ResourceFilterDTO.Type.IN,
-                        subjectIdsFromEvalFilter,
-                        Column.SUBJECT_ID.columnName()
-                ));
+        // Call the common implementation with specific parameters
+        return super.getResourceFilter(networkUuid, variantId, globalFilter, equipmentTypes, Column.SUBJECT_ID.columnName());
     }
 
     /**
      * Gets equipment types based on limit violation types
      */
-    private Set<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
-        Set<EquipmentType> equipmentTypes = new HashSet<>();
-        violationTypes.forEach(violationType -> equipmentTypes.addAll(
-            switch (violationType) {
-                case CURRENT -> List.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
-                case LOW_VOLTAGE, HIGH_VOLTAGE -> List.of(EquipmentType.VOLTAGE_LEVEL);
-                default -> List.of();
-            }
-        ));
-        return equipmentTypes;
+    private List<EquipmentType> getEquipmentTypes(List<LimitViolationType> violationTypes) {
+        return violationTypes.stream()
+                .flatMap(violationType -> switch (violationType) {
+                    case CURRENT -> Stream.of(EquipmentType.LINE, EquipmentType.TWO_WINDINGS_TRANSFORMER);
+                    case LOW_VOLTAGE, HIGH_VOLTAGE -> Stream.of(EquipmentType.VOLTAGE_LEVEL);
+                    default -> Stream.empty();
+                })
+                .distinct()
+                .toList();
     }
 }
