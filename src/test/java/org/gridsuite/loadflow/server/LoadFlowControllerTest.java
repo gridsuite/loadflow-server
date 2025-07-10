@@ -133,7 +133,7 @@ public class LoadFlowControllerTest {
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
     @Autowired
-    private FilterService filterService;
+    private AbstractFilterService filterService;
     @Autowired
     LimitReductionService limitReductionService;
     @Autowired
