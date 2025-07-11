@@ -6,11 +6,11 @@
  */
 package org.gridsuite.loadflow.server;
 
-import com.github.tomakehurst.wiremock.WireMockServer;
-import com.github.tomakehurst.wiremock.client.WireMock;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.tomakehurst.wiremock.WireMockServer;
+import com.github.tomakehurst.wiremock.client.WireMock;
 import com.powsybl.commons.report.ReportNode;
 import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
@@ -28,26 +28,26 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
+import com.powsybl.ws.commons.computation.service.*;
 import lombok.SneakyThrows;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
-import com.powsybl.ws.commons.computation.service.ExecutionService;
-import com.powsybl.ws.commons.computation.service.NotificationService;
-import com.powsybl.ws.commons.computation.service.ReportService;
-import com.powsybl.ws.commons.computation.service.UuidGeneratorService;
 import org.assertj.core.api.Assertions;
 import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
-import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.Column;
+import org.gridsuite.loadflow.server.dto.ComponentResult;
+import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
-import org.gridsuite.loadflow.server.service.FilterService;
+import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
+import org.gridsuite.loadflow.server.service.AbstractFilterService;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
-import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -68,6 +68,7 @@ import org.springframework.messaging.Message;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.junit4.SpringRunner;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -132,6 +133,8 @@ public class LoadFlowControllerTest {
     private LoadFlowParametersService loadFlowParametersService;
     @MockBean
     private UuidGeneratorService uuidGeneratorService;
+    @Autowired
+    private AbstractFilterService filterService;
     @Autowired
     LimitReductionService limitReductionService;
     @Autowired
@@ -212,8 +215,7 @@ public class LoadFlowControllerTest {
 
         wireMockServer = new WireMockServer(wireMockConfig().dynamicPort());
         wireMockServer.start();
-        FilterService.setFilterServerBaseUri(wireMockServer.baseUrl());
-
+        ReflectionTestUtils.setField(filterService, "filterServerBaseUri", wireMockServer.baseUrl());
         // purge messages
         while (output.receive(1000, "loadflow.result") != null) {
         }
