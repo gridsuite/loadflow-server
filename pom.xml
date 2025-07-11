@@ -42,7 +42,7 @@
     </developers>
 
     <properties>
-		<!-- FIXME to remove at next upgrade of powsybl-ws-dependencies -->
+        <!-- FIXME to remove at next upgrade of powsybl-ws-dependencies -->
         <powsybl-network-store.version>1.28.0</powsybl-network-store.version>
         <jib.from.image>powsybl/java-dynawo:3.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
