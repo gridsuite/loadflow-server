@@ -10,7 +10,6 @@ import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.security.LimitViolationType;
 import com.powsybl.ws.commons.computation.dto.GlobalFilter;
 import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
-import com.powsybl.ws.commons.computation.service.AbstractFilterService;
 import lombok.NonNull;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.Column;

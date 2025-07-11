@@ -44,6 +44,7 @@ import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
+import org.gridsuite.loadflow.server.service.AbstractFilterService;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
