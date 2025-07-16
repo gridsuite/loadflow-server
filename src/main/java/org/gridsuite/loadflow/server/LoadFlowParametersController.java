@@ -123,4 +123,11 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok().build();
     }
 
+    @GetMapping(value = "/{uuid}/provider", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get the provider")
+    @ApiResponse(responseCode = "200", description = "provider were returned")
+    public ResponseEntity<String> getProvider(
+            @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid) {
+        return ResponseEntity.of(parametersService.getProvider(parametersUuid));
+    }
 }

@@ -175,4 +175,9 @@ public class LoadFlowParametersService {
                 .limitReductions(getLimitReductionsForProvider(entity).orElse(null))
                 .build();
     }
+
+    @Transactional(readOnly = true)
+    public Optional<String> getProvider(UUID parametersUuid) {
+        return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::getProvider);
+    }
 }
