@@ -177,7 +177,7 @@ public class LoadFlowParametersService {
     }
 
     @Transactional(readOnly = true)
-    public Optional<String> getProvider(UUID parametersUuid) {
-        return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::getProvider);
+    public String getProvider(UUID parametersUuid) {
+        return loadFlowParametersRepository.findById(parametersUuid).map(LoadFlowParametersEntity::getProvider).orElseThrow();
     }
 }
