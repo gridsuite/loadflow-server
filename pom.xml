@@ -47,6 +47,7 @@
         <jib.from.image>powsybl/java-dynawo:3.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>41.0.0</gridsuite-dependencies.version>
+        <gridsuite-computation.version>1.0.0-SNAPSHOT</gridsuite-computation.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -158,6 +159,12 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
+            <version>1.28</version>
+        </dependency>
+        <dependency>
+            <groupId>org.gridsuite</groupId>
+            <artifactId>gridsuite-computation</artifactId>
+            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

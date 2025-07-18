@@ -7,7 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.ws.commons.computation.service.NotificationService;
+import org.gridsuite.computation.service.NotificationService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 

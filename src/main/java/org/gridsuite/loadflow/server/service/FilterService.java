@@ -8,9 +8,10 @@ package org.gridsuite.loadflow.server.service;
 
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.security.LimitViolationType;
-import com.powsybl.ws.commons.computation.dto.GlobalFilter;
-import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
 import lombok.NonNull;
+import org.gridsuite.computation.dto.GlobalFilter;
+import org.gridsuite.computation.dto.ResourceFilterDTO;
+import org.gridsuite.computation.service.AbstractFilterService;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.Column;
 import org.springframework.beans.factory.annotation.Value;

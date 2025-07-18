@@ -6,11 +6,11 @@
  */
 package org.gridsuite.loadflow.server.repositories.specifications;
 
-import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
-import com.powsybl.ws.commons.computation.specification.AbstractCommonSpecificationBuilder;
-import com.powsybl.ws.commons.computation.utils.SpecificationUtils;
 import jakarta.persistence.criteria.Path;
 import jakarta.persistence.criteria.Root;
+import org.gridsuite.computation.dto.ResourceFilterDTO;
+import org.gridsuite.computation.specification.AbstractCommonSpecificationBuilder;
+import org.gridsuite.computation.utils.SpecificationUtils;
 import org.gridsuite.loadflow.server.dto.Column;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
