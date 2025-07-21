@@ -369,6 +369,19 @@ class LoadFlowParametersTest {
         assertThat(parametersService.toLoadFlowParametersValues(parametersRepository.findById(parametersUuid).get())).recursivelyEquals(parametersValues);
     }
 
+    @Test
+    void testgetProvider() throws Exception {
+        LoadFlowParametersInfos parameters = buildParameters();
+        UUID parametersUuid = saveAndReturnId(parameters);
+
+        MvcResult result = mockMvc.perform(get(
+                        "/" + VERSION + "/parameters/{parametersUuid}/provider", parametersUuid))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        assertThat(result.getResponse().getContentAsString()).isEqualTo(parameters.getProvider());
+    }
+
     /** Save parameters into the repository and return its UUID. */
     protected UUID saveAndReturnId(LoadFlowParametersInfos parametersInfos) {
         parametersRepository.save(parametersInfos.toEntity());

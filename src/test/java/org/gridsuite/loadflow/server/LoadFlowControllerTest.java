@@ -110,6 +110,7 @@ public class LoadFlowControllerTest {
     private static final String VARIANT_1_ID = "variant_1";
     private static final String VARIANT_2_ID = "variant_2";
     private static final String VARIANT_3_ID = "variant_3";
+    private static final String LF_PROVIDER = "LF_PROVIDER";
 
     private static final int TIMEOUT = 1000;
 
@@ -970,5 +971,15 @@ public class LoadFlowControllerTest {
             .andReturn();
         assertEquals(LoadFlowStatus.RUNNING, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
         assertEquals(LoadFlowStatus.RUNNING, globalStatusRepository.findByResultUuid(resultUuid).getStatus());
+    }
+
+    @Test
+    public void testprovider() throws Exception {
+        doReturn(LF_PROVIDER).when(loadFlowParametersService).getProvider(any());
+        MvcResult result = mockMvc.perform(get(
+                        "/" + VERSION + "/parameters/{parametersUuid}/provider", UUID.randomUUID()))
+                .andExpect(status().isOk())
+                .andReturn();
+        assertEquals(LF_PROVIDER, result.getResponse().getContentAsString());
     }
 }
