@@ -156,6 +156,10 @@
             <artifactId>powsybl-open-loadflow</artifactId>
         </dependency>
         <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-ws-commons</artifactId>
+        </dependency>
+        <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
         </dependency>
