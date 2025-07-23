@@ -127,6 +127,11 @@
             <artifactId>gridsuite-filter</artifactId>
         </dependency>
         <dependency>
+            <groupId>org.gridsuite</groupId>
+            <artifactId>gridsuite-computation</artifactId>
+            <version>${gridsuite-computation.version}</version>
+        </dependency>
+        <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-iidm-api</artifactId>
         </dependency>
