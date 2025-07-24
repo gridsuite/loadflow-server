@@ -10,11 +10,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.security.LimitViolationType;
-import com.powsybl.ws.commons.computation.dto.GlobalFilter;
-import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
-import com.powsybl.ws.commons.computation.utils.FilterUtils;
 import lombok.AllArgsConstructor;
-import com.powsybl.ws.commons.computation.service.AbstractComputationResultService;
+import org.gridsuite.computation.dto.GlobalFilter;
+import org.gridsuite.computation.dto.ResourceFilterDTO;
+import org.gridsuite.computation.service.AbstractComputationResultService;
+import org.gridsuite.computation.utils.FilterUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.entities.*;
@@ -38,7 +38,8 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static com.powsybl.ws.commons.computation.utils.FilterUtils.fromStringFiltersToDTO;
+import static org.gridsuite.computation.utils.FilterUtils.fromStringFiltersToDTO;
+
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com
