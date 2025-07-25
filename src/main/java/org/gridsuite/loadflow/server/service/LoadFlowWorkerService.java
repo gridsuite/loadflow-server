@@ -99,13 +99,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             }
         });
     }
+
     private void handleSCSolvedValues(Network network) {
         network.getShuntCompensatorStream().forEach(shuntCompensator -> {
             if (shuntCompensator.findSolvedSectionCount().isPresent()) {
                 int initialSectionCount = shuntCompensator.getSectionCount();
                 shuntCompensator.applySolvedValues();
                 shuntCompensator.setSolvedSectionCount(initialSectionCount);
-            }});
+            }
+        });
     }
 
     @Override

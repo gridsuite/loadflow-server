@@ -44,7 +44,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
         String userId = (String) headers.get(HEADER_USER_ID);
-        Boolean isModeSecurity = Boolean.parseBoolean((String)headers.get(HEADER_SECURITY_MOE));
+        boolean isModeSecurity = Boolean.parseBoolean((String) headers.get(HEADER_SECURITY_MOE));
 
         LoadFlowParametersValues parameters;
         try {
