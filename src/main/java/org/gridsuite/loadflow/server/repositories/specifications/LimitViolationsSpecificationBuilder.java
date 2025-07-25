@@ -6,9 +6,9 @@
  */
 package org.gridsuite.loadflow.server.repositories.specifications;
 
-import com.powsybl.ws.commons.computation.dto.ResourceFilterDTO;
-import com.powsybl.ws.commons.computation.specification.AbstractCommonSpecificationBuilder;
 import jakarta.persistence.criteria.*;
+import org.gridsuite.computation.dto.ResourceFilterDTO;
+import org.gridsuite.computation.specification.AbstractCommonSpecificationBuilder;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.springframework.stereotype.Service;
 

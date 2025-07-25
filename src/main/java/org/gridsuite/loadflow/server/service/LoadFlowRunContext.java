@@ -13,9 +13,9 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowProvider;
 import lombok.Builder;
 import lombok.Getter;
+import org.gridsuite.computation.dto.ReportInfos;
+import org.gridsuite.computation.service.AbstractComputationRunContext;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import com.powsybl.ws.commons.computation.service.AbstractComputationRunContext;
-import com.powsybl.ws.commons.computation.dto.ReportInfos;
 
 import java.util.UUID;
 
