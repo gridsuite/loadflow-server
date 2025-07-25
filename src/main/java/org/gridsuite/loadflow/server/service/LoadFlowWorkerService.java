@@ -37,6 +37,7 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
+import java.util.stream.Stream;
 
 import static com.powsybl.ws.commons.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
@@ -72,10 +73,39 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) {
         LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
+            // solved values in security mode
+            if (runContext.isSecurityMode() && runContext.isWithRatioTapChangers()) {
+                handle2WTSolvedValues(runContext.getNetwork());
+                handleSCSolvedValues(runContext.getNetwork());
+            }
+
             // flush network in the network store
             observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
         }
         return result;
+    }
+
+    private void handle2WTSolvedValues(Network network) {
+        Stream<TapChanger> tapChangerStream = Stream.concat(
+            network.getTwoWindingsTransformerStream().map(RatioTapChangerHolder::getOptionalRatioTapChanger),
+            network.getTwoWindingsTransformerStream().map(PhaseTapChangerHolder::getOptionalPhaseTapChanger)
+        ).flatMap(Optional::stream);
+
+        tapChangerStream.forEach(tapChanger -> {
+            if (tapChanger.findSolvedTapPosition().isPresent()) {
+                int initialPosition = tapChanger.getTapPosition();
+                tapChanger.applySolvedValues();
+                tapChanger.setSolvedTapPosition(initialPosition);
+            }
+        });
+    }
+    private void handleSCSolvedValues(Network network) {
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            if (shuntCompensator.findSolvedSectionCount().isPresent()) {
+                int initialSectionCount = shuntCompensator.getSectionCount();
+                shuntCompensator.applySolvedValues();
+                shuntCompensator.setSolvedSectionCount(initialSectionCount);
+            }});
     }
 
     @Override
