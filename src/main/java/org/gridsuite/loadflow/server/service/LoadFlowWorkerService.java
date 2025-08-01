@@ -74,7 +74,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
             // solved values in security mode
-            if (runContext.isSecurityMode() && runContext.isWithRatioTapChangers()) {
+            if (runContext.isSecurityMode()) {
                 handle2WTSolvedValues(runContext.getNetwork());
                 handleSCSolvedValues(runContext.getNetwork());
             }
@@ -91,6 +91,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             network.getTwoWindingsTransformerStream().map(PhaseTapChangerHolder::getOptionalPhaseTapChanger)
         ).flatMap(Optional::stream);
 
+        // Need to preserve initial values
+        // Swap done for this
         tapChangerStream.forEach(tapChanger -> {
             if (tapChanger.findSolvedTapPosition().isPresent()) {
                 int initialPosition = tapChanger.getTapPosition();
@@ -101,6 +103,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     private void handleSCSolvedValues(Network network) {
+        // Need to preserve initial values
+        // Swap done for this
         network.getShuntCompensatorStream().forEach(shuntCompensator -> {
             if (shuntCompensator.findSolvedSectionCount().isPresent()) {
                 int initialSectionCount = shuntCompensator.getSectionCount();
