@@ -24,7 +24,7 @@ import static org.gridsuite.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
 
-    private static final String HEADER_SECURITY_MOE = "securityMode";
+    private static final String HEADER_SECURITY_MODE = "securityMode";
 
     public LoadFlowResultContext(UUID resultUuid, LoadFlowRunContext runContext) {
         super(resultUuid, runContext);
@@ -32,7 +32,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
 
     @Override
     protected Map<String, String> getSpecificMsgHeaders(ObjectMapper ignoredObjectMapper) {
-        return Map.of(HEADER_SECURITY_MOE, Boolean.toString(getRunContext().isSecurityMode()));
+        return Map.of(HEADER_SECURITY_MODE, Boolean.toString(getRunContext().isSecurityMode()));
     }
 
     public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
@@ -44,7 +44,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
         String userId = (String) headers.get(HEADER_USER_ID);
-        boolean isModeSecurity = Boolean.parseBoolean((String) headers.get(HEADER_SECURITY_MOE));
+        boolean isSecurityMode = Boolean.parseBoolean((String) headers.get(HEADER_SECURITY_MODE));
 
         LoadFlowParametersValues parameters;
         try {
@@ -64,7 +64,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .provider(provider)
                         .parameters(parameters)
                         .withRatioTapChangers(parameters.getCommonParameters().isTransformerVoltageControlOn())
-                        .isModeSecurity(isModeSecurity)
+                        .isSecurityMode(isSecurityMode)
                         .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).computationType(reportType).build())
                         .userId(userId)
                         .build();

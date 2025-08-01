@@ -49,11 +49,11 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
 
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportInfos reportInfos, String userId,
-                              LoadFlowParametersValues parameters, UUID parametersUuid, boolean withRatioTapChangers, boolean isModeSecurity, UUID resultUuid) {
+                              LoadFlowParametersValues parameters, UUID parametersUuid, boolean withRatioTapChangers, boolean isSecurityMode, UUID resultUuid) {
         super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters);
         this.parametersUuid = parametersUuid;
         this.withRatioTapChangers = withRatioTapChangers;
         this.resultUuid = resultUuid;
-        this.isSecurityMode = isModeSecurity;
+        this.isSecurityMode = isSecurityMode;
     }
 }
