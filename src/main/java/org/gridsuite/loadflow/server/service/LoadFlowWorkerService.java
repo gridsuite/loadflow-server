@@ -48,7 +48,6 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
 @Service
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
     private final LimitReductionService limitReductionService;
-    public static final String DEFAULT_PROVIDER = "OpenLoadFlow";
     public static final String HEADER_WITH_RATIO_TAP_CHANGERS = "withRatioTapChangers";
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
@@ -86,7 +85,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     private void handle2WTSolvedValues(Network network) {
-        Stream<TapChanger> tapChangerStream = Stream.concat(
+        Stream<TapChanger<?, ?, ?, ?>> tapChangerStream = Stream.concat(
             network.getTwoWindingsTransformerStream().map(RatioTapChangerHolder::getOptionalRatioTapChanger),
             network.getTwoWindingsTransformerStream().map(PhaseTapChangerHolder::getOptionalPhaseTapChanger)
         ).flatMap(Optional::stream);

@@ -82,6 +82,7 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.computation.service.NotificationService.HEADER_USER_ID;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -182,8 +183,12 @@ public class LoadFlowControllerTest {
 
         // network store service mocking
         network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits(new NetworkFactoryImpl());
+
         Substation substation = network.getSubstation("P2");
         substation.setProperty("whateverPropertyToTestGlobalFilters", "okValue");
+
+        initSolvedValues();
+
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
@@ -232,6 +237,15 @@ public class LoadFlowControllerTest {
         }
     }
 
+    private void initSolvedValues() {
+        TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        twoWindingsTransformer.getOptionalRatioTapChanger().get().setSolvedTapPosition(2);
+
+        VoltageLevel vl = twoWindingsTransformer.getTerminal1().getVoltageLevel();
+        Bus nshunt = twoWindingsTransformer.getTerminal1().getBusBreakerView().getBus();
+        vl.newShuntCompensator().setId("SHUNT").setConnectableBus(nshunt.getId()).setSectionCount(1).setSolvedSectionCount(2).newLinearModel().setBPerSection(1.0E-5).setMaximumSectionCount(2).add().add();
+    }
+
     @SneakyThrows
     @After
     public void tearDown() {
@@ -253,7 +267,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&isSecurityMode=true", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -282,7 +296,21 @@ public class LoadFlowControllerTest {
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isNotFound());
+
+            assertSolvedValues();
         }
+    }
+
+    private void assertSolvedValues() {
+        TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        assertTrue(twoWindingsTransformer.getOptionalRatioTapChanger().isPresent());
+        RatioTapChanger ratioTapChanger = twoWindingsTransformer.getOptionalRatioTapChanger().get();
+        assertEquals(1, ratioTapChanger.getSolvedTapPosition().intValue());
+        assertEquals(2, ratioTapChanger.getTapPosition());
+
+        ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT");
+        assertEquals(1, shuntCompensator.getSolvedSectionCount().intValue());
+        assertEquals(2, shuntCompensator.getSectionCount());
     }
 
     @Test
