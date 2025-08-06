@@ -37,15 +37,13 @@ import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
-import org.gridsuite.loadflow.server.dto.Column;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.junit.After;
 import org.junit.Before;
@@ -130,6 +128,8 @@ public class LoadFlowControllerTest {
     private ReportService reportService;
     @Autowired
     private ExecutionService executionService;
+    @Autowired
+    private LoadFlowResultService loadFlowResultService;
     @SpyBean
     private LoadFlowParametersService loadFlowParametersService;
     @MockBean
@@ -285,6 +285,7 @@ public class LoadFlowControllerTest {
                     .andReturn();
             org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
             assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
+            assertSolvedValues();
 
             // Should return an empty result with status OK if the result does not exist
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
@@ -296,21 +297,31 @@ public class LoadFlowControllerTest {
 
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
                     .andExpect(status().isNotFound());
-
-            assertSolvedValues();
         }
     }
 
     private void assertSolvedValues() {
+        InitialValuesInfos initialValuesInfos = loadFlowResultService.getInitialValues(RESULT_UUID);
+        assertNotNull(initialValuesInfos);
+        assertEquals(1, initialValuesInfos.getTwoWindingsTransformerValues().size());
+        assertEquals(1, initialValuesInfos.getShuntCompensatorValues().size());
+
+        InitialValuesInfos.TwoWindingsTransformerValues wtInitialValues = initialValuesInfos.getTwoWindingsTransformerValues().getFirst();
+        InitialValuesInfos.ShuntCompensatorValues scInitialValues = initialValuesInfos.getShuntCompensatorValues().getFirst();
+        assertEquals("NHV2_NLOAD", wtInitialValues.twoWindingsTransformerId());
+        assertEquals("SHUNT", scInitialValues.shuntCompensatorId());
+
         TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
         assertTrue(twoWindingsTransformer.getOptionalRatioTapChanger().isPresent());
         RatioTapChanger ratioTapChanger = twoWindingsTransformer.getOptionalRatioTapChanger().get();
-        assertEquals(1, ratioTapChanger.getSolvedTapPosition().intValue());
-        assertEquals(2, ratioTapChanger.getTapPosition());
+        assertNotEquals(wtInitialValues.ratioTapPosition().intValue(), ratioTapChanger.getSolvedTapPosition().intValue());
+        assertEquals(ratioTapChanger.getSolvedTapPosition().intValue(), ratioTapChanger.getTapPosition());
+        assertEquals(1, wtInitialValues.ratioTapPosition().intValue());
 
         ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT");
-        assertEquals(1, shuntCompensator.getSolvedSectionCount().intValue());
-        assertEquals(2, shuntCompensator.getSectionCount());
+        assertNotEquals(scInitialValues.sectionCount().intValue(), shuntCompensator.getSolvedSectionCount().intValue());
+        assertEquals(ratioTapChanger.getSolvedTapPosition().intValue(), shuntCompensator.getSectionCount());
+        assertEquals(1, scInitialValues.sectionCount().intValue());
     }
 
     @Test

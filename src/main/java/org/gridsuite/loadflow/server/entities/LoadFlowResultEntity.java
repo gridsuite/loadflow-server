@@ -31,6 +31,9 @@ public class LoadFlowResultEntity {
     @Column(columnDefinition = "timestamptz")
     private Instant writeTimeStamp;
 
+    @Column(columnDefinition = "CLOB")
+    String initialValues;
+
     @Setter
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
     private List<ComponentResultEntity> componentResults;

@@ -6,17 +6,20 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.security.LimitViolationType;
 import lombok.AllArgsConstructor;
+import org.gridsuite.computation.ComputationException;
 import org.gridsuite.computation.dto.GlobalFilter;
 import org.gridsuite.computation.dto.ResourceFilterDTO;
 import org.gridsuite.computation.service.AbstractComputationResultService;
 import org.gridsuite.computation.utils.FilterUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.InitialValuesInfos;
 import org.gridsuite.loadflow.server.entities.*;
 import org.gridsuite.loadflow.server.repositories.ComponentResultRepository;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
@@ -63,14 +66,14 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     private final ObjectMapper objectMapper;
     private final FilterService filterService;
 
-    private static LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, List<LimitViolationInfos> limitViolationInfos) {
+    private LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, String solvedValuesInfos, List<LimitViolationInfos> limitViolationInfos) {
         List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
                 .map(componentResult -> LoadFlowResultService.toComponentResultEntity(resultUuid, componentResult))
                 .toList();
         List<LimitViolationEntity> limitViolations = limitViolationInfos.stream()
                 .map(limitViolationInfo -> toLimitViolationsEntity(resultUuid, limitViolationInfo))
                 .toList();
-        return new LoadFlowResultEntity(resultUuid, Instant.now(), componentResults, limitViolations);
+        return new LoadFlowResultEntity(resultUuid, Instant.now(), solvedValuesInfos, componentResults, limitViolations);
     }
 
     private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {
@@ -107,10 +110,11 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     public void insert(UUID resultUuid,
                        LoadFlowResult result,
                        LoadFlowStatus status,
+                       InitialValuesInfos initialValuesInfos,
                        List<LimitViolationInfos> limitViolationInfos) {
         Objects.requireNonNull(resultUuid);
         if (result != null) {
-            resultRepository.save(toResultEntity(resultUuid, result, limitViolationInfos));
+            resultRepository.save(toResultEntity(resultUuid, result, initialValuesToJsonString(initialValuesInfos), limitViolationInfos));
         }
         globalStatusRepository.save(toStatusEntity(resultUuid, status));
     }
@@ -194,6 +198,16 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return loadFlowResult;
     }
 
+    @Transactional(readOnly = true)
+    public InitialValuesInfos getInitialValues(UUID resultUuid) {
+        LoadFlowResultEntity loadFlowResultEntity = findResults(resultUuid).orElse(null);
+        if (loadFlowResultEntity == null) {
+            return null;
+        }
+
+        return initialValuesToDTO(loadFlowResultEntity.getInitialValues());
+    }
+
     private static org.gridsuite.loadflow.server.dto.LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
         return org.gridsuite.loadflow.server.dto.LoadFlowResult.builder()
                 .resultUuid(resultEntity.getResultUuid())
@@ -251,4 +265,19 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return findLimitViolationsEntities(resultUuid, resourceFilters, sort);
     }
 
+    private InitialValuesInfos initialValuesToDTO(String jsonString) {
+        try {
+            return objectMapper.readValue(jsonString, InitialValuesInfos.class);
+        } catch (JsonProcessingException e) {
+            throw new ComputationException("Invalid json string for initial values !");
+        }
+    }
+
+    private String initialValuesToJsonString(InitialValuesInfos initialValuesInfos) {
+        try {
+            return objectMapper.writeValueAsString(initialValuesInfos);
+        } catch (JsonProcessingException e) {
+            throw new ComputationException("Invalid initial values for json string !");
+        }
+    }
 }

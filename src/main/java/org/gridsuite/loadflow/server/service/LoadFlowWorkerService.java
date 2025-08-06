@@ -26,6 +26,7 @@ import com.powsybl.security.Security;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
 import org.gridsuite.computation.service.*;
+import org.gridsuite.loadflow.server.dto.InitialValuesInfos;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
@@ -37,7 +38,6 @@ import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
-import java.util.stream.Stream;
 
 import static org.gridsuite.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
@@ -72,45 +72,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) {
         LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
         if (result != null && !result.isFailed()) {
-            // solved values in security mode
-            if (runContext.isSecurityMode()) {
-                handle2WTSolvedValues(runContext.getNetwork());
-                handleSCSolvedValues(runContext.getNetwork());
-            }
-
             // flush network in the network store
             observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
         }
         return result;
-    }
-
-    private void handle2WTSolvedValues(Network network) {
-        Stream<TapChanger<?, ?, ?, ?>> tapChangerStream = Stream.concat(
-            network.getTwoWindingsTransformerStream().map(RatioTapChangerHolder::getOptionalRatioTapChanger),
-            network.getTwoWindingsTransformerStream().map(PhaseTapChangerHolder::getOptionalPhaseTapChanger)
-        ).flatMap(Optional::stream);
-
-        // Need to preserve initial values
-        // Swap done for this
-        tapChangerStream.forEach(tapChanger -> {
-            if (tapChanger.findSolvedTapPosition().isPresent()) {
-                int initialPosition = tapChanger.getTapPosition();
-                tapChanger.applySolvedValues();
-                tapChanger.setSolvedTapPosition(initialPosition);
-            }
-        });
-    }
-
-    private void handleSCSolvedValues(Network network) {
-        // Need to preserve initial values
-        // Swap done for this
-        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
-            if (shuntCompensator.findSolvedSectionCount().isPresent()) {
-                int initialSectionCount = shuntCompensator.getSectionCount();
-                shuntCompensator.applySolvedValues();
-                shuntCompensator.setSolvedSectionCount(initialSectionCount);
-            }
-        });
     }
 
     @Override
@@ -161,10 +126,51 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     @Override
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
+        InitialValuesInfos initialValuesInfos = handleSolvedValues(network, resultContext.getRunContext().isSecurityMode());
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
         resultService.insert(resultContext.getResultUuid(), result,
-                LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
+                LoadFlowService.computeLoadFlowStatus(result), initialValuesInfos, limitViolationsWithCalculatedOverload);
+    }
+
+    private InitialValuesInfos handleSolvedValues(Network network, boolean isSecurityMode) {
+        InitialValuesInfos initialValuesInfos = new InitialValuesInfos();
+        if (!isSecurityMode) {
+            return initialValuesInfos;
+        }
+        handle2WTSolvedValues(network, initialValuesInfos);
+        handleSCSolvedValues(network, initialValuesInfos);
+        return initialValuesInfos;
+    }
+
+    private void handle2WTSolvedValues(Network network, InitialValuesInfos initialValuesInfos) {
+        network.getTwoWindingsTransformerStream()
+            .forEach(t -> {
+                Integer ratioTapPosition = handleSolvedTapPosition(t.getOptionalRatioTapChanger());
+                Integer phaseTapPosition = handleSolvedTapPosition(t.getOptionalPhaseTapChanger());
+                if (ratioTapPosition != null || phaseTapPosition != null) {
+                    initialValuesInfos.add2WTTapPositionValues(t.getId(), ratioTapPosition, phaseTapPosition);
+                }
+            });
+    }
+
+    private Integer handleSolvedTapPosition(Optional<? extends TapChanger<?, ?, ?, ?>> tapChanger) {
+        Integer initialTapPosition = null;
+        boolean isSolvedValuePresent = tapChanger.isPresent() && tapChanger.get().findSolvedTapPosition().isPresent();
+        if (isSolvedValuePresent && tapChanger.get().getSolvedTapPosition() != tapChanger.get().getTapPosition()) {
+            initialTapPosition = tapChanger.get().getTapPosition();
+            tapChanger.get().applySolvedValues();
+        }
+        return initialTapPosition;
+    }
+
+    private void handleSCSolvedValues(Network network, InitialValuesInfos initialValuesInfos) {
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            if (shuntCompensator.findSolvedSectionCount().isPresent() && shuntCompensator.getSolvedSectionCount() != shuntCompensator.getSectionCount()) {
+                initialValuesInfos.addSCSectionCountValue(shuntCompensator.getId(), shuntCompensator.getSectionCount());
+                shuntCompensator.applySolvedValues();
+            }
+        });
     }
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
