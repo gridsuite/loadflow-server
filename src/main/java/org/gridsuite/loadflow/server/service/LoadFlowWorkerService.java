@@ -126,16 +126,16 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     @Override
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
-        InitialValuesInfos initialValuesInfos = handleSolvedValues(network, resultContext.getRunContext().isSecurityMode());
+        InitialValuesInfos initialValuesInfos = handleSolvedValues(network, resultContext.getRunContext().isApplySolvedValues());
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
         resultService.insert(resultContext.getResultUuid(), result,
                 LoadFlowService.computeLoadFlowStatus(result), initialValuesInfos, limitViolationsWithCalculatedOverload);
     }
 
-    private InitialValuesInfos handleSolvedValues(Network network, boolean isSecurityMode) {
+    private InitialValuesInfos handleSolvedValues(Network network, boolean applySolvedValues) {
         InitialValuesInfos initialValuesInfos = new InitialValuesInfos();
-        if (!isSecurityMode) {
+        if (!applySolvedValues) {
             return initialValuesInfos;
         }
         handle2WTSolvedValues(network, initialValuesInfos);

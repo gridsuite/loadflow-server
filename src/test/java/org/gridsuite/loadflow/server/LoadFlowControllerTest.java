@@ -267,7 +267,7 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&isSecurityMode=true", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&applySolvedValues=true", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))

@@ -66,7 +66,7 @@ public class LoadFlowController {
                                     @Parameter(description = "The type name for the report") @RequestParam(name = "reportType", required = false, defaultValue = "LoadFlow") String reportType,
                                     @Parameter(description = "parametersUuid") @RequestParam(name = "parametersUuid", required = false) UUID parametersUuid,
                                     @Parameter(description = "withRatioTapChangers") @RequestParam(name = "withRatioTapChangers", required = false, defaultValue = "false") Boolean withRatioTapChangers,
-                                    @Parameter(description = "isSecurityMode") @RequestParam(name = "isSecurityMode", required = false, defaultValue = "true") Boolean isSecurityMode,
+                                    @Parameter(description = "applySolvedValues") @RequestParam(name = "applySolvedValues", required = false, defaultValue = "false") Boolean applySolvedValues,
                                     @Parameter(description = "resultUuid") @RequestParam(name = "resultUuid", required = false) UUID resultUuid,
                                     @RequestHeader(HEADER_USER_ID) String userId
                                     ) {
@@ -80,7 +80,7 @@ public class LoadFlowController {
                 .userId(userId)
                 .parametersUuid(parametersUuid)
                 .withRatioTapChangers(withRatioTapChangers)
-                .isSecurityMode(isSecurityMode)
+                .applySolvedValues(applySolvedValues)
                 .build();
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.runAndSaveResult(loadFlowRunContext));
     }

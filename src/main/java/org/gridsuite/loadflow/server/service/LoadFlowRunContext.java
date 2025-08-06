@@ -26,7 +26,7 @@ import java.util.UUID;
 public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowParametersValues> {
     private final UUID parametersUuid;
     private final boolean withRatioTapChangers;
-    private final boolean isSecurityMode;
+    private final boolean applySolvedValues;
     private final UUID resultUuid;
 
     public LoadFlowParameters buildParameters() {
@@ -49,11 +49,11 @@ public class LoadFlowRunContext extends AbstractComputationRunContext<LoadFlowPa
 
     @Builder
     public LoadFlowRunContext(UUID networkUuid, String variantId, String receiver, String provider, ReportInfos reportInfos, String userId,
-                              LoadFlowParametersValues parameters, UUID parametersUuid, boolean withRatioTapChangers, boolean isSecurityMode, UUID resultUuid) {
+                              LoadFlowParametersValues parameters, UUID parametersUuid, boolean withRatioTapChangers, boolean applySolvedValues, UUID resultUuid) {
         super(networkUuid, variantId, receiver, reportInfos, userId, provider, parameters);
         this.parametersUuid = parametersUuid;
         this.withRatioTapChangers = withRatioTapChangers;
         this.resultUuid = resultUuid;
-        this.isSecurityMode = isSecurityMode;
+        this.applySolvedValues = applySolvedValues;
     }
 }
