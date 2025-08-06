@@ -266,6 +266,9 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     }
 
     private InitialValuesInfos initialValuesToDTO(String jsonString) {
+        if (jsonString == null) {
+            return null;
+        }
         try {
             return objectMapper.readValue(jsonString, InitialValuesInfos.class);
         } catch (JsonProcessingException e) {

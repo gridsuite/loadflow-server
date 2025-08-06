@@ -134,10 +134,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     private InitialValuesInfos handleSolvedValues(Network network, boolean applySolvedValues) {
-        InitialValuesInfos initialValuesInfos = new InitialValuesInfos();
         if (!applySolvedValues) {
-            return initialValuesInfos;
+            return null;
         }
+        InitialValuesInfos initialValuesInfos = new InitialValuesInfos();
         handle2WTSolvedValues(network, initialValuesInfos);
         handleSCSolvedValues(network, initialValuesInfos);
         return initialValuesInfos;
