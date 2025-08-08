@@ -266,42 +266,53 @@ public class LoadFlowControllerTest {
                             any(LoadFlowParameters.class), any(ReportNode.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
-            MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&applySolvedValues=true", NETWORK_UUID)
-                            .header(HEADER_USER_ID, "userId"))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andReturn();
-            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+            runTest(false);
 
-            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
-            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
-            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+            // test one result deletion
+            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString()))
+                .andExpect(status().isOk());
 
-            result = mockMvc.perform(get(
-                            "/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andReturn();
-            org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
-            assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
-            assertSolvedValues();
+            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+                .andExpect(status().isNotFound());
+
+            runTest(true);
 
             // Should return an empty result with status OK if the result does not exist
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
                     .andExpect(status().isNotFound());
-
-            // test one result deletion
-            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString()))
-                    .andExpect(status().isOk());
-
-            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isNotFound());
         }
     }
 
-    private void assertSolvedValues() {
+    private void runTest(boolean applySolvedValues) throws Exception {
+        MvcResult result = mockMvc.perform(post(
+                "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&applySolvedValues=" + applySolvedValues, NETWORK_UUID)
+                .header(HEADER_USER_ID, "userId"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+        Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+        assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+        assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+        result = mockMvc.perform(get(
+                "/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
+        assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
+        assertSolvedValues(applySolvedValues);
+    }
+
+    private void assertSolvedValues(boolean applySolvedValues) {
         InitialValuesInfos initialValuesInfos = loadFlowResultService.getInitialValues(RESULT_UUID);
+        if (!applySolvedValues) {
+            assertNull(initialValuesInfos);
+            return;
+        }
+
         assertNotNull(initialValuesInfos);
         assertEquals(1, initialValuesInfos.getTwoWindingsTransformerValues().size());
         assertEquals(1, initialValuesInfos.getShuntCompensatorValues().size());

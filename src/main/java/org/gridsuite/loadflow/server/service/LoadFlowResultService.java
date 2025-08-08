@@ -277,6 +277,9 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     }
 
     private String initialValuesToJsonString(InitialValuesInfos initialValuesInfos) {
+        if (initialValuesInfos == null) {
+            return null;
+        }
         try {
             return objectMapper.writeValueAsString(initialValuesInfos);
         } catch (JsonProcessingException e) {
