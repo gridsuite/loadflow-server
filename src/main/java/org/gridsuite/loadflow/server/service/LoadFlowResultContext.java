@@ -16,6 +16,7 @@ import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
 
 import java.io.UncheckedIOException;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -23,8 +24,15 @@ import static org.gridsuite.computation.service.NotificationService.*;
 
 public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunContext> {
 
+    private static final String APPLY_SOLVED_VALUES_HEADER = "applySolvedValues";
+
     public LoadFlowResultContext(UUID resultUuid, LoadFlowRunContext runContext) {
         super(resultUuid, runContext);
+    }
+
+    @Override
+    protected Map<String, String> getSpecificMsgHeaders(ObjectMapper ignoredObjectMapper) {
+        return Map.of(APPLY_SOLVED_VALUES_HEADER, Boolean.toString(getRunContext().isApplySolvedValues()));
     }
 
     public static LoadFlowResultContext fromMessage(Message<String> message, ObjectMapper objectMapper) {
@@ -36,6 +44,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
         String receiver = (String) headers.get(HEADER_RECEIVER);
         String provider = (String) headers.get(HEADER_PROVIDER);
         String userId = (String) headers.get(HEADER_USER_ID);
+        boolean applySolvedValues = Boolean.parseBoolean((String) headers.get(APPLY_SOLVED_VALUES_HEADER));
 
         LoadFlowParametersValues parameters;
         try {
@@ -55,6 +64,7 @@ public class LoadFlowResultContext extends AbstractResultContext<LoadFlowRunCont
                         .provider(provider)
                         .parameters(parameters)
                         .withRatioTapChangers(parameters.getCommonParameters().isTransformerVoltageControlOn())
+                        .applySolvedValues(applySolvedValues)
                         .reportInfos(ReportInfos.builder().reportUuid(reportUuid).reporterId(reporterId).computationType(reportType).build())
                         .userId(userId)
                         .build();
