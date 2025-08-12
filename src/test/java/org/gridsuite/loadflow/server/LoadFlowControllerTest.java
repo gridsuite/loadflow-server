@@ -741,7 +741,7 @@ public class LoadFlowControllerTest {
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "1499.99999", Column.LIMIT.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.LESS_THAN_OR_EQUAL, "1200.00001", Column.VALUE.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "66.66665", Column.OVERLOAD.columnName()),
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "2", Column.UP_COMING_OVERLOAD.columnName())
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.EQUALS, "60", Column.UP_COMING_OVERLOAD.columnName())
             );
             List<ResourceFilterDTO> childFilters = List.of(
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3",
