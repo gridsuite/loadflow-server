@@ -47,7 +47,7 @@
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>42.0.0</gridsuite-dependencies.version>
         <!-- FIXME to remove at next upgrade of gridsuite-dependencies -->
-        <gridsuite-computation.version>1.2.0-SNAPSHOT</gridsuite-computation.version>
+        <gridsuite-computation.version>1.2.0</gridsuite-computation.version>
         <!-- FIXME to remove at next upgrade of powsybl-ws-dependencies -->
         <powsybl-ws-commons.version>1.28.0</powsybl-ws-commons.version>
         <!--
