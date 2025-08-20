@@ -70,12 +70,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     @Override
     protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) {
-        LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
-        if (result != null && !result.isFailed()) {
-            // flush network in the network store
-            observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
-        }
-        return result;
+        return super.run(runContext, resultUuid, rootReporter);
     }
 
     @Override
@@ -131,6 +126,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
         resultService.insert(resultContext.getResultUuid(), result,
                 LoadFlowService.computeLoadFlowStatus(result), initialValuesInfos, limitViolationsWithCalculatedOverload);
+        if (result != null && !result.isFailed()) {
+            // flush network in the network store
+            observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(resultContext.getRunContext().getNetwork()));
+        }
     }
 
     private InitialValuesInfos handleSolvedValues(Network network, boolean applySolvedValues) {
