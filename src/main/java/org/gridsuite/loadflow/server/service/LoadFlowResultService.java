@@ -127,9 +127,12 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
                 .limitType(limitViolationInfos.getLimitType())
                 .limit(limitViolationInfos.getLimit())
                 .limitName(limitViolationInfos.getLimitName())
+                .nextLimitName(limitViolationInfos.getNextLimitName())
                 .actualOverload(limitViolationInfos.getActualOverloadDuration())
                 .upComingOverload(limitViolationInfos.getUpComingOverloadDuration())
                 .overload(limitViolationInfos.getOverload())
+                .patlLimit(limitViolationInfos.getPatlLimit())
+                .patlOverload(limitViolationInfos.getPatlOverload())
                 .value(limitViolationInfos.getValue())
                 .side(limitViolationInfos.getSide())
                 .build();

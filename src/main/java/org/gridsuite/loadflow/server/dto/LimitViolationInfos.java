@@ -31,11 +31,17 @@ public class LimitViolationInfos {
 
     private String limitName;
 
+    private String nextLimitName;
+
     private Integer actualOverloadDuration;
 
     private Integer upComingOverloadDuration;
 
     private Double overload;
+
+    private Double patlLimit;
+
+    private Double patlOverload;
 
     private Double value;
 
@@ -49,9 +55,12 @@ public class LimitViolationInfos {
                 .locationId(limitViolationEntity.getLocationId())
                 .limit(limitViolationEntity.getLimit())
                 .limitName(limitViolationEntity.getLimitName())
+                .nextLimitName(limitViolationEntity.getNextLimitName())
                 .actualOverloadDuration(limitViolationEntity.getActualOverload())
                 .upComingOverloadDuration(limitViolationEntity.getUpComingOverload())
                 .overload(limitViolationEntity.getOverload())
+                .patlLimit(limitViolationEntity.getPatlLimit())
+                .patlOverload(limitViolationEntity.getPatlOverload())
                 .value(limitViolationEntity.getValue())
                 .side(limitViolationEntity.getSide())
                 .limitType(limitViolationEntity.getLimitType())
