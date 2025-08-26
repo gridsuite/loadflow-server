@@ -7,7 +7,6 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.commons.report.ReportNode;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
 import com.powsybl.iidm.criteria.IdentifiableCriterion;
 import com.powsybl.iidm.criteria.VoltageInterval;
@@ -26,6 +25,7 @@ import com.powsybl.security.Security;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
 import org.gridsuite.computation.service.*;
+import org.gridsuite.loadflow.server.dto.InitialValuesInfos;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
@@ -35,7 +35,6 @@ import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.gridsuite.computation.utils.ComputationResultUtils.getViolationLocationId;
@@ -47,7 +46,6 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
 @Service
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
     private final LimitReductionService limitReductionService;
-    public static final String DEFAULT_PROVIDER = "OpenLoadFlow";
     public static final String HEADER_WITH_RATIO_TAP_CHANGERS = "withRatioTapChangers";
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
@@ -66,16 +64,6 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     @Override
     protected LoadFlowResultContext fromMessage(Message<String> message) {
         return LoadFlowResultContext.fromMessage(message, objectMapper);
-    }
-
-    @Override
-    protected LoadFlowResult run(LoadFlowRunContext runContext, UUID resultUuid, AtomicReference<ReportNode> rootReporter) {
-        LoadFlowResult result = super.run(runContext, resultUuid, rootReporter);
-        if (result != null && !result.isFailed()) {
-            // flush network in the network store
-            observer.observe("network.save", runContext, () -> networkStoreService.flush(runContext.getNetwork()));
-        }
-        return result;
     }
 
     @Override
@@ -126,10 +114,55 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     @Override
     protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
+        InitialValuesInfos initialValuesInfos = handleSolvedValues(network, resultContext.getRunContext().isApplySolvedValues());
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
         resultService.insert(resultContext.getResultUuid(), result,
-                LoadFlowService.computeLoadFlowStatus(result), limitViolationsWithCalculatedOverload);
+                LoadFlowService.computeLoadFlowStatus(result), initialValuesInfos, limitViolationsWithCalculatedOverload);
+        if (result != null && !result.isFailed()) {
+            // flush network in the network store
+            observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(resultContext.getRunContext().getNetwork()));
+        }
+    }
+
+    private InitialValuesInfos handleSolvedValues(Network network, boolean applySolvedValues) {
+        if (!applySolvedValues) {
+            return null;
+        }
+        InitialValuesInfos initialValuesInfos = new InitialValuesInfos();
+        handle2WTSolvedValues(network, initialValuesInfos);
+        handleSCSolvedValues(network, initialValuesInfos);
+        return initialValuesInfos;
+    }
+
+    private void handle2WTSolvedValues(Network network, InitialValuesInfos initialValuesInfos) {
+        network.getTwoWindingsTransformerStream()
+            .forEach(t -> {
+                Integer ratioTapPosition = handleSolvedTapPosition(t.getOptionalRatioTapChanger());
+                Integer phaseTapPosition = handleSolvedTapPosition(t.getOptionalPhaseTapChanger());
+                if (ratioTapPosition != null || phaseTapPosition != null) {
+                    initialValuesInfos.add2WTTapPositionValues(t.getId(), ratioTapPosition, phaseTapPosition);
+                }
+            });
+    }
+
+    private Integer handleSolvedTapPosition(Optional<? extends TapChanger<?, ?, ?, ?>> tapChanger) {
+        Integer initialTapPosition = null;
+        boolean isSolvedValuePresent = tapChanger.isPresent() && tapChanger.get().findSolvedTapPosition().isPresent();
+        if (isSolvedValuePresent && tapChanger.get().getSolvedTapPosition() != tapChanger.get().getTapPosition()) {
+            initialTapPosition = tapChanger.get().getTapPosition();
+            tapChanger.get().applySolvedValues();
+        }
+        return initialTapPosition;
+    }
+
+    private void handleSCSolvedValues(Network network, InitialValuesInfos initialValuesInfos) {
+        network.getShuntCompensatorStream().forEach(shuntCompensator -> {
+            if (shuntCompensator.findSolvedSectionCount().isPresent() && shuntCompensator.getSolvedSectionCount() != shuntCompensator.getSectionCount()) {
+                initialValuesInfos.addSCSectionCountValue(shuntCompensator.getId(), shuntCompensator.getSectionCount());
+                shuntCompensator.applySolvedValues();
+            }
+        });
     }
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {

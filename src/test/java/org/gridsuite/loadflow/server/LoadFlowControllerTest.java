@@ -37,15 +37,13 @@ import org.gridsuite.filter.AbstractFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
-import org.gridsuite.loadflow.server.dto.Column;
-import org.gridsuite.loadflow.server.dto.ComponentResult;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.junit.After;
 import org.junit.Before;
@@ -82,6 +80,7 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.computation.service.NotificationService.HEADER_USER_ID;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -129,6 +128,8 @@ public class LoadFlowControllerTest {
     private ReportService reportService;
     @Autowired
     private ExecutionService executionService;
+    @Autowired
+    private LoadFlowResultService loadFlowResultService;
     @SpyBean
     private LoadFlowParametersService loadFlowParametersService;
     @MockBean
@@ -182,8 +183,12 @@ public class LoadFlowControllerTest {
 
         // network store service mocking
         network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits(new NetworkFactoryImpl());
+
         Substation substation = network.getSubstation("P2");
         substation.setProperty("whateverPropertyToTestGlobalFilters", "okValue");
+
+        initSolvedValues();
+
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_1_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_2_ID);
         network.getVariantManager().cloneVariant(VariantManagerConstants.INITIAL_VARIANT_ID, VARIANT_3_ID);
@@ -232,6 +237,15 @@ public class LoadFlowControllerTest {
         }
     }
 
+    private void initSolvedValues() {
+        TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        twoWindingsTransformer.getOptionalRatioTapChanger().get().setSolvedTapPosition(2);
+
+        VoltageLevel vl = twoWindingsTransformer.getTerminal1().getVoltageLevel();
+        Bus nshunt = twoWindingsTransformer.getTerminal1().getBusBreakerView().getBus();
+        vl.newShuntCompensator().setId("SHUNT").setConnectableBus(nshunt.getId()).setSectionCount(1).setSolvedSectionCount(2).newLinearModel().setBPerSection(1.0E-5).setMaximumSectionCount(2).add().add();
+    }
+
     @SneakyThrows
     @After
     public void tearDown() {
@@ -252,37 +266,73 @@ public class LoadFlowControllerTest {
                             any(LoadFlowParameters.class), any(ReportNode.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
-            MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
-                            .header(HEADER_USER_ID, "userId"))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andReturn();
-            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+            runTest(false);
 
-            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
-            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
-            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+            // test one result deletion
+            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString()))
+                .andExpect(status().isOk());
 
-            result = mockMvc.perform(get(
-                            "/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isOk())
-                    .andExpect(content().contentType(MediaType.APPLICATION_JSON))
-                    .andReturn();
-            org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
-            assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
+            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+                .andExpect(status().isNotFound());
+
+            runTest(true);
 
             // Should return an empty result with status OK if the result does not exist
             mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", OTHER_RESULT_UUID))
                     .andExpect(status().isNotFound());
-
-            // test one result deletion
-            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString()))
-                    .andExpect(status().isOk());
-
-            mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
-                    .andExpect(status().isNotFound());
         }
+    }
+
+    private void runTest(boolean applySolvedValues) throws Exception {
+        MvcResult result = mockMvc.perform(post(
+                "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&applySolvedValues=" + applySolvedValues, NETWORK_UUID)
+                .header(HEADER_USER_ID, "userId"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+        Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+        assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+        assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+        result = mockMvc.perform(get(
+                "/" + VERSION + "/results/{resultUuid}", RESULT_UUID))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+        org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(result.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
+        assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
+        assertSolvedValues(applySolvedValues);
+    }
+
+    private void assertSolvedValues(boolean applySolvedValues) {
+        InitialValuesInfos initialValuesInfos = loadFlowResultService.getInitialValues(RESULT_UUID);
+        if (!applySolvedValues) {
+            assertNull(initialValuesInfos);
+            return;
+        }
+
+        assertNotNull(initialValuesInfos);
+        assertEquals(1, initialValuesInfos.getTwoWindingsTransformerValues().size());
+        assertEquals(1, initialValuesInfos.getShuntCompensatorValues().size());
+
+        InitialValuesInfos.TwoWindingsTransformerValues wtInitialValues = initialValuesInfos.getTwoWindingsTransformerValues().getFirst();
+        InitialValuesInfos.ShuntCompensatorValues scInitialValues = initialValuesInfos.getShuntCompensatorValues().getFirst();
+        assertEquals("NHV2_NLOAD", wtInitialValues.twoWindingsTransformerId());
+        assertEquals("SHUNT", scInitialValues.shuntCompensatorId());
+
+        TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
+        assertTrue(twoWindingsTransformer.getOptionalRatioTapChanger().isPresent());
+        RatioTapChanger ratioTapChanger = twoWindingsTransformer.getOptionalRatioTapChanger().get();
+        assertNotEquals(wtInitialValues.ratioTapPosition().intValue(), ratioTapChanger.getSolvedTapPosition().intValue());
+        assertEquals(ratioTapChanger.getSolvedTapPosition().intValue(), ratioTapChanger.getTapPosition());
+        assertEquals(1, wtInitialValues.ratioTapPosition().intValue());
+
+        ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT");
+        assertNotEquals(scInitialValues.sectionCount().intValue(), shuntCompensator.getSolvedSectionCount().intValue());
+        assertEquals(ratioTapChanger.getSolvedTapPosition().intValue(), shuntCompensator.getSectionCount());
+        assertEquals(1, scInitialValues.sectionCount().intValue());
     }
 
     @Test
@@ -691,7 +741,7 @@ public class LoadFlowControllerTest {
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "1499.99999", Column.LIMIT.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.LESS_THAN_OR_EQUAL, "1200.00001", Column.VALUE.columnName()),
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "66.66665", Column.OVERLOAD.columnName()),
-                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.NOT_EQUAL, "2", Column.UP_COMING_OVERLOAD.columnName())
+                    new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.EQUALS, "60", Column.UP_COMING_OVERLOAD.columnName())
             );
             List<ResourceFilterDTO> childFilters = List.of(
                     new ResourceFilterDTO(ResourceFilterDTO.DataType.NUMBER, ResourceFilterDTO.Type.GREATER_THAN_OR_EQUAL, "3",
