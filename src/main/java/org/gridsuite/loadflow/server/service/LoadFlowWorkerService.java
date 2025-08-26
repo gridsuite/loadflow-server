@@ -14,6 +14,7 @@ import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.LimitDurationCriterion;
 import com.powsybl.iidm.criteria.duration.PermanentDurationCriterion;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -181,6 +182,28 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return null;
     }
 
+    private static LoadingLimits.TemporaryLimit getNextTemporaryLimit(Branch<?> branch, LimitViolationInfos violationInfo) {
+        // limits are returned from the store by DESC duration / ASC value
+        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        if (currentLimits.isEmpty()) {
+            return null;
+        }
+
+        if (violationInfo.getLimitName().equals(LimitViolationUtils.PERMANENT_LIMIT_NAME)) {
+            return currentLimits.get().getTemporaryLimits().stream().findFirst().orElse(null);
+        }
+
+        Iterator<LoadingLimits.TemporaryLimit> temporaryLimitIterator = currentLimits.get().getTemporaryLimits().iterator();
+        while (temporaryLimitIterator.hasNext()) {
+            LoadingLimits.TemporaryLimit currentTemporaryLimit = temporaryLimitIterator.next();
+            if (currentTemporaryLimit.getName().equals(violationInfo.getLimitName())) {
+                return temporaryLimitIterator.hasNext() ? temporaryLimitIterator.next() : null;
+            }
+        }
+
+        return null;
+    }
+
     public static Integer calculateUpcomingOverloadDuration(LimitViolationInfos limitViolationInfo) {
         if (limitViolationInfo.getValue() < limitViolationInfo.getLimit()) {
             return limitViolationInfo.getUpComingOverloadDuration();
@@ -282,7 +305,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         if (branch == null) {
             return null;
         }
-        LoadingLimits.TemporaryLimit temporaryLimit = getBranchLimitViolationAboveCurrentValue(branch, limitViolationInfos);
+        LoadingLimits.TemporaryLimit temporaryLimit = getNextTemporaryLimit(branch, limitViolationInfos);
         return temporaryLimit != null ? temporaryLimit.getName() : null;
     }
 
