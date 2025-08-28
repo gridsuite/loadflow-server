@@ -52,6 +52,9 @@ public class LimitViolationEntity {
     private String limitName;
 
     @Column
+    private String nextLimitName;
+
+    @Column
     private Integer actualOverload;
 
     @Column
@@ -59,6 +62,12 @@ public class LimitViolationEntity {
 
     @Column
     private Double overload;
+
+    @Column
+    private Double patlLimit;
+
+    @Column
+    private Double patlOverload;
 
     @Column(name = "value_")
     private Double value;

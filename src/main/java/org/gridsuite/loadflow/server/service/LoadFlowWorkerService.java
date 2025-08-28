@@ -14,6 +14,7 @@ import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.LimitDurationCriterion;
 import com.powsybl.iidm.criteria.duration.PermanentDurationCriterion;
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
@@ -181,6 +182,28 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return null;
     }
 
+    private static LoadingLimits.TemporaryLimit getNextTemporaryLimit(Branch<?> branch, LimitViolationInfos violationInfo) {
+        // limits are returned from the store by DESC duration / ASC value
+        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        if (currentLimits.isEmpty()) {
+            return null;
+        }
+
+        if (violationInfo.getLimitName().equals(LimitViolationUtils.PERMANENT_LIMIT_NAME)) {
+            return currentLimits.get().getTemporaryLimits().stream().findFirst().orElse(null);
+        }
+
+        Iterator<LoadingLimits.TemporaryLimit> temporaryLimitIterator = currentLimits.get().getTemporaryLimits().iterator();
+        while (temporaryLimitIterator.hasNext()) {
+            LoadingLimits.TemporaryLimit currentTemporaryLimit = temporaryLimitIterator.next();
+            if (currentTemporaryLimit.getName().equals(violationInfo.getLimitName())) {
+                return temporaryLimitIterator.hasNext() ? temporaryLimitIterator.next() : null;
+            }
+        }
+
+        return null;
+    }
+
     public static Integer calculateUpcomingOverloadDuration(LimitViolationInfos limitViolationInfo) {
         if (limitViolationInfo.getValue() < limitViolationInfo.getLimit()) {
             return limitViolationInfo.getUpComingOverloadDuration();
@@ -212,10 +235,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         for (LimitViolationInfos violationInfo : limitViolationInfos) {
             if (violationInfo.getLimitName() != null && violationInfo.getLimitType() == LimitViolationType.CURRENT
                     && violationInfo.getValue() != null && violationInfo.getLimit() != null) {
+                violationInfo.setPatlLimit(getPatlLimit(violationInfo, network));
                 violationInfo.setActualOverloadDuration(calculateActualOverloadDuration(violationInfo, network));
                 violationInfo.setUpComingOverloadDuration(calculateUpcomingOverloadDuration(violationInfo));
+                violationInfo.setNextLimitName(getNextLimitName(violationInfo, network));
                 Double overload = (violationInfo.getValue() / violationInfo.getLimit()) * 100;
                 violationInfo.setOverload(overload);
+                if (violationInfo.getPatlLimit() != null) {
+                    violationInfo.setPatlOverload((violationInfo.getValue() / violationInfo.getPatlLimit()) * 100);
+                }
             }
         }
         return limitViolationInfos;
@@ -255,6 +283,30 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         }
         return violations.stream()
                 .map(limitViolation -> toLimitViolationInfos(limitViolation, network)).toList();
+    }
+
+    public static Double getPatlLimit(LimitViolationInfos limitViolationInfos, Network network) {
+        String equipmentId = limitViolationInfos.getSubjectId();
+        Branch<?> branch = network.getBranch(equipmentId);
+        if (branch == null) {
+            return null;
+        }
+
+        Optional<CurrentLimits> currentLimits = limitViolationInfos.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        if (currentLimits.isPresent()) {
+            return currentLimits.get().getPermanentLimit();
+        }
+        return null;
+    }
+
+    public static String getNextLimitName(LimitViolationInfos limitViolationInfos, Network network) {
+        String equipmentId = limitViolationInfos.getSubjectId();
+        Branch<?> branch = network.getBranch(equipmentId);
+        if (branch == null) {
+            return null;
+        }
+        LoadingLimits.TemporaryLimit temporaryLimit = getNextTemporaryLimit(branch, limitViolationInfos);
+        return temporaryLimit != null ? temporaryLimit.getName() : null;
     }
 
     @Bean
