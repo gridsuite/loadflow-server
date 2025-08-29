@@ -63,7 +63,7 @@ public final class LoadFlowModificationMapper {
         return new LoadFlowShuntCompensatorModificationInfos(
             shuntCompensatorValues.shuntCompensatorId(),
             shuntCompensatorValues.sectionCount(),
-            shuntCompensator.getSolvedSectionCount()
+            shuntCompensator.getSectionCount()
         );
     }
 }
