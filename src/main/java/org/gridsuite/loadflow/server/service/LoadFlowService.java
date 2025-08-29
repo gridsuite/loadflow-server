@@ -10,13 +10,19 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
+import com.powsybl.iidm.network.Network;
+import com.powsybl.iidm.network.ShuntCompensator;
+import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
+import com.powsybl.network.store.client.NetworkStoreService;
+import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.service.AbstractComputationService;
 import org.gridsuite.computation.service.NotificationService;
 import org.gridsuite.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.modifications.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
@@ -39,15 +45,17 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public static final String COMPUTATION_TYPE = "loadflow";
 
     private final LoadFlowParametersService parametersService;
+    private final NetworkStoreService networkStoreService;
 
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultService resultService,
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
-                           @Value("${loadflow.default-provider}") String defaultProvider) {
+                           @Value("${loadflow.default-provider}") String defaultProvider, NetworkStoreService networkStoreService) {
         super(notificationService, resultService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
+        this.networkStoreService = networkStoreService;
     }
 
     public UUID createRunningStatus() {
@@ -100,6 +108,16 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public List<Status> getComputationStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
         return resultService.findComputingStatus(resultUuid);
+    }
+
+    public LoadFlowModificationInfos getModifications(UUID resultUuid, UUID networkUuid, String variantId) {
+        Objects.requireNonNull(resultUuid);
+        Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
+        network.getVariantManager().setWorkingVariant(variantId);
+
+        InitialValuesInfos initialValuesInfos = resultService.getInitialValues(resultUuid);
+
+        return LoadFlowModificationMapper.mapInitialValuesToLoadFlowModifications(initialValuesInfos, network);
     }
 
     static ComponentResult fromEntity(ComponentResultEntity componentResultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
