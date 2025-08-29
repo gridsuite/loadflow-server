@@ -38,6 +38,7 @@ import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.modifications.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
@@ -128,7 +129,7 @@ public class LoadFlowControllerTest {
     private ReportService reportService;
     @Autowired
     private ExecutionService executionService;
-    @Autowired
+    @SpyBean
     private LoadFlowResultService loadFlowResultService;
     @SpyBean
     private LoadFlowParametersService loadFlowParametersService;
@@ -1035,5 +1036,36 @@ public class LoadFlowControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
         assertEquals(LF_PROVIDER, result.getResponse().getContentAsString());
+    }
+
+    @Test
+    public void testGetLoadFlowModifications() throws Exception {
+        InitialValuesInfos initialValuesMock = new InitialValuesInfos();
+        initialValuesMock.add2WTTapPositionValues("test2wtId", 10, null);
+        initialValuesMock.add2WTTapPositionValues("test2wt2Id", null, 15);
+        initialValuesMock.addSCSectionCountValue("shuntCompensatorId", 20);
+
+        LoadFlowModificationInfos expectedResult = new LoadFlowModificationInfos(
+            List.of(
+                new LoadFlowTwoWindingsTransformerModificationInfos("test2wtId", 10, 12, TapPositionType.RATIO_TAP),
+                new LoadFlowTwoWindingsTransformerModificationInfos("test2wt2Id", 15, 17, TapPositionType.PHASE_TAP)
+            ),
+            List.of(
+                new LoadFlowShuntCompensatorModificationInfos("shuntCompensatorId", 20, 22)
+            )
+        );
+
+        Mockito.when(loadFlowResultService.getInitialValues(RESULT_UUID)).thenReturn(initialValuesMock);
+        try (MockedStatic<LoadFlowModificationMapper> loadFlowModificationMapperMock = Mockito.mockStatic(LoadFlowModificationMapper.class)) {
+            loadFlowModificationMapperMock.when(() -> LoadFlowModificationMapper.mapInitialValuesToLoadFlowModifications(eq(initialValuesMock), any(Network.class))).thenReturn(expectedResult);
+            MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/modifications", RESULT_UUID)
+                    .param("networkUuid", NETWORK_UUID.toString())
+                    .param("variantId", VARIANT_1_ID))
+                .andExpect(status().isOk())
+                .andReturn();
+
+            LoadFlowModificationInfos loadFlowModificationInfos = mapper.readValue(mvcResult.getResponse().getContentAsString(), LoadFlowModificationInfos.class);
+            Assertions.assertThat(loadFlowModificationInfos).usingRecursiveComparison().isEqualTo(expectedResult);
+        }
     }
 }
