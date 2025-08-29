@@ -11,8 +11,6 @@ import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.iidm.network.Network;
-import com.powsybl.iidm.network.ShuntCompensator;
-import com.powsybl.iidm.network.TwoWindingsTransformer;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
 import com.powsybl.network.store.client.NetworkStoreService;
