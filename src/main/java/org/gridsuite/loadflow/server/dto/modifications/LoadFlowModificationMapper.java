@@ -11,6 +11,7 @@ import com.powsybl.iidm.network.ShuntCompensator;
 import com.powsybl.iidm.network.TwoWindingsTransformer;
 import org.gridsuite.loadflow.server.dto.InitialValuesInfos;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -24,7 +25,7 @@ public final class LoadFlowModificationMapper {
 
     public static LoadFlowModificationInfos mapInitialValuesToLoadFlowModifications(InitialValuesInfos initialValuesInfos, Network network) {
         List<LoadFlowTwoWindingsTransformerModificationInfos> twoWindingsTransformerModificationInfos = initialValuesInfos.getTwoWindingsTransformerValues().stream()
-            .map(t -> toTwoWindingsTransformerModification(t, network))
+            .flatMap(t -> toTwoWindingsTransformerModification(t, network).stream())
             .filter(Objects::nonNull)
             .toList();
 
@@ -36,22 +37,33 @@ public final class LoadFlowModificationMapper {
         return new LoadFlowModificationInfos(twoWindingsTransformerModificationInfos, shuntCompensatorModificationInfos);
     }
 
-    private static LoadFlowTwoWindingsTransformerModificationInfos toTwoWindingsTransformerModification(InitialValuesInfos.TwoWindingsTransformerValues twoWindingsTransformerValues, Network network) {
+    private static List<LoadFlowTwoWindingsTransformerModificationInfos> toTwoWindingsTransformerModification(InitialValuesInfos.TwoWindingsTransformerValues twoWindingsTransformerValues, Network network) {
+        List<LoadFlowTwoWindingsTransformerModificationInfos> result = new ArrayList<>();
+
         TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(twoWindingsTransformerValues.twoWindingsTransformerId());
         if (twoWindingsTransformer == null) {
-            return null;
+            return result;
         }
-        TapPositionType tapPositionType = twoWindingsTransformerValues.phaseTapPosition() != null ? TapPositionType.PHASE_TAP : TapPositionType.RATIO_TAP;
-        return new LoadFlowTwoWindingsTransformerModificationInfos(
-            twoWindingsTransformerValues.twoWindingsTransformerId(),
-            tapPositionType.equals(TapPositionType.PHASE_TAP)
-                ? twoWindingsTransformerValues.phaseTapPosition()
-                : twoWindingsTransformerValues.ratioTapPosition(),
-            tapPositionType.equals(TapPositionType.PHASE_TAP)
-                ? twoWindingsTransformer.getPhaseTapChanger().getTapPosition()
-                : twoWindingsTransformer.getRatioTapChanger().getTapPosition(),
-            tapPositionType
-        );
+
+        if (twoWindingsTransformerValues.ratioTapPosition() != null) {
+            result.add(new LoadFlowTwoWindingsTransformerModificationInfos(
+                twoWindingsTransformerValues.twoWindingsTransformerId(),
+                twoWindingsTransformerValues.ratioTapPosition(),
+                twoWindingsTransformer.getRatioTapChanger().getTapPosition(),
+                TapPositionType.RATIO_TAP
+            ));
+        }
+
+        if (twoWindingsTransformerValues.phaseTapPosition() != null) {
+            result.add(new LoadFlowTwoWindingsTransformerModificationInfos(
+                twoWindingsTransformerValues.twoWindingsTransformerId(),
+                twoWindingsTransformerValues.phaseTapPosition(),
+                twoWindingsTransformer.getPhaseTapChanger().getTapPosition(),
+                TapPositionType.PHASE_TAP
+            ));
+        }
+
+        return result;
     }
 
     private static LoadFlowShuntCompensatorModificationInfos toShuntCompensatorModification(InitialValuesInfos.ShuntCompensatorValues shuntCompensatorValues, Network network) {

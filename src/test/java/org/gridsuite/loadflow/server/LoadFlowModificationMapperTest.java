@@ -49,4 +49,28 @@ class LoadFlowModificationMapperTest {
 
         Assertions.assertThat(expectedResult).usingRecursiveComparison().isEqualTo(LoadFlowModificationMapper.mapInitialValuesToLoadFlowModifications(initialValuesMock, network));
     }
+
+    @Test
+    void testMapperWithBothInitialValuesSet() {
+        Network network = Mockito.mock(Network.class, RETURNS_DEEP_STUBS);
+
+        InitialValuesInfos initialValuesMock = new InitialValuesInfos();
+        initialValuesMock.add2WTTapPositionValues("test2wtId", 10, 20);
+        initialValuesMock.add2WTTapPositionValues("test2wt2Id", null, 15);
+
+        LoadFlowModificationInfos expectedResult = new LoadFlowModificationInfos(
+            List.of(
+                new LoadFlowTwoWindingsTransformerModificationInfos("test2wtId", 10, 12, TapPositionType.RATIO_TAP),
+                new LoadFlowTwoWindingsTransformerModificationInfos("test2wtId", 20, 25, TapPositionType.PHASE_TAP),
+                new LoadFlowTwoWindingsTransformerModificationInfos("test2wt2Id", 15, 17, TapPositionType.PHASE_TAP)
+            ),
+            List.of()
+        );
+
+        Mockito.when(network.getTwoWindingsTransformer("test2wtId").getRatioTapChanger().getTapPosition()).thenReturn(12);
+        Mockito.when(network.getTwoWindingsTransformer("test2wtId").getPhaseTapChanger().getTapPosition()).thenReturn(25);
+        Mockito.when(network.getTwoWindingsTransformer("test2wt2Id").getPhaseTapChanger().getTapPosition()).thenReturn(17);
+
+        Assertions.assertThat(expectedResult).usingRecursiveComparison().ignoringCollectionOrderInFields().isEqualTo(LoadFlowModificationMapper.mapInitialValuesToLoadFlowModifications(initialValuesMock, network));
+    }
 }
