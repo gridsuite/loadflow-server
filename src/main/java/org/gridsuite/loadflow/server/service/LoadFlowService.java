@@ -17,6 +17,7 @@ import org.gridsuite.computation.service.AbstractComputationService;
 import org.gridsuite.computation.service.NotificationService;
 import org.gridsuite.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
@@ -100,6 +101,11 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public List<Status> getComputationStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
         return resultService.findComputingStatus(resultUuid);
+    }
+
+    public LoadFlowModificationInfos getModifications(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return resultService.getLoadFlowModifications(resultUuid);
     }
 
     static ComponentResult fromEntity(ComponentResultEntity componentResultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {

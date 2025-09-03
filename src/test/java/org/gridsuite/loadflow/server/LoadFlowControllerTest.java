@@ -38,6 +38,7 @@ import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
 import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.*;
+import org.gridsuite.loadflow.server.dto.modifications.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
@@ -128,7 +129,7 @@ public class LoadFlowControllerTest {
     private ReportService reportService;
     @Autowired
     private ExecutionService executionService;
-    @Autowired
+    @SpyBean
     private LoadFlowResultService loadFlowResultService;
     @SpyBean
     private LoadFlowParametersService loadFlowParametersService;
@@ -311,32 +312,32 @@ public class LoadFlowControllerTest {
     }
 
     private void assertSolvedValues(boolean applySolvedValues) {
-        InitialValuesInfos initialValuesInfos = loadFlowResultService.getInitialValues(RESULT_UUID);
+        LoadFlowModificationInfos loadFlowModificationInfos = loadFlowResultService.getLoadFlowModifications(RESULT_UUID);
         if (!applySolvedValues) {
-            assertNull(initialValuesInfos);
+            assertNull(loadFlowModificationInfos);
             return;
         }
 
-        assertNotNull(initialValuesInfos);
-        assertEquals(1, initialValuesInfos.getTwoWindingsTransformerValues().size());
-        assertEquals(1, initialValuesInfos.getShuntCompensatorValues().size());
+        assertNotNull(loadFlowModificationInfos);
+        assertEquals(1, loadFlowModificationInfos.getTwoWindingsTransformerModifications().size());
+        assertEquals(1, loadFlowModificationInfos.getShuntCompensatorModifications().size());
 
-        InitialValuesInfos.TwoWindingsTransformerValues wtInitialValues = initialValuesInfos.getTwoWindingsTransformerValues().getFirst();
-        InitialValuesInfos.ShuntCompensatorValues scInitialValues = initialValuesInfos.getShuntCompensatorValues().getFirst();
-        assertEquals("NHV2_NLOAD", wtInitialValues.twoWindingsTransformerId());
-        assertEquals("SHUNT", scInitialValues.shuntCompensatorId());
+        LoadFlowModificationInfos.TwoWindingsTransformerModification wtModifications = loadFlowModificationInfos.getTwoWindingsTransformerModifications().getFirst();
+        LoadFlowModificationInfos.ShuntCompensatorModification scModifications = loadFlowModificationInfos.getShuntCompensatorModifications().getFirst();
+        assertEquals("NHV2_NLOAD", wtModifications.twoWindingsTransformerId());
+        assertEquals("SHUNT", scModifications.shuntCompensatorId());
 
         TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer("NHV2_NLOAD");
         assertTrue(twoWindingsTransformer.getOptionalRatioTapChanger().isPresent());
         RatioTapChanger ratioTapChanger = twoWindingsTransformer.getOptionalRatioTapChanger().get();
-        assertNotEquals(wtInitialValues.ratioTapPosition().intValue(), ratioTapChanger.getSolvedTapPosition().intValue());
+        assertNotEquals(wtModifications.initialTapPosition().intValue(), ratioTapChanger.getSolvedTapPosition().intValue());
         assertEquals(ratioTapChanger.getSolvedTapPosition().intValue(), ratioTapChanger.getTapPosition());
-        assertEquals(1, wtInitialValues.ratioTapPosition().intValue());
+        assertEquals(1, wtModifications.initialTapPosition().intValue());
 
         ShuntCompensator shuntCompensator = network.getShuntCompensator("SHUNT");
-        assertNotEquals(scInitialValues.sectionCount().intValue(), shuntCompensator.getSolvedSectionCount().intValue());
+        assertNotEquals(scModifications.initialSectionCount().intValue(), shuntCompensator.getSolvedSectionCount().intValue());
         assertEquals(ratioTapChanger.getSolvedTapPosition().intValue(), shuntCompensator.getSectionCount());
-        assertEquals(1, scInitialValues.sectionCount().intValue());
+        assertEquals(1, scModifications.initialSectionCount().intValue());
     }
 
     @Test
@@ -1035,5 +1036,21 @@ public class LoadFlowControllerTest {
                 .andExpect(status().isOk())
                 .andReturn();
         assertEquals(LF_PROVIDER, result.getResponse().getContentAsString());
+    }
+
+    @Test
+    public void testGetLoadFlowModifications() throws Exception {
+        LoadFlowModificationInfos expectedResultValues = new LoadFlowModificationInfos();
+        expectedResultValues.add2WTTapPositionValues("test2wtId", 10, 12, TapPositionType.RATIO_TAP);
+        expectedResultValues.add2WTTapPositionValues("test2wt2Id", 15, 17, TapPositionType.PHASE_TAP);
+        expectedResultValues.addSCSectionCountValue("shuntCompensatorId", 20, 22);
+
+        Mockito.when(loadFlowResultService.getLoadFlowModifications(RESULT_UUID)).thenReturn(expectedResultValues);
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/modifications", RESULT_UUID))
+            .andExpect(status().isOk())
+            .andReturn();
+
+        LoadFlowModificationInfos loadFlowModificationInfos = mapper.readValue(mvcResult.getResponse().getContentAsString(), LoadFlowModificationInfos.class);
+        Assertions.assertThat(loadFlowModificationInfos).usingRecursiveComparison().isEqualTo(expectedResultValues);
     }
 }

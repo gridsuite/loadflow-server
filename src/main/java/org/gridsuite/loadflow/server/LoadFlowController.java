@@ -17,6 +17,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.gridsuite.computation.dto.ReportInfos;
 import org.gridsuite.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowResult;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowResultService;
@@ -198,5 +199,12 @@ public class LoadFlowController {
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of computation status values by result"))
     public ResponseEntity<List<Status>> getComputationStatus(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getComputationStatus(resultUuid));
+    }
+
+    @GetMapping(value = "/results/{resultUuid}/modifications", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get loadflow modifications")
+    @ApiResponses(@ApiResponse(responseCode = "200", description = "List of modifications due to loadflow computation"))
+    public ResponseEntity<LoadFlowModificationInfos> getLoadFlowModifications(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getModifications(resultUuid));
     }
 }

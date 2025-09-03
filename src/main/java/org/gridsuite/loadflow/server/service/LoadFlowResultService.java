@@ -19,7 +19,7 @@ import org.gridsuite.computation.service.AbstractComputationResultService;
 import org.gridsuite.computation.utils.FilterUtils;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
-import org.gridsuite.loadflow.server.dto.InitialValuesInfos;
+import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.entities.*;
 import org.gridsuite.loadflow.server.repositories.ComponentResultRepository;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
@@ -110,11 +110,11 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     public void insert(UUID resultUuid,
                        LoadFlowResult result,
                        LoadFlowStatus status,
-                       InitialValuesInfos initialValuesInfos,
+                       LoadFlowModificationInfos loadFlowModificationInfos,
                        List<LimitViolationInfos> limitViolationInfos) {
         Objects.requireNonNull(resultUuid);
         if (result != null) {
-            resultRepository.save(toResultEntity(resultUuid, result, initialValuesToJsonString(initialValuesInfos), limitViolationInfos));
+            resultRepository.save(toResultEntity(resultUuid, result, modificationsToJsonString(loadFlowModificationInfos), limitViolationInfos));
         }
         globalStatusRepository.save(toStatusEntity(resultUuid, status));
     }
@@ -202,13 +202,13 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     }
 
     @Transactional(readOnly = true)
-    public InitialValuesInfos getInitialValues(UUID resultUuid) {
+    public LoadFlowModificationInfos getLoadFlowModifications(UUID resultUuid) {
         LoadFlowResultEntity loadFlowResultEntity = findResults(resultUuid).orElse(null);
         if (loadFlowResultEntity == null) {
             return null;
         }
 
-        return initialValuesToDTO(loadFlowResultEntity.getInitialValues());
+        return loadFlowModificationsToDTO(loadFlowResultEntity.getModifications());
     }
 
     private static org.gridsuite.loadflow.server.dto.LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
@@ -268,25 +268,25 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return findLimitViolationsEntities(resultUuid, resourceFilters, sort);
     }
 
-    private InitialValuesInfos initialValuesToDTO(String jsonString) {
+    private LoadFlowModificationInfos loadFlowModificationsToDTO(String jsonString) {
         if (jsonString == null) {
             return null;
         }
         try {
-            return objectMapper.readValue(jsonString, InitialValuesInfos.class);
+            return objectMapper.readValue(jsonString, LoadFlowModificationInfos.class);
         } catch (JsonProcessingException e) {
-            throw new ComputationException("Invalid json string for initial values !");
+            throw new ComputationException("Invalid json string for modifications !");
         }
     }
 
-    private String initialValuesToJsonString(InitialValuesInfos initialValuesInfos) {
-        if (initialValuesInfos == null) {
+    private String modificationsToJsonString(LoadFlowModificationInfos loadFlowModificationInfos) {
+        if (loadFlowModificationInfos == null) {
             return null;
         }
         try {
-            return objectMapper.writeValueAsString(initialValuesInfos);
+            return objectMapper.writeValueAsString(loadFlowModificationInfos);
         } catch (JsonProcessingException e) {
-            throw new ComputationException("Invalid initial values for json string !");
+            throw new ComputationException("Invalid modifications for json string !");
         }
     }
 }
