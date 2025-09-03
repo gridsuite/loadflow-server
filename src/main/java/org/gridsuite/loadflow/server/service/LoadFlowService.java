@@ -12,7 +12,6 @@ import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
-import com.powsybl.network.store.client.NetworkStoreService;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.service.AbstractComputationService;
 import org.gridsuite.computation.service.NotificationService;
@@ -41,17 +40,15 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
     public static final String COMPUTATION_TYPE = "loadflow";
 
     private final LoadFlowParametersService parametersService;
-    private final NetworkStoreService networkStoreService;
 
     public LoadFlowService(NotificationService notificationService,
                            LoadFlowResultService resultService,
                            ObjectMapper objectMapper,
                            UuidGeneratorService uuidGeneratorService,
                            LoadFlowParametersService parametersService,
-                           @Value("${loadflow.default-provider}") String defaultProvider, NetworkStoreService networkStoreService) {
+                           @Value("${loadflow.default-provider}") String defaultProvider) {
         super(notificationService, resultService, objectMapper, uuidGeneratorService, defaultProvider);
         this.parametersService = parametersService;
-        this.networkStoreService = networkStoreService;
     }
 
     public UUID createRunningStatus() {
