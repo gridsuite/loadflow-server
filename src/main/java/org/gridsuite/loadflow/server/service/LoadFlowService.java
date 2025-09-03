@@ -10,11 +10,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.commons.config.PlatformConfig;
 import com.powsybl.commons.parameters.Parameter;
 import com.powsybl.commons.parameters.ParameterScope;
-import com.powsybl.iidm.network.Network;
 import com.powsybl.loadflow.LoadFlowProvider;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.network.store.client.PreloadingStrategy;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.service.AbstractComputationService;
 import org.gridsuite.computation.service.NotificationService;
@@ -108,11 +106,8 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         return resultService.findComputingStatus(resultUuid);
     }
 
-    public LoadFlowModificationInfos getModifications(UUID resultUuid, UUID networkUuid, String variantId) {
+    public LoadFlowModificationInfos getModifications(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
-        network.getVariantManager().setWorkingVariant(variantId);
-
         return resultService.getLoadFlowModifications(resultUuid);
     }
 

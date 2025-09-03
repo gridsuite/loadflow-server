@@ -1046,9 +1046,7 @@ public class LoadFlowControllerTest {
         expectedResultValues.addSCSectionCountValue("shuntCompensatorId", 20, 22);
 
         Mockito.when(loadFlowResultService.getLoadFlowModifications(RESULT_UUID)).thenReturn(expectedResultValues);
-        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/modifications", RESULT_UUID)
-                .param("networkUuid", NETWORK_UUID.toString())
-                .param("variantId", VARIANT_1_ID))
+        MvcResult mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/modifications", RESULT_UUID))
             .andExpect(status().isOk())
             .andReturn();
 

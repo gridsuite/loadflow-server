@@ -204,9 +204,7 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}/modifications", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get loadflow modifications")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of modifications due to loadflow computation"))
-    public ResponseEntity<LoadFlowModificationInfos> getLoadFlowModifications(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid,
-                                                                              @Parameter(description = "network Uuid") @RequestParam(name = "networkUuid", required = false) UUID networkUuid,
-                                                                              @Parameter(description = "Variant Id") @RequestParam(name = "variantId", required = false) String variantId) {
-        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getModifications(resultUuid, networkUuid, variantId));
+    public ResponseEntity<LoadFlowModificationInfos> getLoadFlowModifications(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowService.getModifications(resultUuid));
     }
 }
