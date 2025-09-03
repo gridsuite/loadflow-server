@@ -20,7 +20,7 @@ import org.gridsuite.computation.service.AbstractComputationService;
 import org.gridsuite.computation.service.NotificationService;
 import org.gridsuite.computation.service.UuidGeneratorService;
 import org.gridsuite.loadflow.server.dto.*;
-import org.gridsuite.loadflow.server.dto.modifications.*;
+import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
@@ -113,9 +113,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         Network network = networkStoreService.getNetwork(networkUuid, PreloadingStrategy.COLLECTION);
         network.getVariantManager().setWorkingVariant(variantId);
 
-        InitialValuesInfos initialValuesInfos = resultService.getInitialValues(resultUuid);
-
-        return LoadFlowModificationMapper.mapInitialValuesToLoadFlowModifications(initialValuesInfos, network);
+        return resultService.getLoadFlowModifications(resultUuid);
     }
 
     static ComponentResult fromEntity(ComponentResultEntity componentResultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {

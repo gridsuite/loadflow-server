@@ -32,7 +32,7 @@ public class LoadFlowResultEntity {
     private Instant writeTimeStamp;
 
     @Column(columnDefinition = "CLOB")
-    String initialValues;
+    String modifications;
 
     @Setter
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)

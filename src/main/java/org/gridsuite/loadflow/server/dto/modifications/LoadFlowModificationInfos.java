@@ -6,9 +6,33 @@
  */
 package org.gridsuite.loadflow.server.dto.modifications;
 
+import lombok.Data;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * @author Kevin Le Saulnier <kevin.lesaulnier at rte-france.com>
+ * @author Slimane Amar <slimane.amar at rte-france.com>
  */
-public record LoadFlowModificationInfos(List<LoadFlowTwoWindingsTransformerModificationInfos> twoWindingsTransformerModifications, List<LoadFlowShuntCompensatorModificationInfos> shuntCompensatorModifications) { }
+@Data
+public class LoadFlowModificationInfos {
+
+    public record TwoWindingsTransformerModification(String twoWindingsTransformerId, Integer initialTapPosition,
+                                                     Integer solvedTapPosition, TapPositionType type) {
+    }
+
+
+    public record ShuntCompensatorModification(String shuntCompensatorId, Integer initialSectionCount, Integer solvedSectionCount) {
+    }
+
+    private List<TwoWindingsTransformerModification> twoWindingsTransformerModifications = new ArrayList<>();
+    private List<ShuntCompensatorModification> shuntCompensatorModifications = new ArrayList<>();
+
+    public void add2WTTapPositionValues(String twoWindingsTransformerId, Integer initialTapPosition, Integer solvedTapPosition, TapPositionType type) {
+        twoWindingsTransformerModifications.add(new TwoWindingsTransformerModification(twoWindingsTransformerId, initialTapPosition, solvedTapPosition, type));
+    }
+
+    public void addSCSectionCountValue(String shuntCompensatorId, Integer initialSectionCount, Integer solvedSectionCount) {
+        shuntCompensatorModifications.add(new ShuntCompensatorModification(shuntCompensatorId, initialSectionCount, solvedSectionCount));
+    }
+}
