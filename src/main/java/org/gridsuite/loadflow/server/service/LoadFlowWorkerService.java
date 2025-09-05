@@ -115,16 +115,16 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     @Override
-    protected void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
+    public void saveResult(Network network, AbstractResultContext<LoadFlowRunContext> resultContext, LoadFlowResult result) {
         LoadFlowModificationInfos loadFlowModificationInfos = handleSolvedValues(network, resultContext.getRunContext().isApplySolvedValues());
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
-        resultService.insert(resultContext.getResultUuid(), result,
-                LoadFlowService.computeLoadFlowStatus(result), loadFlowModificationInfos, limitViolationsWithCalculatedOverload);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
             observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(resultContext.getRunContext().getNetwork()));
         }
+        resultService.insert(resultContext.getResultUuid(), result,
+                LoadFlowService.computeLoadFlowStatus(result), loadFlowModificationInfos, limitViolationsWithCalculatedOverload);
     }
 
     private LoadFlowModificationInfos handleSolvedValues(Network network, boolean applySolvedValues) {
