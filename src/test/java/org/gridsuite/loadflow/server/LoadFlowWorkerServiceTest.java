@@ -6,7 +6,6 @@
  */
 package org.gridsuite.loadflow.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.iidm.network.util.LimitViolationUtils;
@@ -14,18 +13,18 @@ import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
 import com.powsybl.security.LimitViolationType;
-import io.micrometer.observation.Observation;
 import org.gridsuite.computation.service.AbstractResultContext;
-import org.gridsuite.computation.service.ExecutionService;
-import org.gridsuite.computation.service.NotificationService;
-import org.gridsuite.computation.service.ReportService;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
-import org.gridsuite.loadflow.server.service.*;
+import org.gridsuite.loadflow.server.service.LoadFlowResultService;
+import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
+import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 
 import java.util.UUID;
 
@@ -36,6 +35,16 @@ import static org.mockito.Mockito.*;
  */
 @SpringBootTest
 class LoadFlowWorkerServiceTest {
+
+    @MockBean
+    private NetworkStoreService networkStoreService;
+
+    @MockBean
+    private LoadFlowResultService loadFlowResultService;
+
+    @Autowired
+    private LoadFlowWorkerService loadFlowWorkerService;
+
     @Test
     void testGetNextLimitName() {
         Network network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits(new NetworkFactoryImpl());
@@ -100,13 +109,6 @@ class LoadFlowWorkerServiceTest {
 
     @Test
     void testFlushIsCalledBeforeInsertResults() {
-        LoadFlowObserver observer = mock(LoadFlowObserver.class);
-        LoadFlowResultService resultService = mock(LoadFlowResultService.class);
-        LoadFlowWorkerService service = new LoadFlowWorkerService(
-                mock(NetworkStoreService.class), mock(NotificationService.class), mock(ReportService.class),
-                resultService, mock(ExecutionService.class), observer, mock(ObjectMapper.class),
-                mock(LimitReductionService.class));
-
         Network network = mock(Network.class);
         LoadFlowRunContext runContext = mock(LoadFlowRunContext.class);
         AbstractResultContext<LoadFlowRunContext> resultContext = mock(AbstractResultContext.class);
@@ -121,11 +123,11 @@ class LoadFlowWorkerServiceTest {
         when(parametersValues.getLimitReduction()).thenReturn(0.8f);
         when(result.isFailed()).thenReturn(false);
 
-        service.saveResult(network, resultContext, result);
+        loadFlowWorkerService.saveResult(network, resultContext, result);
 
         // Verify results save (flush) is done before inserting results in DB
-        InOrder inOrder = inOrder(observer, resultService);
-        inOrder.verify(observer).observe(eq("network.save"), eq(runContext), any(Observation.CheckedRunnable.class));
-        inOrder.verify(resultService).insert(any(UUID.class), eq(result), any(), any(), any());
+        InOrder inOrder = inOrder(networkStoreService, loadFlowResultService);
+        inOrder.verify(networkStoreService, timeout(1000)).flush(resultContext.getRunContext().getNetwork());
+        inOrder.verify(loadFlowResultService).insert(any(UUID.class), eq(result), any(), any(), any());
     }
 }
