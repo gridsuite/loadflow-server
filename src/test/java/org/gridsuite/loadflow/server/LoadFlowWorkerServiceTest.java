@@ -127,7 +127,7 @@ class LoadFlowWorkerServiceTest {
 
         // Verify results save (flush) is done before inserting results in DB
         InOrder inOrder = inOrder(networkStoreService, loadFlowResultService);
-        inOrder.verify(networkStoreService, timeout(1000)).flush(resultContext.getRunContext().getNetwork());
+        inOrder.verify(networkStoreService).flush(resultContext.getRunContext().getNetwork());
         inOrder.verify(loadFlowResultService).insert(any(UUID.class), eq(result), any(), any(), any());
     }
 }
