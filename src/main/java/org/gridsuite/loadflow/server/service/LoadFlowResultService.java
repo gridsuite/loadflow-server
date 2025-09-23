@@ -17,6 +17,7 @@ import org.gridsuite.computation.dto.GlobalFilter;
 import org.gridsuite.computation.dto.ResourceFilterDTO;
 import org.gridsuite.computation.service.AbstractComputationResultService;
 import org.gridsuite.computation.utils.FilterUtils;
+import org.gridsuite.loadflow.server.dto.Column;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
@@ -251,6 +252,20 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         }
         List<LimitViolationEntity> limitViolationResult = findLimitViolations(resultUuid, resourceFilters, sort);
         return limitViolationResult.stream().map(LimitViolationInfos::toLimitViolationInfos).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<LimitViolationInfos> getCurrentLimitViolationsInfos(UUID resultUuid) {
+        if (!limitViolationRepository.existsLimitViolationEntitiesByLoadFlowResultResultUuid(resultUuid)) {
+            return List.of();
+        }
+
+        List<ResourceFilterDTO> resourceFilters = List.of(
+            new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.EQUALS, List.of("CURRENT"), Column.LIMIT_TYPE.columnName()));
+
+        return findLimitViolations(resultUuid, resourceFilters, Sort.unsorted()).stream()
+            .map(LimitViolationInfos::toLimitViolationInfos)
+            .toList();
     }
 
     public List<LimitViolationType> getLimitTypes(UUID resultUuid) {

@@ -180,6 +180,16 @@ public class LoadFlowController {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
     }
 
+    @GetMapping(value = "/results/{resultUuid}/current-limit-violations")
+    @Operation(summary = "Get limit violations")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The limit violations")})
+    public ResponseEntity<List<LimitViolationInfos>> getCurrentLimitViolations(
+        @Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid
+    ) {
+        List<LimitViolationInfos> result = loadFlowResultService.getCurrentLimitViolationsInfos(resultUuid);
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(result);
+    }
+
     @GetMapping(value = "/results/{resultUuid}/limit-types", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get the list of limit types values")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of limit types values by result"))
