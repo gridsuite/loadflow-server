@@ -81,7 +81,6 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.computation.service.NotificationService.HEADER_USER_ID;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.junit.Assert.*;
-import static org.junit.Assert.assertEquals;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doAnswer;
@@ -1052,5 +1051,66 @@ public class LoadFlowControllerTest {
 
         LoadFlowModificationInfos loadFlowModificationInfos = mapper.readValue(mvcResult.getResponse().getContentAsString(), LoadFlowModificationInfos.class);
         Assertions.assertThat(loadFlowModificationInfos).usingRecursiveComparison().isEqualTo(expectedResultValues);
+    }
+
+    @Test
+    public void testGetCurrentLimitViolations() throws Exception {
+        LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
+            MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
+            loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble()))
+                .thenReturn(LimitViolationsMock.limitViolations);
+
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID),
+                eq(executionService.getComputationManager()),
+                any(LoadFlowParameters.class), any(ReportNode.class)))
+                .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
+
+            // Run the loadflow first to have results
+            MvcResult result = mockMvc.perform(post(
+                "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId="
+                + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                + "&limitReduction=0.7",
+                NETWORK_UUID)
+                .header(HEADER_USER_ID, "userId"))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+            assertEquals(RESULT_UUID, mapper.readValue(result.getResponse().getContentAsString(), UUID.class));
+
+            Message<byte[]> resultMessage = output.receive(1000, "loadflow.result");
+            assertEquals(RESULT_UUID.toString(), resultMessage.getHeaders().get("resultUuid"));
+            assertEquals("me", resultMessage.getHeaders().get("receiver"));
+
+            // Test getCurrentLimitViolations endpoint
+            result = mockMvc.perform(get(
+                "/" + VERSION + "/results/{resultUuid}/current-limit-violations", RESULT_UUID))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+            List<LimitViolationInfos> currentLimitViolations = mapper
+                .readValue(result.getResponse().getContentAsString(), new TypeReference<>() {
+                });
+
+            // Verify that we only get CURRENT type violations
+            assertEquals(4, currentLimitViolations.size()); // All violations in LimitViolationsMock are CURRENT type
+            assertTrue(currentLimitViolations.stream()
+                .allMatch(violation -> violation.getLimitType() == LimitViolationType.CURRENT));
+
+            // Sort both lists by subjectId and limitName to ensure consistent ordering for comparison
+            List<LimitViolationInfos> sortedCurrentViolations = currentLimitViolations.stream()
+                .sorted(Comparator.comparing(LimitViolationInfos::getSubjectId)
+                .thenComparing(LimitViolationInfos::getLimitName))
+                .toList();
+            List<LimitViolation> sortedMockViolations = LimitViolationsMock.limitViolations.stream()
+                .sorted(Comparator.comparing(LimitViolation::getSubjectId)
+                .thenComparing(LimitViolation::getLimitName))
+                .toList();
+
+            // Verify the violations are the expected ones from the mock
+            assertLimitViolationsEquals(sortedMockViolations, sortedCurrentViolations, network);
+        }
     }
 }
