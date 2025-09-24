@@ -172,8 +172,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private static LoadingLimits.TemporaryLimit getBranchLimitViolationAboveCurrentValue(Branch<?> branch, LimitViolationInfos violationInfo) {
         // limits are returned from the store by DESC duration / ASC value
-        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
-        if (!currentLimits.isPresent() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
+        Optional<CurrentLimits> currentLimits = branch.getCurrentLimits(TwoSides.valueOf(violationInfo.getSide()));
+        if (currentLimits.isEmpty() || violationInfo.getValue() < currentLimits.get().getPermanentLimit()) {
             return null;
         } else {
             Optional<LoadingLimits.TemporaryLimit> nextTemporaryLimit = currentLimits.get().getTemporaryLimits().stream()
@@ -188,7 +188,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private static LoadingLimits.TemporaryLimit getNextTemporaryLimit(Branch<?> branch, LimitViolationInfos violationInfo) {
         // limits are returned from the store by DESC duration / ASC value
-        Optional<CurrentLimits> currentLimits = violationInfo.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        Optional<CurrentLimits> currentLimits = branch.getCurrentLimits(TwoSides.valueOf(violationInfo.getSide()));
         if (currentLimits.isEmpty()) {
             return null;
         }
@@ -222,14 +222,9 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             String equipmentId = limitViolationInfo.getSubjectId();
             LoadingLimits.TemporaryLimit tempLimit = null;
 
-            Line line = network.getLine(equipmentId);
-            if (line != null) {
-                tempLimit = getBranchLimitViolationAboveCurrentValue(line, limitViolationInfo);
-            } else {
-                TwoWindingsTransformer twoWindingsTransformer = network.getTwoWindingsTransformer(equipmentId);
-                if (twoWindingsTransformer != null) {
-                    tempLimit = getBranchLimitViolationAboveCurrentValue(twoWindingsTransformer, limitViolationInfo);
-                }
+            Branch<?> branch = network.getBranch(equipmentId);
+            if (branch != null) {
+                tempLimit = getBranchLimitViolationAboveCurrentValue(branch, limitViolationInfo);
             }
             return (tempLimit != null) ? tempLimit.getAcceptableDuration() : null;
         }
@@ -296,7 +291,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             return null;
         }
 
-        Optional<CurrentLimits> currentLimits = limitViolationInfos.getSide().equals(TwoSides.ONE.name()) ? branch.getCurrentLimits1() : branch.getCurrentLimits2();
+        Optional<CurrentLimits> currentLimits = branch.getCurrentLimits(TwoSides.valueOf(limitViolationInfos.getSide()));
         if (currentLimits.isPresent()) {
             return currentLimits.get().getPermanentLimit();
         }
