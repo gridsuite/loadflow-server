@@ -56,8 +56,6 @@ import org.mockito.MockitoAnnotations;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.cloud.stream.binder.test.OutputDestination;
 import org.springframework.cloud.stream.binder.test.TestChannelBinderConfiguration;
 import org.springframework.http.HttpHeaders;
@@ -65,6 +63,8 @@ import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
@@ -122,17 +122,17 @@ public class LoadFlowControllerTest {
     private OutputDestination output;
     @Autowired
     private MockMvc mockMvc;
-    @MockBean
+    @MockitoBean
     private NetworkStoreService networkStoreService;
-    @MockBean
+    @MockitoBean
     private ReportService reportService;
     @Autowired
     private ExecutionService executionService;
-    @SpyBean
+    @MockitoSpyBean
     private LoadFlowResultService loadFlowResultService;
-    @SpyBean
+    @MockitoSpyBean
     private LoadFlowParametersService loadFlowParametersService;
-    @MockBean
+    @MockitoBean
     private UuidGeneratorService uuidGeneratorService;
     @Autowired
     private AbstractFilterService filterService;

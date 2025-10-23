@@ -20,10 +20,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.messaging.Message;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.util.Arrays;
 import java.util.List;
@@ -37,13 +37,13 @@ import static org.mockito.Mockito.*;
 @SpringBootTest
 class LoadFlowServiceTest {
 
-    @MockBean
+    @MockitoBean
     private LimitViolationRepository limitViolationRepository;
 
-    @MockBean
+    @MockitoBean
     private LoadFlowParametersService loadFlowParametersService;
 
-    @MockBean
+    @MockitoBean
     private NotificationService notificationService;
 
     @Autowired
