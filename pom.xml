@@ -59,6 +59,13 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
+
+        <!--
+        To remove after when using gridsuite dependencies release referencing filter 1.12.0 version or greater
+        and computation version containing merged PR: https://github.com/gridsuite/computation/pull/13
+        -->
+        <gridsuite-filter.version>1.12.0</gridsuite-filter.version>
+        <gridsuite-computation.version>1.6.0-SNAPSHOT</gridsuite-computation.version>
     </properties>
 
     <build>
@@ -122,8 +129,13 @@
         <!-- Compilation dependencies -->
         <dependency>
             <groupId>org.gridsuite</groupId>
+            <artifactId>gridsuite-filter</artifactId>
+            <version>${gridsuite-filter.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
-            <version>1.6.0-SNAPSHOT</version>
+            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
