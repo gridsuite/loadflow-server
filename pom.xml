@@ -45,7 +45,7 @@
 
         <jib.from.image>powsybl/java-dynawo:3.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>44.0.0</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>44.1.0</gridsuite-dependencies.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -59,12 +59,7 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
-
-        <!--
-        To remove after when using gridsuite dependencies release referencing filter 1.12.0 version or greater
-        and computation version containing merged PR: https://github.com/gridsuite/computation/pull/13
-        -->
-        <gridsuite-filter.version>1.12.0</gridsuite-filter.version>
+        <!-- To remove after when using gridsuite dependencies release and computation version containing merged PR: https://github.com/gridsuite/computation/pull/19 -->
         <gridsuite-computation.version>1.7.0-SNAPSHOT</gridsuite-computation.version>
     </properties>
 
@@ -130,7 +125,6 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-filter</artifactId>
-            <version>${gridsuite-filter.version}</version>
         </dependency>
         <dependency>
             <groupId>org.gridsuite</groupId>
