@@ -37,4 +37,12 @@ public class ComponentResult {
     double distributedActivePower;
 
     List<SlackBusResult> slackBusResults;
+
+    double consumptions;
+
+    double generations;
+
+    double exchanges;
+
+    double losses;
 }

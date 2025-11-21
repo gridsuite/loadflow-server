@@ -1,0 +1,64 @@
+<?xml version="1.1" encoding="UTF-8" standalone="no"?>
+<databaseChangeLog xmlns="http://www.liquibase.org/xml/ns/dbchangelog" xmlns:ext="http://www.liquibase.org/xml/ns/dbchangelog-ext" xmlns:pro="http://www.liquibase.org/xml/ns/pro" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog-ext http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-ext.xsd http://www.liquibase.org/xml/ns/pro http://www.liquibase.org/xml/ns/pro/liquibase-pro-latest.xsd http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-1">
+        <createTable tableName="country_adequacy_entity">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="country_adequacy_entityPK"/>
+            </column>
+            <column name="country" type="VARCHAR(255)"/>
+            <column name="generation" type="FLOAT(53)"/>
+            <column name="load" type="FLOAT(53)"/>
+            <column name="losses" type="FLOAT(53)"/>
+            <column name="net_position" type="FLOAT(53)"/>
+            <column name="result_uuid" type="UUID"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-2">
+        <createTable tableName="exchange_entity">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="exchange_entityPK"/>
+            </column>
+            <column name="country" type="VARCHAR(255)"/>
+            <column name="net_position_minus_exchanges" type="FLOAT(53)"/>
+            <column name="exchange_map_entry_id" type="UUID"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-3">
+        <createTable tableName="exchange_map_entry_entity">
+            <column name="id" type="UUID">
+                <constraints nullable="false" primaryKey="true" primaryKeyName="exchange_map_entry_entityPK"/>
+            </column>
+            <column name="country" type="VARCHAR(255)"/>
+            <column name="result_uuid" type="UUID"/>
+        </createTable>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-4">
+        <addColumn tableName="component_result_entity">
+            <column name="consumptions" type="float(53)"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-5">
+        <addColumn tableName="component_result_entity">
+            <column name="exchanges" type="float(53)"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-6">
+        <addColumn tableName="component_result_entity">
+            <column name="generations" type="float(53)"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-7">
+        <addColumn tableName="component_result_entity">
+            <column name="losses" type="float(53)"/>
+        </addColumn>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-8">
+        <addForeignKeyConstraint baseColumnNames="result_uuid" baseTableName="country_adequacy_entity" constraintName="countryAdequacyEntity_loadFlowResult_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="result_uuid" referencedTableName="loadflow_result" validate="true"/>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-9">
+        <addForeignKeyConstraint baseColumnNames="exchange_map_entry_id" baseTableName="exchange_entity" constraintName="exchangeEntity_exchangeMapEntry_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="id" referencedTableName="exchange_map_entry_entity" validate="true"/>
+    </changeSet>
+    <changeSet author="lecuyerfra (generated)" id="1764164817652-10">
+        <addForeignKeyConstraint baseColumnNames="result_uuid" baseTableName="exchange_map_entry_entity" constraintName="exchangeMapEntryEntity_loadFlowResult_fk" deferrable="false" initiallyDeferred="false" referencedColumnNames="result_uuid" referencedTableName="loadflow_result" validate="true"/>
+    </changeSet>
+</databaseChangeLog>

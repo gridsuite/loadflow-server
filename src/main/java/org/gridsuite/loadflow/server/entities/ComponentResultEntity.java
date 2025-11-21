@@ -20,6 +20,7 @@ import java.util.UUID;
  * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
@@ -49,6 +50,18 @@ public class ComponentResultEntity {
 
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "componentResult", fetch = FetchType.LAZY)
     private List<SlackBusResultEntity> slackBusResults = new ArrayList<>();
+
+    @Column
+    Double consumptions;
+
+    @Column
+    Double generations;
+
+    @Column
+    Double exchanges;
+
+    @Column
+    Double losses;
 
     @ManyToOne
     @JoinColumn(name = "resultUuid")

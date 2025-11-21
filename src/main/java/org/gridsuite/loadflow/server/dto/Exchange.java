@@ -1,5 +1,5 @@
 /**
- * Copyright (c) 2023, RTE (http://www.rte-france.com)
+ * Copyright (c) 2025, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
@@ -10,28 +10,22 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import lombok.Setter;
 
-import java.time.Instant;
-import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 /**
- * @author Anis Touri <anis.touri at rte-france.com>
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Getter
+@Setter
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-public class LoadFlowResult {
+public class Exchange {
+    private UUID exchangeUuid;
 
-    private UUID resultUuid;
+    String country;
 
-    private Instant writeTimeStamp;
-
-    private List<ComponentResult> componentResults;
-
-    private List<CountryAdequacy> countryAdequacies;
-
-    private Map<String, List<Exchange>> exchanges;
+    double netPositionMinusExchanges;
 }
