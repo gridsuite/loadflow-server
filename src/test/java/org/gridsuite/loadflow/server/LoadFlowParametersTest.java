@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.gridsuite.computation.ComputationException;
+import org.gridsuite.computation.error.ComputationException;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;

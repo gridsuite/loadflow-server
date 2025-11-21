@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.network.store.client.NetworkStoreService;
+import org.gridsuite.computation.error.RestResponseEntityExceptionHandler;
 import org.gridsuite.computation.service.NotificationService;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -15,7 +16,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @SuppressWarnings("checkstyle:HideUtilityClassConstructor")
-@SpringBootApplication(scanBasePackageClasses = { LoadFlowApplication.class, NetworkStoreService.class, NotificationService.class })
+@SpringBootApplication(scanBasePackageClasses = { LoadFlowApplication.class, NetworkStoreService.class, NotificationService.class, RestResponseEntityExceptionHandler.class })
 public class LoadFlowApplication {
     public static void main(String[] args) {
         SpringApplication.run(LoadFlowApplication.class, args);
