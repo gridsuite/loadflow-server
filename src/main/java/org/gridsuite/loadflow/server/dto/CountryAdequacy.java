@@ -25,7 +25,7 @@ import java.util.UUID;
 public class CountryAdequacy {
     public enum ValueType {
         LOAD, GENERATION, LOSSES, NET_POSITION
-    };
+    }
 
     private UUID countryAdequacyUuid;
 
