@@ -14,6 +14,7 @@ import com.powsybl.commons.report.ReportNodeDeserializer;
 import com.powsybl.commons.report.ReportNodeJsonModule;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.converter.HttpMessageConverter;
@@ -31,8 +32,8 @@ public class RestTemplateConfig {
     private ObjectMapper objectMapper;
 
     @Bean
-    public RestTemplate restTemplate() {
-        final RestTemplate restTemplate = new RestTemplate();
+    public RestTemplate restTemplate(RestTemplateBuilder restTemplateBuilder) {
+        final RestTemplate restTemplate = restTemplateBuilder.build();
 
         //find and replace Jackson message converter with our own
         for (int i = 0; i < restTemplate.getMessageConverters().size(); i++) {
