@@ -96,6 +96,18 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- To remove when integrate in next release of gridsuite-dependencies or powsybl-ws-dependencies -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-ws-commons</artifactId>
+                <version>${powsybl-ws-commons.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-computation</artifactId>
+                <version>${gridsuite-computation.version}</version>
+            </dependency>
 
             <dependency>
                 <groupId>org.antlr</groupId>
@@ -130,7 +142,6 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
-            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
@@ -147,7 +158,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
-            <version>${powsybl-ws-commons.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
