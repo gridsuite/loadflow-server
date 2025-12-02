@@ -103,13 +103,6 @@
                 <version>${antlr4.version}</version>
             </dependency>
             <!-- imports -->
-            <dependency>
-                <groupId>org.gridsuite</groupId>
-                <artifactId>gridsuite-dependencies</artifactId>
-                <version>${gridsuite-dependencies.version}</version>
-                <type>pom</type>
-                <scope>import</scope>
-            </dependency>
             <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
             <dependency>
                 <groupId>org.gridsuite</groupId>
@@ -121,6 +114,13 @@
                 <groupId>org.gridsuite</groupId>
                 <artifactId>gridsuite-filter</artifactId>
                 <version>${gridsuite-filter.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-dependencies</artifactId>
+                <version>${gridsuite-dependencies.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
             <!-- project specific dependencies -->
         </dependencies>
