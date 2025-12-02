@@ -110,6 +110,18 @@
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+            <dependency>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-computation</artifactId>
+                <version>${gridsuite-computation.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+            <dependency>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-filter</artifactId>
+                <version>${gridsuite-filter.version}</version>
+            </dependency>
             <!-- project specific dependencies -->
         </dependencies>
     </dependencyManagement>
@@ -126,12 +138,10 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-filter</artifactId>
-            <version>${gridsuite-filter.version}</version>
         </dependency>
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
-            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
