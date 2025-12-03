@@ -15,6 +15,7 @@ import org.gridsuite.computation.service.AbstractFilterService;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.Column;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -28,10 +29,10 @@ import java.util.stream.Stream;
 @Service
 public class FilterService extends AbstractFilterService {
 
-    public FilterService(
-            NetworkStoreService networkStoreService,
-            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri) {
-        super(networkStoreService, filterServerBaseUri);
+    public FilterService(RestTemplateBuilder restTemplateBuilder,
+                         NetworkStoreService networkStoreService,
+                         @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri) {
+        super(restTemplateBuilder, networkStoreService, filterServerBaseUri);
     }
 
     public Optional<ResourceFilterDTO> getResourceFilter(@NonNull UUID networkUuid, @NonNull String variantId, @NonNull GlobalFilter globalFilter) {
