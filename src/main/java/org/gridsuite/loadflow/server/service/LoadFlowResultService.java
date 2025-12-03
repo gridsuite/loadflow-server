@@ -13,7 +13,6 @@ import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.security.LimitViolationType;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
-import org.gridsuite.computation.ComputationException;
 import org.gridsuite.computation.dto.GlobalFilter;
 import org.gridsuite.computation.dto.ResourceFilterDTO;
 import org.gridsuite.computation.service.AbstractComputationResultService;
@@ -42,6 +41,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.UncheckedIOException;
 import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
@@ -391,7 +391,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         try {
             return objectMapper.readValue(jsonString, LoadFlowModificationInfos.class);
         } catch (JsonProcessingException e) {
-            throw new ComputationException("Invalid json string for modifications !");
+            throw new UncheckedIOException("Invalid json string for modifications !", e);
         }
     }
 
@@ -402,7 +402,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         try {
             return objectMapper.writeValueAsString(loadFlowModificationInfos);
         } catch (JsonProcessingException e) {
-            throw new ComputationException("Invalid modifications for json string !");
+            throw new UncheckedIOException("Invalid modifications for json string !", e);
         }
     }
 }
