@@ -245,12 +245,12 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
 
     public List<CountryAdequacyEntity> findCountryAdequacies(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        return countryAdequacyRepository.findAll();
+        return countryAdequacyRepository.findByLoadFlowResultResultUuid(resultUuid);
     }
 
     public List<ExchangeMapEntryEntity> findExchanges(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        return exchangeRepository.findAll();
+        return exchangeRepository.findByLoadFlowResultResultUuid(resultUuid);
     }
 
     @Transactional(readOnly = true)
@@ -271,6 +271,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
             slackBusResultEntities.addAll(findSlackBusResults(componentResults, resourceFilters));
         }
         loadFlowResultEntity.setComponentResults(componentResults);
+
         List<CountryAdequacyEntity> countryAdequacies = findCountryAdequacies(resultUuid);
         loadFlowResultEntity.setCountryAdequacies(countryAdequacies);
         List<ExchangeMapEntryEntity> exchanges = findExchanges(resultUuid);

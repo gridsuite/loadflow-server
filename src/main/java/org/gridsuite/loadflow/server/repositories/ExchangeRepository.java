@@ -10,6 +10,7 @@ import org.gridsuite.loadflow.server.entities.ExchangeMapEntryEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -17,4 +18,5 @@ import java.util.UUID;
  */
 @Repository
 public interface ExchangeRepository extends JpaRepository<ExchangeMapEntryEntity, UUID> {
+    List<ExchangeMapEntryEntity> findByLoadFlowResultResultUuid(UUID resultUuid);
 }
