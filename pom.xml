@@ -45,7 +45,7 @@
 
         <jib.from.image>powsybl/java-dynawo:3.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>44.1.0</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>45.0.0</gridsuite-dependencies.version>
         <!-- TODO remove gridsuite-filter.version and computation.version when upgrading gridsuite dependencies -->
         <gridsuite-filter.version>1.15.0</gridsuite-filter.version>
         <gridsuite-computation.version>1.7.0</gridsuite-computation.version>
