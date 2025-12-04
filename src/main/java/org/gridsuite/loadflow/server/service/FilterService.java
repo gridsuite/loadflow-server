@@ -29,10 +29,9 @@ import java.util.stream.Stream;
 @Service
 public class FilterService extends AbstractFilterService {
 
-    public FilterService(
-            RestTemplateBuilder restTemplateBuilder,
-            NetworkStoreService networkStoreService,
-            @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri) {
+    public FilterService(RestTemplateBuilder restTemplateBuilder,
+                         NetworkStoreService networkStoreService,
+                         @Value("${gridsuite.services.filter-server.base-uri:http://filter-server/}") String filterServerBaseUri) {
         super(restTemplateBuilder, networkStoreService, filterServerBaseUri);
     }
 
