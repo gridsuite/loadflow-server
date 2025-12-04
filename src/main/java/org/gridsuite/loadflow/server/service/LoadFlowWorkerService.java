@@ -321,8 +321,11 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 ComponentCalculatedInfos infos1 = result.computeIfAbsent(Pair.of(componentValue1.connectedComponentNum, componentValue1.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
                 ComponentCalculatedInfos infos2 = result.computeIfAbsent(Pair.of(componentValue2.connectedComponentNum, componentValue2.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
 
-                infos1.setExchanges(infos1.getExchanges() + componentValue1.value);
-                infos2.setExchanges(infos1.getExchanges() + componentValue2.value);
+                if (componentValue1.connectedComponentNum != componentValue2.connectedComponentNum ||
+                    componentValue1.synchronousComponentNum != componentValue2.synchronousComponentNum) {
+                    infos1.setExchanges(infos1.getExchanges() + componentValue1.value);
+                    infos2.setExchanges(infos2.getExchanges() + componentValue2.value);
+                }
             }
         });
 
