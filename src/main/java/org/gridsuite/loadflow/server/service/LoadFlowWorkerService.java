@@ -7,6 +7,8 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.balances_adjustment.util.BorderBasedCountryArea;
+import com.powsybl.balances_adjustment.util.CountryAreaFactory;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
 import com.powsybl.iidm.criteria.IdentifiableCriterion;
 import com.powsybl.iidm.criteria.VoltageInterval;
@@ -144,9 +146,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
 
+        Map<Country, BorderBasedCountryArea> borderBasedCountryAreas = createBorderBasedCountryAreas(network);
         Map<Pair<Integer, Integer>, ComponentCalculatedInfos> componentInfos = calculateComponentInfos(network);
-        List<CountryAdequacy> countryAdequacies = calculateCountryAdequacies(network);
-        Map<String, List<Exchange>> exchanges = calculateExchanges(network);
+        List<CountryAdequacy> countryAdequacies = calculateCountryAdequacies(network, borderBasedCountryAreas);
+        Map<String, List<Exchange>> exchanges = calculateExchanges(network, borderBasedCountryAreas);
 
         resultService.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result),
             loadFlowModificationInfos, limitViolationsWithCalculatedOverload, componentInfos, countryAdequacies, exchanges);
@@ -288,6 +291,17 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return res;
     }
 
+    private Map<Country, BorderBasedCountryArea> createBorderBasedCountryAreas(Network network) {
+        Map<Country, BorderBasedCountryArea> result = new EnumMap<>(Country.class);
+        network.getSubstationStream().map(Substation::getCountry).filter(Optional::isPresent).map(Optional::get)
+            .forEach(country -> {
+                CountryAreaFactory countryAreaFactory = new CountryAreaFactory(country);
+                BorderBasedCountryArea borderBasedCountryArea = (BorderBasedCountryArea) countryAreaFactory.create(network);
+                result.put(country, borderBasedCountryArea);
+            });
+        return result;
+    }
+
     private Map<Pair<Integer, Integer>, ComponentCalculatedInfos> calculateComponentInfos(Network network) {
         Map<Pair<Integer, Integer>, ComponentCalculatedInfos> result = new HashMap<>();
 
@@ -348,6 +362,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                 case LOAD -> countryAdequacy.setLoad(countryAdequacy.getLoad() + p);
                 case GENERATION -> countryAdequacy.setGeneration(countryAdequacy.getGeneration() + p);
                 case LOSSES -> countryAdequacy.setLosses(countryAdequacy.getLosses() + p);
+                case NET_POSITION -> countryAdequacy.setNetPosition(countryAdequacy.getNetPosition() + p);
                 default -> throw new IllegalStateException("Unexpected value: " + valueType);
             }
         }
@@ -375,7 +390,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
                                countryAndPFromTerminal2.getLeft(), countryAndPFromTerminal2.getRight());
     }
 
-    private List<CountryAdequacy> calculateCountryAdequacies(Network network) {
+    private List<CountryAdequacy> calculateCountryAdequacies(Network network, Map<Country, BorderBasedCountryArea> borderBasedCountryAreas) {
         Map<String, CountryAdequacy> adequaciesByCountry = new HashMap<>();
 
         // load computation by country
@@ -400,30 +415,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             }
         });
 
-        // losses computation by country
-        Stream.concat(network.getBranchStream(), network.getHvdcLineStream()).forEach(identifiable -> {
-            BranchInfos branchInfos = getBranchInfos(identifiable);
-            Country country1 = branchInfos.country1;
-            double p1 = branchInfos.p1;
-            Country country2 = branchInfos.country2;
-            double p2 = branchInfos.p2;
-
-            if (country1 != null && country2 != null) {
-                double value;
-                if (country1.name().equals(country2.name())) {
-                    value = abs(p1 + p2);
-                    fillCountryAdequacy(adequaciesByCountry, country1, CountryAdequacy.ValueType.LOSSES, value);
-                } else {
-                    value = abs((p1 + p2) / 2);
-                    fillCountryAdequacy(adequaciesByCountry, country1, CountryAdequacy.ValueType.LOSSES, value);
-                    fillCountryAdequacy(adequaciesByCountry, country2, CountryAdequacy.ValueType.LOSSES, value);
-                }
-            }
+        // net position computation by country
+        borderBasedCountryAreas.forEach((country, borderBasedCountryArea) -> {
+            double netPosition = borderBasedCountryArea.getNetPosition();
+            fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.NET_POSITION, netPosition);
         });
 
-        // net position computation by country
+        // losses computation by country : P - C - net position
         adequaciesByCountry.forEach((key, value) ->
-            value.setNetPosition(value.getGeneration() - value.getLoad() - value.getLosses())
+            value.setLosses(value.getGeneration() - value.getLoad() - value.getNetPosition())
         );
 
         return adequaciesByCountry.entrySet().stream()
@@ -437,17 +437,14 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             .collect(Collectors.toList());
     }
 
-    private void fillExchange(List<Exchange> exchangesFromCountry, String otherCountryName, double p1, double p2) {
-        if (exchangesFromCountry != null) {
-            OptionalInt indexOfOtherCountry = IntStream.range(0, exchangesFromCountry.size())
-                .filter(i -> exchangesFromCountry.get(i).getCountry().equals(otherCountryName))
-                .findFirst();
-            if (indexOfOtherCountry.isPresent()) {
-                Exchange exchange = exchangesFromCountry.get(indexOfOtherCountry.getAsInt());
-                exchange.setNetPositionMinusExchanges(exchange.getNetPositionMinusExchanges() + (p1 - p2) / 2);
-            } else {
-                exchangesFromCountry.add(new Exchange(null, otherCountryName, (p1 - p2) / 2));
-            }
+    private void fillExchange(Map<String, List<Exchange>> result, String country, String otherCountry, double exchange) {
+        List<Exchange> exchangesCountrytoOtherCountries = result.computeIfAbsent(country, k -> new ArrayList<>());
+
+        OptionalInt indexOfOtherCountry = IntStream.range(0, exchangesCountrytoOtherCountries.size())
+            .filter(i -> exchangesCountrytoOtherCountries.get(i).getCountry().equals(otherCountry))
+            .findFirst();
+        if (indexOfOtherCountry.isEmpty()) {
+            exchangesCountrytoOtherCountries.add(new Exchange(null, otherCountry, exchange));
         }
     }
 
@@ -464,22 +461,24 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return Pair.of(country, p);
     }
 
-    private Map<String, List<Exchange>> calculateExchanges(Network network) {
+    private Map<String, List<Exchange>> calculateExchanges(Network network, Map<Country, BorderBasedCountryArea> borderBasedCountryAreas) {
         Map<String, List<Exchange>> result = new HashMap<>();
 
         Stream.concat(network.getBranchStream(), network.getHvdcLineStream()).forEach(identifiable -> {
             BranchInfos branchInfos = getBranchInfos(identifiable);
             Country country1 = branchInfos.country1;
-            double p1 = branchInfos.p1;
             Country country2 = branchInfos.country2;
-            double p2 = branchInfos.p2;
 
             if (country1 != null && country2 != null && !country1.name().equals(country2.name())) {
-                List<Exchange> exchangesFromCountry1 = result.computeIfAbsent(country1.name(), key -> new ArrayList<>());
-                List<Exchange> exchangesFromCountry2 = result.computeIfAbsent(country2.name(), key -> new ArrayList<>());
+                BorderBasedCountryArea borderBasedCountry1 = borderBasedCountryAreas.get(country1);
+                BorderBasedCountryArea borderBasedCountry2 = borderBasedCountryAreas.get(country2);
 
-                fillExchange(exchangesFromCountry1, country2.name(), p1, p2);
-                fillExchange(exchangesFromCountry2, country1.name(), p2, p1);
+                if (borderBasedCountry1 != null && borderBasedCountry2 != null) {
+                    double exchange1to2 = borderBasedCountry1.getLeavingFlowToCountry(borderBasedCountry2);
+                    double exchange2to1 = borderBasedCountry2.getLeavingFlowToCountry(borderBasedCountry1);
+                    fillExchange(result, country1.name(), country2.name(), exchange1to2);
+                    fillExchange(result, country2.name(), country1.name(), exchange2to1);
+                }
             }
         });
 
