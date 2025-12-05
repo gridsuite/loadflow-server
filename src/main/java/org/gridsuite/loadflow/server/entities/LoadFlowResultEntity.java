@@ -41,4 +41,12 @@ public class LoadFlowResultEntity {
     @Setter
     @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
     private List<LimitViolationEntity> limitViolations;
+
+    @Setter
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
+    private List<CountryAdequacyEntity> countryAdequacies;
+
+    @Setter
+    @OneToMany(cascade = CascadeType.ALL, mappedBy = "loadFlowResult", fetch = FetchType.LAZY)
+    private List<ExchangeMapEntryEntity> exchanges;
 }
