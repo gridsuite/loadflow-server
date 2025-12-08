@@ -191,7 +191,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return ExchangeEntity.builder()
             .exchangeMapEntry(exchangeMapEntryEntity)
             .country(exchange.getCountry())
-            .netPositionMinusExchanges(exchange.getNetPositionMinusExchanges())
+            .exchange(exchange.getExchange())
             .build();
     }
 
@@ -307,7 +307,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return Exchange.builder()
             .exchangeUuid(exchangeEntity.getId())
             .country(exchangeEntity.getCountry())
-            .netPositionMinusExchanges(Optional.ofNullable(exchangeEntity.getNetPositionMinusExchanges()).orElse(Double.NaN))
+            .exchange(Optional.ofNullable(exchangeEntity.getExchange()).orElse(Double.NaN))
             .build();
     }
 

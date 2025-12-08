@@ -19,7 +19,7 @@
                 <constraints nullable="false" primaryKey="true" primaryKeyName="exchange_entityPK"/>
             </column>
             <column name="country" type="VARCHAR(255)"/>
-            <column name="net_position_minus_exchanges" type="FLOAT(53)"/>
+            <column name="exchange" type="FLOAT(53)"/>
             <column name="exchange_map_entry_id" type="UUID"/>
         </createTable>
     </changeSet>

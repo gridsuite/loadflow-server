@@ -44,7 +44,7 @@ public class ExchangeEntity {
     String country;
 
     @Column
-    Double netPositionMinusExchanges;
+    Double exchange;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "exchange_map_entry_id", foreignKey = @ForeignKey(name = "exchangeEntity_exchangeMapEntry_fk"))

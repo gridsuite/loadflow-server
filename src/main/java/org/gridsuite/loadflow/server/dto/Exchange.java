@@ -27,5 +27,5 @@ public class Exchange {
 
     String country;
 
-    double netPositionMinusExchanges;
+    double exchange;
 }
