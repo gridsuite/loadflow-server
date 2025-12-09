@@ -293,12 +293,12 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private Map<Country, BorderBasedCountryArea> createBorderBasedCountryAreas(Network network) {
         Map<Country, BorderBasedCountryArea> result = new EnumMap<>(Country.class);
-        network.getSubstationStream().map(Substation::getCountry).filter(Optional::isPresent).map(Optional::get)
-            .forEach(country -> {
-                CountryAreaFactory countryAreaFactory = new CountryAreaFactory(country);
-                BorderBasedCountryArea borderBasedCountryArea = (BorderBasedCountryArea) countryAreaFactory.create(network);
-                result.put(country, borderBasedCountryArea);
-            });
+        Set<Country> countries = network.getSubstationStream().map(Substation::getCountry).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
+        countries.forEach(country -> {
+            CountryAreaFactory countryAreaFactory = new CountryAreaFactory(country);
+            BorderBasedCountryArea borderBasedCountryArea = (BorderBasedCountryArea) countryAreaFactory.create(network);
+            result.put(country, borderBasedCountryArea);
+        });
         return result;
     }
 
