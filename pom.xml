@@ -62,9 +62,6 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
-        <!-- To remove after when using gridsuite dependencies release and computation version containing merged PR: https://github.com/gridsuite/computation/pull/19 -->
-        <gridsuite-computation.version>1.7.0</gridsuite-computation.version>
-        <gridsuite-filter.version>1.15.0</gridsuite-filter.version>
     </properties>
 
     <build>
@@ -112,31 +109,19 @@
             </dependency>
 
             <dependency>
-                <groupId>org.antlr</groupId>
-                <artifactId>antlr4</artifactId>
-                <version>${antlr4.version}</version>
-            </dependency>
-            <!-- imports -->
-            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
-            <dependency>
-                <groupId>org.gridsuite</groupId>
-                <artifactId>gridsuite-computation</artifactId>
-                <version>${gridsuite-computation.version}</version>
-            </dependency>
-            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
-            <dependency>
-                <groupId>org.gridsuite</groupId>
-                <artifactId>gridsuite-filter</artifactId>
-                <version>${gridsuite-filter.version}</version>
-            </dependency>
-            <dependency>
                 <groupId>org.gridsuite</groupId>
                 <artifactId>gridsuite-dependencies</artifactId>
                 <version>${gridsuite-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+
             <!-- project specific dependencies -->
+            <dependency>
+                <groupId>org.antlr</groupId>
+                <artifactId>antlr4</artifactId>
+                <version>${antlr4.version}</version>
+            </dependency>
         </dependencies>
     </dependencyManagement>
 
