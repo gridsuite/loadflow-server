@@ -351,20 +351,13 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     }
 
     private void fillCountryAdequacy(Map<String, CountryAdequacy> adequaciesByCountry, Country country, CountryAdequacy.ValueType valueType, double p) {
-        CountryAdequacy countryAdequacy;
-        if (adequaciesByCountry.containsKey(country.name())) {
-            countryAdequacy = adequaciesByCountry.get(country.name());
-        } else {
-            countryAdequacy = adequaciesByCountry.computeIfAbsent(country.name(), key -> new CountryAdequacy(null, country.name(), 0., 0., 0., 0.));
-        }
-        if (countryAdequacy != null) {
-            switch (valueType) {
-                case LOAD -> countryAdequacy.setLoad(countryAdequacy.getLoad() + p);
-                case GENERATION -> countryAdequacy.setGeneration(countryAdequacy.getGeneration() + p);
-                case LOSSES -> countryAdequacy.setLosses(countryAdequacy.getLosses() + p);
-                case NET_POSITION -> countryAdequacy.setNetPosition(countryAdequacy.getNetPosition() + p);
-                default -> throw new IllegalStateException("Unexpected value: " + valueType);
-            }
+        CountryAdequacy countryAdequacy = adequaciesByCountry.computeIfAbsent(country.name(), key -> new CountryAdequacy(null, country.name(), 0., 0., 0., 0.));
+        switch (valueType) {
+            case LOAD -> countryAdequacy.setLoad(countryAdequacy.getLoad() + p);
+            case GENERATION -> countryAdequacy.setGeneration(countryAdequacy.getGeneration() + p);
+            case LOSSES -> countryAdequacy.setLosses(countryAdequacy.getLosses() + p);
+            case NET_POSITION -> countryAdequacy.setNetPosition(countryAdequacy.getNetPosition() + p);
+            default -> throw new IllegalStateException("Unexpected value: " + valueType);
         }
     }
 
@@ -383,11 +376,11 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
     private BranchInfos getBranchInfos(Identifiable<?> identifiable) {
         Pair<Terminal, Terminal> terminals = getTerminalsFromIdentifiable(identifiable);
-        Pair<Country, Double> countryAndPFromTerminal1 = getCountryAndPFromTerminalInMainComponent(terminals.getLeft());
-        Pair<Country, Double> countryAndPFromTerminal2 = getCountryAndPFromTerminalInMainComponent(terminals.getRight());
+        Pair<Country, Double> countryAndActivePowerFromTerminal1 = getCountryAndActivePowerFromTerminalInMainComponent(terminals.getLeft());
+        Pair<Country, Double> countryAndActivePowerFromTerminal2 = getCountryAndActivePowerFromTerminalInMainComponent(terminals.getRight());
 
-        return new BranchInfos(countryAndPFromTerminal1.getLeft(), countryAndPFromTerminal1.getRight(),
-                               countryAndPFromTerminal2.getLeft(), countryAndPFromTerminal2.getRight());
+        return new BranchInfos(countryAndActivePowerFromTerminal1.getLeft(), countryAndActivePowerFromTerminal1.getRight(),
+                               countryAndActivePowerFromTerminal2.getLeft(), countryAndActivePowerFromTerminal2.getRight());
     }
 
     private List<CountryAdequacy> calculateCountryAdequacies(Network network, Map<Country, BorderBasedCountryArea> borderBasedCountryAreas) {
@@ -396,10 +389,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         // load computation by country
         network.getLoads().forEach(load -> {
             Terminal terminal = load.getTerminal();
-            Pair<Country, Double> countryAndPFromLoad = getCountryAndPFromTerminalInMainComponent(terminal);
-            Country country = countryAndPFromLoad.getLeft();
+            Pair<Country, Double> countryAndActivePowerFromTerminal = getCountryAndActivePowerFromTerminalInMainComponent(terminal);
+            Country country = countryAndActivePowerFromTerminal.getLeft();
             if (country != null) {
-                double p = countryAndPFromLoad.getRight();
+                double p = countryAndActivePowerFromTerminal.getRight();
                 fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.LOAD, p);
             }
         });
@@ -407,10 +400,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         // generation computation by country
         Stream.concat(network.getGeneratorStream(), network.getBatteryStream()).forEach(injection -> {
             Terminal terminal = injection.getTerminal();
-            Pair<Country, Double> countryAndPFromInjection = getCountryAndPFromTerminalInMainComponent(terminal);
-            Country country = countryAndPFromInjection.getLeft();
+            Pair<Country, Double> countryAndActivePowerFromTerminal = getCountryAndActivePowerFromTerminalInMainComponent(terminal);
+            Country country = countryAndActivePowerFromTerminal.getLeft();
             if (country != null) {
-                double p = countryAndPFromInjection.getRight();
+                double p = countryAndActivePowerFromTerminal.getRight();
                 fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.GENERATION, abs(p));
             }
         });
@@ -448,7 +441,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         }
     }
 
-    private Pair<Country, Double> getCountryAndPFromTerminalInMainComponent(Terminal terminal) {
+    private Pair<Country, Double> getCountryAndActivePowerFromTerminalInMainComponent(Terminal terminal) {
         Country country;
         double p = Double.NaN;
         if (terminal != null && terminal.isConnected() && terminal.getBusView().getBus() != null && terminal.getBusView().getBus().isInMainConnectedComponent()) {
