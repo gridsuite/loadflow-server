@@ -35,6 +35,7 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.service.*;
 import org.gridsuite.loadflow.server.dto.CountryAdequacy;
 import org.gridsuite.loadflow.server.dto.Exchange;
+import org.gridsuite.loadflow.server.PropertyServerNameProvider;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.modifications.TapPositionType;
@@ -80,8 +81,9 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultService resultService,
                                  ExecutionService executionService, LoadFlowObserver observer,
-                                 ObjectMapper objectMapper, LimitReductionService limitReductionService) {
-        super(networkStoreService, notificationService, reportService, resultService, executionService, observer, objectMapper);
+                                 ObjectMapper objectMapper, LimitReductionService limitReductionService,
+                                 PropertyServerNameProvider propertyServerNameProvider) {
+        super(networkStoreService, notificationService, reportService, resultService, executionService, observer, objectMapper, propertyServerNameProvider);
         this.limitReductionService = limitReductionService;
     }
 
