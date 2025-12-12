@@ -20,6 +20,7 @@ import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.gridsuite.loadflow.server.entities.ComponentResultEntity;
+import org.gridsuite.loadflow.server.entities.CountryAdequacyEntity;
 import org.gridsuite.loadflow.server.entities.SlackBusResultEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -117,7 +118,22 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
                 .iterationCount(componentResultEntity.getIterationCount())
                 .slackBusResults(getSlackBusResult(hasChildFilter, slackBusResultEntities, componentResultEntity))
                 .distributedActivePower(componentResultEntity.getDistributedActivePower())
+                .consumptions(Optional.ofNullable(componentResultEntity.getConsumptions()).orElse(Double.NaN))
+                .generations(Optional.ofNullable(componentResultEntity.getGenerations()).orElse(Double.NaN))
+                .exchanges(Optional.ofNullable(componentResultEntity.getExchanges()).orElse(Double.NaN))
+                .losses(Optional.ofNullable(componentResultEntity.getLosses()).orElse(Double.NaN))
                 .build();
+    }
+
+    static CountryAdequacy fromEntity(CountryAdequacyEntity countryAdequacyEntity) {
+        return CountryAdequacy.builder()
+            .countryAdequacyUuid(countryAdequacyEntity.getId())
+            .country(countryAdequacyEntity.getCountry())
+            .load(Optional.ofNullable(countryAdequacyEntity.getLoad()).orElse(Double.NaN))
+            .generation(Optional.ofNullable(countryAdequacyEntity.getGeneration()).orElse(Double.NaN))
+            .losses(Optional.ofNullable(countryAdequacyEntity.getLosses()).orElse(Double.NaN))
+            .netPosition(Optional.ofNullable(countryAdequacyEntity.getNetPosition()).orElse(Double.NaN))
+            .build();
     }
 
     private static List<SlackBusResult> getSlackBusResult(boolean hasChildFilter, List <SlackBusResultEntity> slackBusResultEntities, ComponentResultEntity componentResultEntity) {

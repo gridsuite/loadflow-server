@@ -12,16 +12,21 @@ import com.powsybl.iidm.network.TwoSides;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.security.LimitViolationType;
 import lombok.AllArgsConstructor;
+import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.dto.GlobalFilter;
 import org.gridsuite.computation.dto.ResourceFilterDTO;
 import org.gridsuite.computation.service.AbstractComputationResultService;
 import org.gridsuite.computation.utils.FilterUtils;
 import org.gridsuite.loadflow.server.dto.Column;
+import org.gridsuite.loadflow.server.dto.CountryAdequacy;
+import org.gridsuite.loadflow.server.dto.Exchange;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
 import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.entities.*;
 import org.gridsuite.loadflow.server.repositories.ComponentResultRepository;
+import org.gridsuite.loadflow.server.repositories.CountryAdequacyRepository;
+import org.gridsuite.loadflow.server.repositories.ExchangeRepository;
 import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.repositories.LimitViolationRepository;
 import org.gridsuite.loadflow.server.repositories.ResultRepository;
@@ -41,6 +46,7 @@ import java.time.Instant;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Collectors;
 
 import static org.gridsuite.computation.utils.FilterUtils.fromStringFiltersToDTO;
 
@@ -59,6 +65,8 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     private final ComponentResultRepository componentResultRepository;
     private final LimitViolationRepository limitViolationRepository;
     private final SlackBusResultRepository slackBusResultRepository;
+    private final CountryAdequacyRepository countryAdequacyRepository;
+    private final ExchangeRepository exchangeRepository;
 
     private final LimitViolationsSpecificationBuilder limitViolationsSpecificationBuilder;
     private final ComponentResultSpecificationBuilder componentResultSpecificationBuilder;
@@ -67,26 +75,51 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     private final ObjectMapper objectMapper;
     private final FilterService filterService;
 
-    private LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, String solvedValuesInfos, List<LimitViolationInfos> limitViolationInfos) {
+    private LoadFlowResultEntity toResultEntity(UUID resultUuid, LoadFlowResult result, String solvedValuesInfos,
+                                                List<LimitViolationInfos> limitViolationInfos,
+                                                Map<Pair<Integer, Integer>, LoadFlowWorkerService.ComponentCalculatedInfos> componentInfos,
+                                                List<CountryAdequacy> countryAdequacies,
+                                                Map<String, List<Exchange>> exchanges) {
         List<ComponentResultEntity> componentResults = result.getComponentResults().stream()
-                .map(componentResult -> LoadFlowResultService.toComponentResultEntity(resultUuid, componentResult))
+                .map(componentResult -> LoadFlowResultService.toComponentResultEntity(resultUuid, componentResult, componentInfos))
                 .toList();
         List<LimitViolationEntity> limitViolations = limitViolationInfos.stream()
                 .map(limitViolationInfo -> toLimitViolationsEntity(resultUuid, limitViolationInfo))
                 .toList();
-        return new LoadFlowResultEntity(resultUuid, Instant.now(), solvedValuesInfos, componentResults, limitViolations);
+        List<CountryAdequacyEntity> countryAdequacyEntities = countryAdequacies.stream()
+                .map(countryAdequacy -> toCountryAdequacyEntity(resultUuid, countryAdequacy))
+            .toList();
+        List<ExchangeMapEntryEntity> exchangeMapEntryEntities = exchanges.entrySet().stream()
+                .map(exchangeEntry -> toExchangeMapEntryEntity(resultUuid, exchangeEntry.getKey(), exchangeEntry.getValue()))
+            .toList();
+
+        return new LoadFlowResultEntity(resultUuid, Instant.now(), solvedValuesInfos, componentResults,
+                                        limitViolations, countryAdequacyEntities, exchangeMapEntryEntities);
     }
 
-    private static ComponentResultEntity toComponentResultEntity(UUID resultUuid, LoadFlowResult.ComponentResult componentResult) {
+    private static ComponentResultEntity toComponentResultEntity(UUID resultUuid,
+                                                                 LoadFlowResult.ComponentResult componentResult,
+                                                                 Map<Pair<Integer, Integer>, LoadFlowWorkerService.ComponentCalculatedInfos> componentInfos) {
+        int connectedComponentNum = componentResult.getConnectedComponentNum();
+        int synchronousComponentNum = componentResult.getSynchronousComponentNum();
         ComponentResultEntity componentResultEntity = ComponentResultEntity.builder()
-                .connectedComponentNum(componentResult.getConnectedComponentNum())
-                .synchronousComponentNum(componentResult.getSynchronousComponentNum())
+                .connectedComponentNum(connectedComponentNum)
+                .synchronousComponentNum(synchronousComponentNum)
                 .status(componentResult.getStatus())
                 .iterationCount(componentResult.getIterationCount())
                 .distributedActivePower(componentResult.getDistributedActivePower())
                 .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
                 .build();
         componentResultEntity.setSlackBusResults(getSlackBusResultEntity(componentResult.getSlackBusResults()));
+
+        Pair<Integer, Integer> componentKey = Pair.of(connectedComponentNum, synchronousComponentNum);
+        LoadFlowWorkerService.ComponentCalculatedInfos infos = componentInfos.getOrDefault(componentKey,
+            new LoadFlowWorkerService.ComponentCalculatedInfos(Double.NaN, Double.NaN, Double.NaN, Double.NaN));
+        componentResultEntity.setConsumptions(infos.getConsumptions());
+        componentResultEntity.setGenerations(infos.getGenerations());
+        componentResultEntity.setExchanges(infos.getExchanges());
+        componentResultEntity.setLosses(infos.getLosses());
+
         return componentResultEntity;
     }
 
@@ -112,10 +145,14 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
                        LoadFlowResult result,
                        LoadFlowStatus status,
                        LoadFlowModificationInfos loadFlowModificationInfos,
-                       List<LimitViolationInfos> limitViolationInfos) {
+                       List<LimitViolationInfos> limitViolationInfos,
+                       Map<Pair<Integer, Integer>, LoadFlowWorkerService.ComponentCalculatedInfos> componentInfos,
+                       List<CountryAdequacy> countryAdequacies,
+                       Map<String, List<Exchange>> exchanges) {
         Objects.requireNonNull(resultUuid);
         if (result != null) {
-            resultRepository.save(toResultEntity(resultUuid, result, modificationsToJsonString(loadFlowModificationInfos), limitViolationInfos));
+            resultRepository.save(toResultEntity(resultUuid, result, modificationsToJsonString(loadFlowModificationInfos),
+                limitViolationInfos, componentInfos, countryAdequacies, exchanges));
         }
         globalStatusRepository.save(toStatusEntity(resultUuid, status));
     }
@@ -137,7 +174,34 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
                 .value(limitViolationInfos.getValue())
                 .side(limitViolationInfos.getSide())
                 .build();
+    }
 
+    private static CountryAdequacyEntity toCountryAdequacyEntity(UUID resultUuid, CountryAdequacy countryAdequacy) {
+        return CountryAdequacyEntity.builder()
+            .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
+            .country(countryAdequacy.getCountry())
+            .load(countryAdequacy.getLoad())
+            .generation(countryAdequacy.getGeneration())
+            .losses(countryAdequacy.getLosses())
+            .netPosition(countryAdequacy.getNetPosition())
+            .build();
+    }
+
+    private static ExchangeEntity toExchangeEntity(ExchangeMapEntryEntity exchangeMapEntryEntity, Exchange exchange) {
+        return ExchangeEntity.builder()
+            .exchangeMapEntry(exchangeMapEntryEntity)
+            .country(exchange.getCountry())
+            .exchange(exchange.getExchange())
+            .build();
+    }
+
+    private static ExchangeMapEntryEntity toExchangeMapEntryEntity(UUID resultUuid, String country, List<Exchange> exchanges) {
+        ExchangeMapEntryEntity exchangeMapEntryEntity = ExchangeMapEntryEntity.builder()
+            .loadFlowResult(LoadFlowResultEntity.builder().resultUuid(resultUuid).build())
+            .country(country)
+            .build();
+        exchangeMapEntryEntity.setExchanges(exchanges.stream().map(exchange -> toExchangeEntity(exchangeMapEntryEntity, exchange)).collect(Collectors.toList()));
+        return exchangeMapEntryEntity;
     }
 
     @Override
@@ -179,6 +243,16 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return limitViolationRepository.findAll(specification, sort);
     }
 
+    public List<CountryAdequacyEntity> findCountryAdequacies(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return countryAdequacyRepository.findByLoadFlowResultResultUuid(resultUuid);
+    }
+
+    public List<ExchangeMapEntryEntity> findExchanges(UUID resultUuid) {
+        Objects.requireNonNull(resultUuid);
+        return exchangeRepository.findByLoadFlowResultResultUuid(resultUuid);
+    }
+
     @Transactional(readOnly = true)
     public org.gridsuite.loadflow.server.dto.LoadFlowResult getResult(UUID resultUuid, String stringFilters, Sort sort) {
         AtomicReference<Long> startTime = new AtomicReference<>();
@@ -197,6 +271,12 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
             slackBusResultEntities.addAll(findSlackBusResults(componentResults, resourceFilters));
         }
         loadFlowResultEntity.setComponentResults(componentResults);
+
+        List<CountryAdequacyEntity> countryAdequacies = findCountryAdequacies(resultUuid);
+        loadFlowResultEntity.setCountryAdequacies(countryAdequacies);
+        List<ExchangeMapEntryEntity> exchanges = findExchanges(resultUuid);
+        loadFlowResultEntity.setExchanges(exchanges);
+
         loadFlowResult = fromEntity(loadFlowResultEntity, slackBusResultEntities, hasChildFilter);
         LOGGER.info("Get LoadFlow Results {} in {}ms", resultUuid, TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - startTime.get()));
         return loadFlowResult;
@@ -212,12 +292,33 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return loadFlowModificationsToDTO(loadFlowResultEntity.getModifications());
     }
 
+    private static Map<String, List<Exchange>> convertToExchangeMap(List<ExchangeMapEntryEntity> exchangeMapEntries) {
+        return exchangeMapEntries.stream()
+            .collect(Collectors.toMap(
+                ExchangeMapEntryEntity::getCountry,
+                entry -> entry.getExchanges().stream()
+                    .map(LoadFlowResultService::convertToExchange)
+                    .collect(Collectors.toList()),
+                (existing, replacement) -> existing
+            ));
+    }
+
+    private static Exchange convertToExchange(ExchangeEntity exchangeEntity) {
+        return Exchange.builder()
+            .exchangeUuid(exchangeEntity.getId())
+            .country(exchangeEntity.getCountry())
+            .exchange(Optional.ofNullable(exchangeEntity.getExchange()).orElse(Double.NaN))
+            .build();
+    }
+
     private static org.gridsuite.loadflow.server.dto.LoadFlowResult fromEntity(LoadFlowResultEntity resultEntity, List<SlackBusResultEntity> slackBusResultEntities, boolean hasChildFilter) {
         return org.gridsuite.loadflow.server.dto.LoadFlowResult.builder()
                 .resultUuid(resultEntity.getResultUuid())
                 .writeTimeStamp(resultEntity.getWriteTimeStamp())
                 .componentResults(resultEntity.getComponentResults().stream().map(result -> LoadFlowService.fromEntity(result, slackBusResultEntities, hasChildFilter)).toList())
-                .build();
+                .countryAdequacies(resultEntity.getCountryAdequacies().stream().map(LoadFlowService::fromEntity).toList())
+                .exchanges(convertToExchangeMap(resultEntity.getExchanges()))
+            .build();
     }
 
     public List<SlackBusResultEntity> findSlackBusResults(List<ComponentResultEntity> componentResultEntities, List<ResourceFilterDTO> resourceFilters) {

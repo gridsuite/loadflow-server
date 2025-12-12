@@ -62,6 +62,7 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
+        <powsybl-balances-adjustment.version>3.1.0</powsybl-balances-adjustment.version>
     </properties>
 
     <build>
@@ -157,6 +158,11 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-ws-commons</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-balances-adjustment</artifactId>
+            <version>${powsybl-balances-adjustment.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

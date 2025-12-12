@@ -7,6 +7,8 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.balances_adjustment.util.BorderBasedCountryArea;
+import com.powsybl.balances_adjustment.util.CountryAreaFactory;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
 import com.powsybl.iidm.criteria.IdentifiableCriterion;
 import com.powsybl.iidm.criteria.VoltageInterval;
@@ -18,6 +20,7 @@ import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.security.LimitViolation;
@@ -25,7 +28,13 @@ import com.powsybl.security.LimitViolationType;
 import com.powsybl.security.Security;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.service.*;
+import org.gridsuite.loadflow.server.dto.CountryAdequacy;
+import org.gridsuite.loadflow.server.dto.Exchange;
 import org.gridsuite.loadflow.server.PropertyServerNameProvider;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
@@ -39,7 +48,11 @@ import org.springframework.stereotype.Service;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
+import java.util.stream.Stream;
 
+import static java.lang.Math.abs;
 import static org.gridsuite.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
@@ -50,6 +63,20 @@ import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_
 public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult, LoadFlowRunContext, LoadFlowParametersValues, LoadFlowResultService> {
     private final LimitReductionService limitReductionService;
     public static final String HEADER_WITH_RATIO_TAP_CHANGERS = "withRatioTapChangers";
+
+    @Setter
+    @Getter
+    @AllArgsConstructor
+    public static class ComponentCalculatedInfos {
+        private double consumptions;
+        private double generations;
+        private double exchanges;
+        private double losses;
+    }
+
+    public record ComponentValue(int connectedComponentNum, int synchronousComponentNum, double value) { }
+
+    public record BranchInfos(Country country1, double p1, Country country2, double p2) { }
 
     public LoadFlowWorkerService(NetworkStoreService networkStoreService, NotificationService notificationService,
                                  ReportService reportService, LoadFlowResultService resultService,
@@ -77,9 +104,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return runner.runAsync(
                 runContext.getNetwork(),
                 runContext.getVariantId() != null ? runContext.getVariantId() : VariantManagerConstants.INITIAL_VARIANT_ID,
-                executionService.getComputationManager(),
-                params,
-                runContext.getReportNode());
+                new LoadFlowRunParameters().setComputationManager(executionService.getComputationManager()).setParameters(params).setReportNode(runContext.getReportNode())
+        );
     }
 
     private LimitReduction createLimitReduction(IdentifiableCriterion voltageLevelCriterion, LimitDurationCriterion limitDurationCriterion, double value) {
@@ -121,12 +147,18 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         LoadFlowModificationInfos loadFlowModificationInfos = handleSolvedValues(network, resultContext.getRunContext().isApplySolvedValues());
         List<LimitViolationInfos> limitViolationInfos = getLimitViolations(network, resultContext.getRunContext());
         List<LimitViolationInfos> limitViolationsWithCalculatedOverload = calculateOverloadLimitViolations(limitViolationInfos, network);
+
+        Map<Country, BorderBasedCountryArea> borderBasedCountryAreas = createBorderBasedCountryAreas(network);
+        Map<Pair<Integer, Integer>, ComponentCalculatedInfos> componentInfos = calculateComponentInfos(network);
+        List<CountryAdequacy> countryAdequacies = calculateCountryAdequacies(network, borderBasedCountryAreas);
+        Map<String, List<Exchange>> exchanges = calculateExchanges(network, borderBasedCountryAreas);
+
+        resultService.insert(resultContext.getResultUuid(), result, LoadFlowService.computeLoadFlowStatus(result),
+            loadFlowModificationInfos, limitViolationsWithCalculatedOverload, componentInfos, countryAdequacies, exchanges);
         if (result != null && !result.isFailed()) {
             // flush network in the network store
             observer.observe("network.save", resultContext.getRunContext(), () -> networkStoreService.flush(resultContext.getRunContext().getNetwork()));
         }
-        resultService.insert(resultContext.getResultUuid(), result,
-                LoadFlowService.computeLoadFlowStatus(result), loadFlowModificationInfos, limitViolationsWithCalculatedOverload);
     }
 
     private LoadFlowModificationInfos handleSolvedValues(Network network, boolean applySolvedValues) {
@@ -248,6 +280,204 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             }
         }
         return limitViolationInfos;
+    }
+
+    private ComponentValue getValueFromTerminalInComponent(Terminal terminal) {
+        ComponentValue res = null;
+        if (terminal != null && terminal.isConnected()) {
+            Bus bus = terminal.getBusView().getBus();
+            if (bus != null) {
+                res = new ComponentValue(bus.getConnectedComponent().getNum(), bus.getSynchronousComponent().getNum(), terminal.getP());
+            }
+        }
+        return res;
+    }
+
+    private Map<Country, BorderBasedCountryArea> createBorderBasedCountryAreas(Network network) {
+        Map<Country, BorderBasedCountryArea> result = new EnumMap<>(Country.class);
+        Set<Country> countries = network.getSubstationStream().map(Substation::getCountry).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toSet());
+        countries.forEach(country -> {
+            CountryAreaFactory countryAreaFactory = new CountryAreaFactory(country);
+            BorderBasedCountryArea borderBasedCountryArea = (BorderBasedCountryArea) countryAreaFactory.create(network);
+            result.put(country, borderBasedCountryArea);
+        });
+        return result;
+    }
+
+    private Map<Pair<Integer, Integer>, ComponentCalculatedInfos> calculateComponentInfos(Network network) {
+        Map<Pair<Integer, Integer>, ComponentCalculatedInfos> result = new HashMap<>();
+
+        // load computation by connected/synchronous component
+        network.getLoads().forEach(load -> {
+            Terminal terminal = load.getTerminal();
+            ComponentValue componentValue = getValueFromTerminalInComponent(terminal);
+            if (componentValue != null) {
+                ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+                infos.setConsumptions(infos.getConsumptions() + componentValue.value);
+            }
+        });
+
+        // generation computation by connected/synchronous component
+        Stream.concat(network.getGeneratorStream(), network.getBatteryStream()).forEach(injection -> {
+            Terminal terminal = injection.getTerminal();
+            ComponentValue componentValue = getValueFromTerminalInComponent(terminal);
+            if (componentValue != null) {
+                ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+                infos.setGenerations(infos.getGenerations() + abs(componentValue.value));
+            }
+        });
+
+        // exchanges computation by connected/synchronous component
+        network.getHvdcLineStream().forEach(hvdcLine -> {
+            Pair<Terminal, Terminal> terminals = getTerminalsFromIdentifiable(hvdcLine);
+            ComponentValue componentValue1 = getValueFromTerminalInComponent(terminals.getLeft());
+            ComponentValue componentValue2 = getValueFromTerminalInComponent(terminals.getRight());
+
+            if (componentValue1 != null && componentValue2 != null) {
+                ComponentCalculatedInfos infos1 = result.computeIfAbsent(Pair.of(componentValue1.connectedComponentNum, componentValue1.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+                ComponentCalculatedInfos infos2 = result.computeIfAbsent(Pair.of(componentValue2.connectedComponentNum, componentValue2.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+
+                if (componentValue1.connectedComponentNum != componentValue2.connectedComponentNum ||
+                    componentValue1.synchronousComponentNum != componentValue2.synchronousComponentNum) {
+                    infos1.setExchanges(infos1.getExchanges() + componentValue1.value);
+                    infos2.setExchanges(infos2.getExchanges() + componentValue2.value);
+                }
+            }
+        });
+
+        // losses computation by connected/synchronous component
+        result.forEach((key, value) ->
+            value.setLosses(value.getGenerations() - value.getConsumptions() - value.getExchanges())
+        );
+        return result;
+    }
+
+    private void fillCountryAdequacy(Map<String, CountryAdequacy> adequaciesByCountry, Country country, CountryAdequacy.ValueType valueType, double p) {
+        CountryAdequacy countryAdequacy = adequaciesByCountry.computeIfAbsent(country.name(), key -> new CountryAdequacy(null, country.name(), 0., 0., 0., 0.));
+        switch (valueType) {
+            case LOAD -> countryAdequacy.setLoad(countryAdequacy.getLoad() + p);
+            case GENERATION -> countryAdequacy.setGeneration(countryAdequacy.getGeneration() + p);
+            case LOSSES -> countryAdequacy.setLosses(countryAdequacy.getLosses() + p);
+            case NET_POSITION -> countryAdequacy.setNetPosition(countryAdequacy.getNetPosition() + p);
+            default -> throw new IllegalStateException("Unexpected value: " + valueType);
+        }
+    }
+
+    private Pair<Terminal, Terminal> getTerminalsFromIdentifiable(Identifiable<?> identifiable) {
+        Terminal terminal1 = null;
+        Terminal terminal2 = null;
+        if (identifiable instanceof Branch<?> branch) {
+            terminal1 = branch.getTerminal1();
+            terminal2 = branch.getTerminal2();
+        } else if (identifiable instanceof HvdcLine hvdcLine) {
+            terminal1 = hvdcLine.getConverterStation1().getTerminal();
+            terminal2 = hvdcLine.getConverterStation2().getTerminal();
+        }
+        return Pair.of(terminal1, terminal2);
+    }
+
+    private BranchInfos getBranchInfos(Identifiable<?> identifiable) {
+        Pair<Terminal, Terminal> terminals = getTerminalsFromIdentifiable(identifiable);
+        Pair<Country, Double> countryAndActivePowerFromTerminal1 = getCountryAndActivePowerFromTerminalInMainComponent(terminals.getLeft());
+        Pair<Country, Double> countryAndActivePowerFromTerminal2 = getCountryAndActivePowerFromTerminalInMainComponent(terminals.getRight());
+
+        return new BranchInfos(countryAndActivePowerFromTerminal1.getLeft(), countryAndActivePowerFromTerminal1.getRight(),
+                               countryAndActivePowerFromTerminal2.getLeft(), countryAndActivePowerFromTerminal2.getRight());
+    }
+
+    private List<CountryAdequacy> calculateCountryAdequacies(Network network, Map<Country, BorderBasedCountryArea> borderBasedCountryAreas) {
+        Map<String, CountryAdequacy> adequaciesByCountry = new HashMap<>();
+
+        // load computation by country
+        network.getLoads().forEach(load -> {
+            Terminal terminal = load.getTerminal();
+            Pair<Country, Double> countryAndActivePowerFromTerminal = getCountryAndActivePowerFromTerminalInMainComponent(terminal);
+            Country country = countryAndActivePowerFromTerminal.getLeft();
+            if (country != null) {
+                double p = countryAndActivePowerFromTerminal.getRight();
+                fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.LOAD, p);
+            }
+        });
+
+        // generation computation by country
+        Stream.concat(network.getGeneratorStream(), network.getBatteryStream()).forEach(injection -> {
+            Terminal terminal = injection.getTerminal();
+            Pair<Country, Double> countryAndActivePowerFromTerminal = getCountryAndActivePowerFromTerminalInMainComponent(terminal);
+            Country country = countryAndActivePowerFromTerminal.getLeft();
+            if (country != null) {
+                double p = countryAndActivePowerFromTerminal.getRight();
+                fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.GENERATION, abs(p));
+            }
+        });
+
+        // net position computation by country
+        borderBasedCountryAreas.forEach((country, borderBasedCountryArea) -> {
+            double netPosition = borderBasedCountryArea.getNetPosition();
+            fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.NET_POSITION, netPosition);
+        });
+
+        // losses computation by country : P - C - net position
+        adequaciesByCountry.forEach((key, value) ->
+            value.setLosses(value.getGeneration() - value.getLoad() - value.getNetPosition())
+        );
+
+        return adequaciesByCountry.entrySet().stream()
+            .map(entry -> CountryAdequacy.builder()
+                .country(entry.getKey())
+                .load(entry.getValue().getLoad())
+                .generation(entry.getValue().getGeneration())
+                .losses(entry.getValue().getLosses())
+                .netPosition(entry.getValue().getNetPosition())
+                .build())
+            .collect(Collectors.toList());
+    }
+
+    private void fillExchange(Map<String, List<Exchange>> result, String country, String otherCountry, double exchange) {
+        List<Exchange> exchangesCountrytoOtherCountries = result.computeIfAbsent(country, k -> new ArrayList<>());
+
+        OptionalInt indexOfOtherCountry = IntStream.range(0, exchangesCountrytoOtherCountries.size())
+            .filter(i -> exchangesCountrytoOtherCountries.get(i).getCountry().equals(otherCountry))
+            .findFirst();
+        if (indexOfOtherCountry.isEmpty()) {
+            exchangesCountrytoOtherCountries.add(new Exchange(null, otherCountry, exchange));
+        }
+    }
+
+    private Pair<Country, Double> getCountryAndActivePowerFromTerminalInMainComponent(Terminal terminal) {
+        Country country;
+        double p = Double.NaN;
+        if (terminal != null && terminal.isConnected() && terminal.getBusView().getBus() != null && terminal.getBusView().getBus().isInMainConnectedComponent()) {
+            Optional<Substation> substation = terminal.getVoltageLevel().getSubstation();
+            country = substation.flatMap(Substation::getCountry).orElse(null);
+            p = terminal.getP();
+        } else {
+            country = null;
+        }
+        return Pair.of(country, p);
+    }
+
+    private Map<String, List<Exchange>> calculateExchanges(Network network, Map<Country, BorderBasedCountryArea> borderBasedCountryAreas) {
+        Map<String, List<Exchange>> result = new HashMap<>();
+
+        Stream.concat(network.getBranchStream(), network.getHvdcLineStream()).forEach(identifiable -> {
+            BranchInfos branchInfos = getBranchInfos(identifiable);
+            Country country1 = branchInfos.country1;
+            Country country2 = branchInfos.country2;
+
+            if (country1 != null && country2 != null && !country1.name().equals(country2.name())) {
+                BorderBasedCountryArea borderBasedCountry1 = borderBasedCountryAreas.get(country1);
+                BorderBasedCountryArea borderBasedCountry2 = borderBasedCountryAreas.get(country2);
+
+                if (borderBasedCountry1 != null && borderBasedCountry2 != null) {
+                    double exchange1to2 = borderBasedCountry1.getLeavingFlowToCountry(borderBasedCountry2);
+                    double exchange2to1 = borderBasedCountry2.getLeavingFlowToCountry(borderBasedCountry1);
+                    fillExchange(result, country1.name(), country2.name(), exchange1to2);
+                    fillExchange(result, country2.name(), country1.name(), exchange2to1);
+                }
+            }
+        });
+
+        return result;
     }
 
     public static LimitViolationInfos toLimitViolationInfos(LimitViolation violation, Network network) {

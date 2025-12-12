@@ -11,14 +11,13 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.client.WireMock;
-import com.powsybl.commons.report.ReportNode;
-import com.powsybl.computation.local.LocalComputationManager;
 import com.powsybl.iidm.network.*;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowResultImpl;
+import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
@@ -126,8 +125,6 @@ public class LoadFlowControllerTest {
     private NetworkStoreService networkStoreService;
     @MockitoBean
     private ReportService reportService;
-    @Autowired
-    private ExecutionService executionService;
     @MockitoSpyBean
     private LoadFlowResultService loadFlowResultService;
     @MockitoSpyBean
@@ -266,8 +263,7 @@ public class LoadFlowControllerTest {
             securityMockedStatic.when(() -> Security.checkLimits(any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
             securityMockedStatic.when(() -> Security.checkLimits(any(), any())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             runTest(false);
@@ -347,8 +343,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
@@ -383,8 +378,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
@@ -442,8 +436,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
@@ -500,8 +493,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
@@ -671,8 +663,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), anyDouble(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
@@ -770,8 +761,7 @@ public class LoadFlowControllerTest {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
@@ -808,8 +798,7 @@ public class LoadFlowControllerTest {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
@@ -861,8 +850,7 @@ public class LoadFlowControllerTest {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
@@ -880,8 +868,7 @@ public class LoadFlowControllerTest {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(LocalComputationManager.getDefault()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
@@ -982,8 +969,7 @@ public class LoadFlowControllerTest {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LIMIT_VIOLATIONS_WITH_LOCATION);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), eq(executionService.getComputationManager()),
-                            any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
@@ -1062,9 +1048,7 @@ public class LoadFlowControllerTest {
             securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble()))
                 .thenReturn(LimitViolationsMock.limitViolations);
 
-            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID),
-                eq(executionService.getComputationManager()),
-                any(LoadFlowParameters.class), any(ReportNode.class)))
+            Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                 .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             // Run the loadflow first to have results
