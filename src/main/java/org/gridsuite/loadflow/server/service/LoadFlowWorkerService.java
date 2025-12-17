@@ -52,7 +52,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
-import static java.lang.Math.abs;
 import static org.gridsuite.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
@@ -287,7 +286,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         if (terminal != null && terminal.isConnected()) {
             Bus bus = terminal.getBusView().getBus();
             if (bus != null) {
-                res = new ComponentValue(bus.getConnectedComponent().getNum(), bus.getSynchronousComponent().getNum(), terminal.getP());
+                res = new ComponentValue(bus.getConnectedComponent().getNum(), bus.getSynchronousComponent().getNum(), zeroIfNan(terminal.getP()));
             }
         }
         return res;
@@ -302,6 +301,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             result.put(country, borderBasedCountryArea);
         });
         return result;
+    }
+
+    private static double zeroIfNan(double value) {
+        return Double.isNaN(value) ? 0 : value;
     }
 
     private Map<Pair<Integer, Integer>, ComponentCalculatedInfos> calculateComponentInfos(Network network) {
@@ -323,7 +326,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             ComponentValue componentValue = getValueFromTerminalInComponent(terminal);
             if (componentValue != null) {
                 ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
-                infos.setGenerations(infos.getGenerations() + abs(componentValue.value));
+                infos.setGenerations(infos.getGenerations() + componentValue.value);
             }
         });
 
@@ -345,10 +348,11 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             }
         });
 
-        // losses computation by connected/synchronous component
-        result.forEach((key, value) ->
-            value.setLosses(value.getGenerations() - value.getConsumptions() - value.getExchanges())
-        );
+        // reverse sign of generations and compute losses by connected/synchronous component
+        result.forEach((key, value) -> {
+            value.setGenerations(-value.generations);
+            value.setLosses(value.getGenerations() - value.getConsumptions() - value.getExchanges());
+        });
         return result;
     }
 
@@ -406,7 +410,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             Country country = countryAndActivePowerFromTerminal.getLeft();
             if (country != null) {
                 double p = countryAndActivePowerFromTerminal.getRight();
-                fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.GENERATION, abs(p));
+                fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.GENERATION, p);
             }
         });
 
@@ -416,10 +420,11 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             fillCountryAdequacy(adequaciesByCountry, country, CountryAdequacy.ValueType.NET_POSITION, netPosition);
         });
 
-        // losses computation by country : P - C - net position
-        adequaciesByCountry.forEach((key, value) ->
-            value.setLosses(value.getGeneration() - value.getLoad() - value.getNetPosition())
-        );
+        // reverse sign of generation and losses computation by country : P - C - net position
+        adequaciesByCountry.forEach((key, value) -> {
+            value.setGeneration(-value.getGeneration());
+            value.setLosses(value.getGeneration() - value.getLoad() - value.getNetPosition());
+        });
 
         return adequaciesByCountry.entrySet().stream()
             .map(entry -> CountryAdequacy.builder()
@@ -449,7 +454,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         if (terminal != null && terminal.isConnected() && terminal.getBusView().getBus() != null && terminal.getBusView().getBus().isInMainConnectedComponent()) {
             Optional<Substation> substation = terminal.getVoltageLevel().getSubstation();
             country = substation.flatMap(Substation::getCountry).orElse(null);
-            p = terminal.getP();
+            p = zeroIfNan(terminal.getP());
         } else {
             country = null;
         }
