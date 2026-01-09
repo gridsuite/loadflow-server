@@ -88,7 +88,7 @@ public class LoadFlowParametersEntity {
 
     @Column(name = "connectedComponentMode")
     @Enumerated(EnumType.STRING)
-    private LoadFlowParameters.ConnectedComponentMode connectedComponentMode;
+    private LoadFlowParameters.ComponentMode connectedComponentMode;
 
     @Column(name = "hvdcAcEmulation", columnDefinition = "boolean default true", nullable = false)
     private boolean hvdcAcEmulation = true;
@@ -175,7 +175,7 @@ public class LoadFlowParametersEntity {
         balanceType = allCommonValues.getBalanceType();
         dcUseTransformerRatio = allCommonValues.isDcUseTransformerRatio();
         countriesToBalance = allCommonValues.getCountriesToBalance().stream().map(Country::toString).collect(Collectors.toSet());
-        connectedComponentMode = allCommonValues.getConnectedComponentMode();
+        connectedComponentMode = allCommonValues.getComponentMode();
         hvdcAcEmulation = allCommonValues.isHvdcAcEmulation();
         dcPowerFactor = allCommonValues.getDcPowerFactor();
     }
@@ -205,7 +205,7 @@ public class LoadFlowParametersEntity {
                 .setBalanceType(this.getBalanceType())
                 .setDcUseTransformerRatio(this.isDcUseTransformerRatio())
                 .setCountriesToBalance(this.getCountriesToBalance().stream().map(Country::valueOf).collect(Collectors.toSet()))
-                .setConnectedComponentMode(this.getConnectedComponentMode())
+                .setComponentMode(this.getConnectedComponentMode())
                 .setHvdcAcEmulation(this.isHvdcAcEmulation())
                 .setDcPowerFactor(this.getDcPowerFactor());
     }
