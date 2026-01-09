@@ -518,21 +518,21 @@ public class LoadFlowControllerTest {
 
             // get limit violations with filters and different globalFilters
             assertLimitViolations(createStringGlobalFilter(
-                    List.of("380", "150"),
+                    List.of(List.of(350, 410), List.of(130, 170)),
                     Map.of(),
                     List.of(Country.FR, Country.IT),
                     List.of(),
                     List.of(LimitViolationType.CURRENT)
             ), 4);
             assertLimitViolations(createStringGlobalFilter(
-                    List.of("24"),
+                    List.of(List.of(20, 30)),
                     Map.of(),
                     List.of(Country.FR, Country.IT),
                     List.of(),
                     List.of(LimitViolationType.HIGH_VOLTAGE, LimitViolationType.LOW_VOLTAGE)
             ), 0);
             assertLimitViolations(createStringGlobalFilter(
-                    List.of("380"),
+                    List.of(List.of(350, 410)),
                     Map.of(),
                     List.of(),
                     List.of(),
@@ -603,14 +603,14 @@ public class LoadFlowControllerTest {
     }
 
     private String createStringGlobalFilter(
-            List<String> nominalVs,
-            Map<String, List<String>> substationProperty,
-            List<Country> countryCodes,
-            List<UUID> genericFiltersUuid,
-            List<LimitViolationType> limitViolationTypes
+        List<List<Integer>> voltageRanges,
+        Map<String, List<String>> substationProperty,
+        List<Country> countryCodes,
+        List<UUID> genericFiltersUuid,
+        List<LimitViolationType> limitViolationTypes
     ) throws JsonProcessingException {
         GlobalFilter globalFilter = GlobalFilter.builder()
-                .nominalV(nominalVs)
+                .voltageRanges(voltageRanges)
                 .substationProperty(substationProperty)
                 .countryCode(countryCodes)
                 .genericFilter(genericFiltersUuid)
