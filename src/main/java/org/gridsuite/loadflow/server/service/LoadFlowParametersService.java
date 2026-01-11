@@ -90,9 +90,9 @@ public class LoadFlowParametersService {
     @Transactional
     public void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parametersInfos) {
         LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
-        //if the parameters is null it means it's a reset to defaultValues, but we need to keep the provider because it's updated separately
+        //if the parameters is null it means it's a reset to defaultValues
         if (parametersInfos == null) {
-            loadFlowParametersEntity.update(getDefaultParametersValues(loadFlowParametersEntity.getProvider()));
+            loadFlowParametersEntity.update(getDefaultParametersValues(defaultProvider));
         } else {
             loadFlowParametersEntity.update(parametersInfos);
         }
