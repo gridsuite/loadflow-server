@@ -4,9 +4,29 @@ spring:
 
   cloud:
     function:
-      definition: consumeCancel
+      definition: consumeRun1;consumeRun2;consumeRun3;consumeRun4;consumeCancel
     stream:
       bindings:
+        consumeRun1-in-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
+          group: loadflowGroup
+          consumer:
+            max-attempts: 1
+        consumeRun2-in-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
+          group: loadflowGroup
+          consumer:
+            max-attempts: 1
+        consumeRun3-in-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
+          group: loadflowGroup
+          consumer:
+            max-attempts: 1
+        consumeRun4-in-0:
+          destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
+          group: loadflowGroup
+          consumer:
+            max-attempts: 1
         publishRun-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
         publishResult-out-0:
@@ -20,6 +40,44 @@ spring:
         publishCancelFailed-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.cancelfailed
       output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishCancelFailed-out-0
+      rabbit:
+        bindings:
+          consumeRun1-in-0:
+            consumer:
+              auto-bind-dlq: true
+              dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx.dlq
+              dead-letter-exchange-type: topic
+              quorum:
+                enabled: true
+                delivery-limit: 2
+          consumeRun2-in-0:
+            consumer:
+              auto-bind-dlq: true
+              dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx.dlq
+              dead-letter-exchange-type: topic
+              quorum:
+                enabled: true
+                delivery-limit: 2
+          consumeRun3-in-0:
+            consumer:
+              auto-bind-dlq: true
+              dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx.dlq
+              dead-letter-exchange-type: topic
+              quorum:
+                enabled: true
+                delivery-limit: 2
+          consumeRun4-in-0:
+            consumer:
+              auto-bind-dlq: true
+              dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
+              dead-letter-queue-name: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx.dlq
+              dead-letter-exchange-type: topic
+              quorum:
+                enabled: true
+                delivery-limit: 2
 powsybl-ws:
   database:
     name: loadflow
