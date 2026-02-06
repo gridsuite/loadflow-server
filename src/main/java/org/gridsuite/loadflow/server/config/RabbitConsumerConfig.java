@@ -12,11 +12,19 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 @Configuration
 public class RabbitConsumerConfig {
+    /*
+     * RabbitMQ consumer priority:
+     * https://www.rabbitmq.com/docs/consumer-priority
+     *
+     * Each container creates exactly one AMQP consumer with prefetch=1 and its own priority.
+     * When dispatching messages, RabbitMQ always selects the highest-priority consumer
+     * that is available.
+     */
     @Bean
     public ListenerContainerCustomizer<MessageListenerContainer> customizer() {
         AtomicInteger index = new AtomicInteger();
         return (container, destination, group) -> {
-            if (container instanceof SimpleMessageListenerContainer smlc && Objects.equals(destination, "loadflow.run.loadflowGroup")) {
+            if (container instanceof SimpleMessageListenerContainer smlc && Objects.equals(group, "loadflowGroup")) {
                 smlc.setConsumerArguments(Map.of("x-priority", index.getAndIncrement()));
             }
         };
