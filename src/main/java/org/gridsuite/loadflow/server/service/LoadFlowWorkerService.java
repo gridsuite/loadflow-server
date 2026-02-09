@@ -545,6 +545,16 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         return temporaryLimit != null ? temporaryLimit.getName() : null;
     }
 
+    /*
+     * Spring Cloud Stream does not allow customizing each consumer within a single listener
+     * container (i.e. when concurrency = N)
+     *
+     * Since we need to customize each consumer individually, we simulate "concurrency = N"
+     * by creating N listener containers, each with concurrency = 1.
+     *
+     * This requires defining one Consumer bean per container, which explains
+     * the duplicated methods below.
+     */
     @Bean
     public Consumer<Message<String>> consumeRun1() {
         return super.consumeRun();

@@ -22,6 +22,10 @@ public class RabbitConsumerConfig {
      */
     @Bean
     public ListenerContainerCustomizer<MessageListenerContainer> customizer() {
+        /*
+         * Using AtomicInteger as in org/springframework/cloud/stream/binder/rabbit/RabbitMessageChannelBinder.java
+         * We expect cloud stream to call our customizer exactly once in order for each container so it will produce a sequence of increasing priorities
+         */
         AtomicInteger index = new AtomicInteger();
         return (container, destination, group) -> {
             if (container instanceof SimpleMessageListenerContainer smlc && Objects.equals(group, "loadflowGroup")) {
