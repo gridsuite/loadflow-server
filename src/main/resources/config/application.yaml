@@ -4,15 +4,25 @@ spring:
 
   cloud:
     function:
-      definition: consumeRun;consumeCancel
+      definition: consumeRun1;consumeRun2;consumeRun3;consumeRun4;consumeCancel
     stream:
       bindings:
-        consumeRun-in-0:
+        # Spring Cloud Stream does not allow customizing each consumer within a single listener
+        # container (i.e. when concurrency = N)
+        #
+        # Since we need to customize each consumer individually, we simulate "concurrency = N"
+        # by creating N listener containers, each with concurrency = 1.
+        consumeRun1-in-0: &consumeRunConfig
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
           group: loadflowGroup
           consumer:
-            concurrency: 4
             max-attempts: 1
+        consumeRun2-in-0:
+          <<: *consumeRunConfig
+        consumeRun3-in-0:
+          <<: *consumeRunConfig
+        consumeRun4-in-0:
+          <<: *consumeRunConfig
         publishRun-out-0:
           destination: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run
         publishResult-out-0:
@@ -28,7 +38,8 @@ spring:
       output-bindings: publishRun-out-0;publishResult-out-0;publishCancel-out-0;publishStopped-out-0;publishCancelFailed-out-0
       rabbit:
         bindings:
-          consumeRun-in-0:
+          # See comment on spring.cloud.stream.bindings.consumeRun1-in-0
+          consumeRun1-in-0: &consumeRunRabbitConfig
             consumer:
               auto-bind-dlq: true
               dead-letter-exchange: ${powsybl-ws.rabbitmq.destination.prefix:}loadflow.run.dlx
@@ -37,6 +48,12 @@ spring:
               quorum:
                 enabled: true
                 delivery-limit: 2
+          consumeRun2-in-0:
+            <<: *consumeRunRabbitConfig
+          consumeRun3-in-0:
+            <<: *consumeRunRabbitConfig
+          consumeRun4-in-0:
+            <<: *consumeRunRabbitConfig
 powsybl-ws:
   database:
     name: loadflow

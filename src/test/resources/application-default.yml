@@ -8,6 +8,10 @@ spring:
     hibernate:
       #to turn off schema validation that fails (because of clob types) and blocks tests even if the the schema is compatible
       ddl-auto: none
+  cloud:
+    function:
+      # disable consumeRun2/3/4 during test - all of them receive the "loadflowGroup" messages otherwise
+      definition: consumeRun1;consumeCancel
 
 logging:
   level:
