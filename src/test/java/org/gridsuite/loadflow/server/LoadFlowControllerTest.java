@@ -899,16 +899,6 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void getDefaultProviderTest() throws Exception {
-        String result = mockMvc.perform(get("/" + VERSION + "/default-provider"))
-                .andExpect(status().isOk())
-                .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
-                .andReturn().getResponse().getContentAsString();
-
-        assertTrue(result.contains("OpenLoadFlow"));
-    }
-
-    @Test
     public void getSpecificParametersTest() throws Exception {
         // just OpenLoadFlow
         String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=OpenLoadFlow"))

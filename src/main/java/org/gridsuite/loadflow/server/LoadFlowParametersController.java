@@ -113,16 +113,6 @@ public class LoadFlowParametersController {
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping(value = "/{uuid}/provider")
-    @Operation(summary = "Update provider")
-    @ApiResponse(responseCode = "200", description = "provider was updated")
-    public ResponseEntity<Void> updateProvider(
-            @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid,
-            @RequestBody(required = false) String provider) {
-        parametersService.updateProvider(parametersUuid, provider);
-        return ResponseEntity.ok().build();
-    }
-
     @GetMapping(value = "/{uuid}/provider")
     @Operation(summary = "Get the provider")
     @ApiResponse(responseCode = "200", description = "provider were returned")
