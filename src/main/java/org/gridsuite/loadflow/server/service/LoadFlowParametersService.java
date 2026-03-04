@@ -90,9 +90,9 @@ public class LoadFlowParametersService {
     @Transactional
     public void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parametersInfos) {
         LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
-        //if the parameters is null it means it's a reset to defaultValues, but we need to keep the provider because it's updated separately
+        //if the parameters is null it means it's a reset to defaultValues
         if (parametersInfos == null) {
-            loadFlowParametersEntity.update(getDefaultParametersValues(loadFlowParametersEntity.getProvider()));
+            loadFlowParametersEntity.update(getDefaultParametersValues());
         } else {
             loadFlowParametersEntity.update(parametersInfos);
         }
@@ -112,14 +112,14 @@ public class LoadFlowParametersService {
 
     public UUID createDefaultParameters() {
         //default parameters
-        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues(defaultProvider);
+        LoadFlowParametersInfos defaultParametersInfos = getDefaultParametersValues();
         return createParameters(defaultParametersInfos);
     }
 
-    public LoadFlowParametersInfos getDefaultParametersValues(String provider) {
+    public LoadFlowParametersInfos getDefaultParametersValues() {
         return LoadFlowParametersInfos.builder()
-                .provider(provider)
-                .limitReduction(getDefaultLimitReductionValueForProvider(provider))
+                .provider(defaultProvider)
+                .limitReduction(getDefaultLimitReductionValueForProvider(defaultProvider))
                 .commonParameters(LoadFlowParameters.load())
                 .specificParametersPerProvider(Map.of())
                 .limitReductions(limitReductionService.createDefaultLimitReductions()).build();
@@ -127,13 +127,6 @@ public class LoadFlowParametersService {
 
     public List<LimitReductionsByVoltageLevel> getDefaultLimitReductions() {
         return limitReductionService.createDefaultLimitReductions();
-    }
-
-    @Transactional
-    public void updateProvider(UUID parametersUuid, String provider) {
-        loadFlowParametersRepository.findById(parametersUuid)
-            .orElseThrow()
-            .setProvider(provider != null ? provider : defaultProvider);
     }
 
     public LoadFlowParametersInfos toLoadFlowParametersInfos(LoadFlowParametersEntity entity) {
