@@ -134,7 +134,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testCreateWithDefaultValues() throws Exception {
-        LoadFlowParametersInfos defaultLoadFlowParameters = parametersService.getDefaultParametersValues(defaultLoadFlowProvider);
+        LoadFlowParametersInfos defaultLoadFlowParameters = parametersService.getDefaultParametersValues();
         mockMvc.perform(post(URI_PARAMETERS_BASE + "/default"))
                 .andExpect(status().isOk()).andReturn();
 
@@ -241,7 +241,7 @@ class LoadFlowParametersTest {
     void testResetToDefaultValues() throws Exception {
         limitReductionService.setDefaultValues(List.of(List.of(1.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0)));
 
-        LoadFlowParametersInfos defaultValues = parametersService.getDefaultParametersValues(defaultLoadFlowProvider);
+        LoadFlowParametersInfos defaultValues = parametersService.getDefaultParametersValues();
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
         LoadFlowParametersInfos parametersToUpdate = LoadFlowParametersInfos.builder()
                 .provider(defaultLoadFlowProvider)
@@ -325,37 +325,6 @@ class LoadFlowParametersTest {
         });
 
         assertThat(receivedParameters).hasSize(2);
-    }
-
-    @Test
-    void testUpdateProvider() throws Exception {
-        LoadFlowParametersInfos parameters = buildParameters();
-
-        UUID parametersUuid = saveAndReturnId(parameters);
-
-        String newProvider = "newProvider";
-
-        mockMvc.perform(put(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider")
-                .content(newProvider))
-                .andExpect(status().isOk()).andReturn();
-
-        LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
-
-        assertThat(updatedParameters.getProvider()).isEqualTo(newProvider);
-    }
-
-    @Test
-    void testResetProvider() throws Exception {
-        LoadFlowParametersInfos parameters = buildParameters();
-
-        UUID parametersUuid = saveAndReturnId(parameters);
-
-        mockMvc.perform(put(URI_PARAMETERS_BASE + "/" + parametersUuid + "/provider"))
-                .andExpect(status().isOk()).andReturn();
-
-        LoadFlowParametersEntity securityAnalysisParametersEntity = parametersRepository.findById(parametersUuid).orElseThrow();
-
-        assertEquals(defaultLoadFlowProvider, securityAnalysisParametersEntity.getProvider());
     }
 
     @Test
