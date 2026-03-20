@@ -98,6 +98,15 @@ public class LoadFlowController {
                 : ResponseEntity.notFound().build();
     }
 
+    @PostMapping(value = "/results", produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Save loadflow results to the database")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow results have been saved")})
+    public ResponseEntity<UUID> saveResults(@RequestBody com.powsybl.loadflow.LoadFlowResult loadFlowResult) {
+        UUID resultUuid = uuidGeneratorService.generate();
+        loadFlowResultService.insert(resultUuid, loadFlowResult);
+        return ResponseEntity.ok().body(resultUuid);
+    }
+
     @DeleteMapping(value = "/results", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Delete loadflow results from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow results has been deleted")})
