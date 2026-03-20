@@ -49,6 +49,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -77,13 +78,13 @@ import java.util.concurrent.CompletableFuture;
 
 import static com.github.tomakehurst.wiremock.core.WireMockConfiguration.wireMockConfig;
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.gridsuite.computation.service.NotificationService.HEADER_USER_ID;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 import static org.junit.Assert.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -94,7 +95,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 @SpringBootTest
-@ContextHierarchy({@ContextConfiguration(classes = {LoadFlowApplication.class, TestChannelBinderConfiguration.class})})
+@ContextHierarchy({@ContextConfiguration(classes = {LoadFlowApplication.class, TestChannelBinderConfiguration.class, RestTemplateConfig.class})})
 public class LoadFlowControllerTest {
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
@@ -822,6 +823,28 @@ public class LoadFlowControllerTest {
             assertEquals(NotificationService.getCancelFailedMessage(COMPUTATION_TYPE), message.getHeaders().get("message"));
             //FIXME how to test the case when the computation is still in progress and we send a cancel request
         }
+    }
+
+    @Test
+    public void saveResultShouldSaveResultToDatabase() throws Exception {
+        UUID resultUuid = UUID.randomUUID();
+        LoadFlowResult result = new LoadFlowResultImpl(true, Collections.emptyMap(), null, Collections.emptyList());
+        when(uuidGeneratorService.generate()).thenReturn(resultUuid);
+
+        MvcResult mvcResult = mockMvc.perform(post("/" + VERSION + "/results").contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(result)))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+
+        ArgumentCaptor<LoadFlowResult> loadFlowResultCaptor = ArgumentCaptor.forClass(LoadFlowResult.class);
+        verify(uuidGeneratorService).generate();
+        verify(loadFlowResultService).insert(eq(resultUuid), loadFlowResultCaptor.capture());
+        assertThat(loadFlowResultCaptor.getValue()).usingRecursiveComparison()
+                .isEqualTo(result);
+        assertThat(mapper.readValue(
+                mvcResult.getResponse()
+                        .getContentAsString(), UUID.class)).isEqualTo(resultUuid);
     }
 
     @SneakyThrows
