@@ -45,7 +45,7 @@ public class SlackBusResultSpecificationBuilder extends AbstractCommonSpecificat
 
     public Specification<SlackBusResultEntity> buildSlackBusResultSpecification(List<UUID> uuids, List<ResourceFilterDTO> resourceFilters) {
         List<ResourceFilterDTO> childrenResourceFilters = resourceFilters.stream().filter(this::isNotParentFilter).toList();
-        Specification<SlackBusResultEntity> specification = Specification.where(uuidIn(uuids));
+        Specification<SlackBusResultEntity> specification = uuidIn(uuids);
 
         return SpecificationUtils.appendFiltersToSpecification(specification, childrenResourceFilters);
     }
