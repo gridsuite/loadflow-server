@@ -141,21 +141,6 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     }
 
     @Transactional
-    public void insert(UUID resultUuid, LoadFlowResult result) {
-        Objects.requireNonNull(result);
-        Objects.requireNonNull(result.getComponentResults());
-
-        LoadFlowStatus status = LoadFlowService.computeLoadFlowStatus(result);
-        LoadFlowModificationInfos loadFlowModificationInfos = new LoadFlowModificationInfos();
-        List<LimitViolationInfos> limitViolationInfos = Collections.emptyList();
-        Map<Pair<Integer, Integer>, LoadFlowWorkerService.ComponentCalculatedInfos> componentInfos = Collections.emptyMap();
-        List<CountryAdequacy> countryAdequacies = Collections.emptyList();
-        Map<String, List<Exchange>> exchanges = Collections.emptyMap();
-
-        insert(resultUuid, result, status, loadFlowModificationInfos, limitViolationInfos, componentInfos, countryAdequacies, exchanges);
-    }
-
-    @Transactional
     public void insert(UUID resultUuid,
                        LoadFlowResult result,
                        LoadFlowStatus status,

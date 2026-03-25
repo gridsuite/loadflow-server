@@ -839,7 +839,14 @@ public class LoadFlowControllerTest {
 
         ArgumentCaptor<LoadFlowResult> loadFlowResultCaptor = ArgumentCaptor.forClass(LoadFlowResult.class);
         verify(uuidGeneratorService).generate();
-        verify(loadFlowResultService).insert(eq(resultUuid), loadFlowResultCaptor.capture());
+        verify(loadFlowResultService).insert(eq(resultUuid),
+                loadFlowResultCaptor.capture(),
+                eq(LoadFlowStatus.DIVERGED),
+                eq(new LoadFlowModificationInfos()),
+                eq(Collections.emptyList()),
+                eq(Collections.emptyMap()),
+                eq(Collections.emptyList()),
+                eq(Collections.emptyMap()));
         assertThat(loadFlowResultCaptor.getValue()).usingRecursiveComparison()
                 .isEqualTo(result);
         assertThat(mapper.readValue(

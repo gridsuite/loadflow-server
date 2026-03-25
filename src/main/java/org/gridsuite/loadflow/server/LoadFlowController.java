@@ -14,15 +14,15 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.dto.ReportInfos;
 import org.gridsuite.computation.service.UuidGeneratorService;
-import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
-import org.gridsuite.loadflow.server.dto.LoadFlowResult;
-import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowRunContext;
 import org.gridsuite.loadflow.server.service.LoadFlowService;
+import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
 import org.springframework.data.domain.Sort;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -30,9 +30,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 import static org.gridsuite.computation.service.NotificationService.HEADER_USER_ID;
 import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
@@ -103,7 +101,14 @@ public class LoadFlowController {
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow results have been saved")})
     public ResponseEntity<UUID> saveResults(@RequestBody com.powsybl.loadflow.LoadFlowResult loadFlowResult) {
         UUID resultUuid = uuidGeneratorService.generate();
-        loadFlowResultService.insert(resultUuid, loadFlowResult);
+        LoadFlowStatus status = LoadFlowService.computeLoadFlowStatus(loadFlowResult);
+        LoadFlowModificationInfos loadFlowModificationInfos = new LoadFlowModificationInfos();
+        List<LimitViolationInfos> limitViolationInfos = Collections.emptyList();
+        Map<Pair<Integer, Integer>, LoadFlowWorkerService.ComponentCalculatedInfos> componentInfos = Collections.emptyMap();
+        List<CountryAdequacy> countryAdequacies = Collections.emptyList();
+        Map<String, List<Exchange>> exchanges = Collections.emptyMap();
+
+        loadFlowResultService.insert(resultUuid, loadFlowResult, status, loadFlowModificationInfos, limitViolationInfos, componentInfos, countryAdequacies, exchanges);
         return ResponseEntity.ok().body(resultUuid);
     }
 
