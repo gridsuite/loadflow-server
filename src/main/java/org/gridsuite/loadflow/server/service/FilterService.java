@@ -6,8 +6,8 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.network.store.client.NetworkStoreService;
-import com.powsybl.security.LimitViolationType;
 import lombok.NonNull;
 import org.gridsuite.computation.dto.GlobalFilter;
 import org.gridsuite.computation.dto.ResourceFilterDTO;
