@@ -61,7 +61,7 @@
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
         <powsybl-balances-adjustment.version>3.1.0</powsybl-balances-adjustment.version>
         <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
-        <gridsuite-computation.version>2.0.0</gridsuite-computation.version>
+        <gridsuite-computation.version>2.1.0</gridsuite-computation.version>
     </properties>
 
     <build>
