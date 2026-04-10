@@ -13,6 +13,7 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.powsybl.commons.report.ReportNodeDeserializer;
 import com.powsybl.commons.report.ReportNodeJsonModule;
 import com.powsybl.loadflow.json.LoadFlowParametersJsonModule;
+import com.powsybl.loadflow.json.LoadFlowResultJsonModule;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.web.client.RestTemplateBuilder;
 import org.springframework.context.annotation.Bean;
@@ -57,6 +58,7 @@ public class RestTemplateConfig {
         var objectMapper = Jackson2ObjectMapperBuilder.json().build();
         objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
         objectMapper.registerModule(new LoadFlowParametersJsonModule());
+        objectMapper.registerModule(new LoadFlowResultJsonModule());
         objectMapper.registerModule(new ReportNodeJsonModule());
         objectMapper.setInjectableValues(new InjectableValues.Std().addValue(ReportNodeDeserializer.DICTIONARY_VALUE_ID, null));
         return objectMapper;

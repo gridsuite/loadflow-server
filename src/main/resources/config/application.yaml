@@ -58,6 +58,11 @@ powsybl-ws:
   database:
     name: loadflow
 
+computation:
+  rabbit:
+    loadbalanced-group:
+      - loadflowGroup
+
 # default values for loadflow providers "DynaFlow" or "OpenLoadFlow"
 loadflow:
   default-provider: OpenLoadFlow
