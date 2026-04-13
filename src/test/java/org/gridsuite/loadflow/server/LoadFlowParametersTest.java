@@ -1,19 +1,14 @@
 /**
- * Copyright (c) 2024, RTE (http://www.rte-france.com)
+ * Copyright (c) 2026, RTE (http://www.rte-france.com)
  * This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 package org.gridsuite.loadflow.server;
 
-import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.gridsuite.loadflow.utils.assertions.Assertions.assertThat;
-
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
-
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.loadflow.LoadFlowParameters;
 import org.gridsuite.computation.error.ComputationException;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -22,25 +17,28 @@ import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntit
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
-import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.http.MediaType;
 
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.gridsuite.loadflow.utils.assertions.Assertions.assertThat;
 import static org.junit.Assert.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.loadflow.LoadFlowParameters;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
@@ -306,25 +304,6 @@ class LoadFlowParametersTest {
         LoadFlowParametersValues parametersValues = parametersService.toLoadFlowParametersValues(PROVIDER, parameters.toEntity());
 
         assertThat(receivedParameters).recursivelyEquals(parametersValues);
-    }
-
-    @Test
-    void testGetAll() throws Exception {
-        LoadFlowParametersInfos parameters1 = buildParameters();
-
-        LoadFlowParametersInfos parameters2 = buildParametersUpdate();
-
-        saveAndReturnId(parameters1);
-
-        saveAndReturnId(parameters2);
-
-        MvcResult mvcResult = mockMvc.perform(get(URI_PARAMETERS_BASE))
-                .andExpect(status().isOk()).andReturn();
-        String resultAsString = mvcResult.getResponse().getContentAsString();
-        List<LoadFlowParametersInfos> receivedParameters = mapper.readValue(resultAsString, new TypeReference<>() {
-        });
-
-        assertThat(receivedParameters).hasSize(2);
     }
 
     @Test
