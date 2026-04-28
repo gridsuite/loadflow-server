@@ -2,6 +2,7 @@ package org.gridsuite.loadflow.server;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.security.*;
 import org.gridsuite.computation.dto.ReportInfos;

@@ -45,7 +45,7 @@
 
         <jib.from.image>powsybl/java-dynawo:3.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>50.0.0</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>50.1.0</gridsuite-dependencies.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -59,9 +59,6 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
-        <powsybl-balances-adjustment.version>3.1.0</powsybl-balances-adjustment.version>
-        <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
-        <gridsuite-computation.version>2.1.0</gridsuite-computation.version>
     </properties>
 
     <build>
@@ -129,8 +126,6 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
-            <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
-            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
@@ -151,7 +146,6 @@
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-balances-adjustment</artifactId>
-            <version>${powsybl-balances-adjustment.version}</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
