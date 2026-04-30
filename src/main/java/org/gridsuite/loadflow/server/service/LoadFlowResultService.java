@@ -232,6 +232,14 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return globalEntity != null ? globalEntity.getStatus() : null;
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public Map<UUID, LoadFlowStatus> findStatuses(List<UUID> resultUuids) {
+        Objects.requireNonNull(resultUuids);
+        List<GlobalStatusEntity> globalEntities = globalStatusRepository.findByResultUuidIn(resultUuids);
+        return globalEntities.stream().collect(Collectors.toMap(GlobalStatusEntity::getResultUuid, GlobalStatusEntity::getStatus));
+    }
+
     public List<ComponentResultEntity> findComponentResults(UUID resultUuid, List<ResourceFilterDTO> resourceFilters, Sort sort) {
         Objects.requireNonNull(resultUuid);
         Specification<ComponentResultEntity> specification = componentResultSpecificationBuilder.buildSpecification(resultUuid, resourceFilters);
