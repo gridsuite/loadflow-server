@@ -6,8 +6,8 @@
  */
 package org.gridsuite.loadflow.server.repositories;
 
+import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.network.TwoSides;
-import com.powsybl.security.LimitViolationType;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;

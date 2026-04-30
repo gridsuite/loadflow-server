@@ -7,7 +7,7 @@
 
 package org.gridsuite.loadflow.server.entities;
 
-import com.powsybl.security.LimitViolationType;
+import com.powsybl.contingency.violations.LimitViolationType;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
