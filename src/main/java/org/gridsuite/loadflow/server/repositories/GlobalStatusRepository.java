@@ -10,6 +10,7 @@ import org.gridsuite.loadflow.server.entities.GlobalStatusEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -18,6 +19,8 @@ import java.util.UUID;
 @Repository
 public interface GlobalStatusRepository extends JpaRepository<GlobalStatusEntity, UUID> {
     GlobalStatusEntity findByResultUuid(UUID resultUuid);
+
+    List<GlobalStatusEntity> findByResultUuidIn(List<UUID> resultUuids);
 
     void deleteByResultUuid(UUID resultUuid);
 
