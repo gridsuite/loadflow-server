@@ -59,6 +59,8 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
+        <!-- FIXME: to be removed at next powsybl-ws-dependencies upgrade  -->
+        <gridsuite-computation.version>2.3.0-SNAPSHOT</gridsuite-computation.version>
     </properties>
 
     <build>
@@ -126,6 +128,7 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
+            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>

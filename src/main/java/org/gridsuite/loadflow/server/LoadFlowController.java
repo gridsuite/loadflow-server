@@ -127,6 +127,13 @@ public class LoadFlowController {
         return ResponseEntity.ok().body(loadFlowService.getStatus(resultUuid));
     }
 
+    @PostMapping(value = "/results/statuses", consumes = APPLICATION_JSON_VALUE, produces = APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get loadflow statuses from the database")
+    @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow statuses")})
+    public ResponseEntity<Map<UUID, LoadFlowStatus>> getStatuses(@Parameter(description = "Result uuids") @RequestBody List<UUID> resultUuids) {
+        return ResponseEntity.ok().body(loadFlowService.getStatuses(resultUuids));
+    }
+
     @PutMapping(value = "/results/invalidate-status", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Invalidate the loadflow status from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "The loadflow status has been invalidated")})
