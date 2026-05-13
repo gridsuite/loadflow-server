@@ -236,7 +236,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     @Transactional(readOnly = true)
     public Map<UUID, LoadFlowStatus> findStatuses(List<UUID> resultUuids) {
         Objects.requireNonNull(resultUuids);
-        List<GlobalStatusEntity> globalEntities = globalStatusRepository.findByResultUuidIn(resultUuids);
+        List<GlobalStatusEntity> globalEntities = globalStatusRepository.findAllById(resultUuids);
         return globalEntities.stream().collect(Collectors.toMap(GlobalStatusEntity::getResultUuid, GlobalStatusEntity::getStatus));
     }
 
