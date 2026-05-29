@@ -14,7 +14,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 /**
- * @author Anis Touri <anis.touri at rte-france.com
+ * @author Anis Touri <anis.touri at rte-france.com>
  */
 @Repository
 public interface ResultRepository extends JpaRepository<LoadFlowResultEntity, UUID> {

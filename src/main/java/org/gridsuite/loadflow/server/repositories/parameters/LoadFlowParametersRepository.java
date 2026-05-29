@@ -6,11 +6,10 @@
  */
 package org.gridsuite.loadflow.server.repositories.parameters;
 
-import java.util.UUID;
-
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.UUID;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>

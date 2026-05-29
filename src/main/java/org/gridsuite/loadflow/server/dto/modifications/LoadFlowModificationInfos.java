@@ -21,8 +21,8 @@ public class LoadFlowModificationInfos {
                                                      Integer solvedTapPosition, TapPositionType type) {
     }
 
-
     public record ShuntCompensatorModification(String shuntCompensatorId, Integer initialSectionCount, Integer solvedSectionCount) {
+
     }
 
     private List<TwoWindingsTransformerModification> twoWindingsTransformerModifications = new ArrayList<>();

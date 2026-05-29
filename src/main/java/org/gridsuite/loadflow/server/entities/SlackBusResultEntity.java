@@ -13,7 +13,7 @@ import lombok.experimental.FieldNameConstants;
 import java.util.UUID;
 
 /**
- * @author AJELLAL Ali <ali.ajellal@rte-france.com>
+ * @author AJELLAL Ali <ali.ajellal at rte-france.com>
  */
 @NoArgsConstructor
 @AllArgsConstructor

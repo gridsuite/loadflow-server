@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Repository
 public interface CountryAdequacyRepository extends JpaRepository<CountryAdequacyEntity, UUID> {
