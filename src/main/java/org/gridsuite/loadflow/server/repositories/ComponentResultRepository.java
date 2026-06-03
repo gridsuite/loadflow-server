@@ -18,9 +18,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 import java.util.UUID;
 
-
 /**
- * @author Franck Lecuyer <franck.lecuyer at rte-france.com
+ * @author Franck Lecuyer <franck.lecuyer at rte-france.com>
  */
 @Repository
 public interface ComponentResultRepository extends JpaRepository<ComponentResultEntity, UUID>, JpaSpecificationExecutor<ComponentResultEntity> {

@@ -8,18 +8,15 @@ package org.gridsuite.loadflow.server.entities.parameters;
 
 import com.powsybl.iidm.network.Country;
 import com.powsybl.loadflow.LoadFlowParameters;
-import lombok.*;
-
 import jakarta.persistence.*;
-
+import lombok.*;
+import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
+import org.springframework.lang.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
-
-import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
-import org.springframework.lang.Nullable;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>

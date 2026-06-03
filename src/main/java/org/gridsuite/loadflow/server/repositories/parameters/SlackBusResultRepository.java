@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * @author AJELLAL Ali <ali.ajellal@rte-france.com>
+ * @author AJELLAL Ali <ali.ajellal at rte-france.com>
  */
 public interface SlackBusResultRepository extends JpaRepository<SlackBusResultEntity, UUID>, JpaSpecificationExecutor<SlackBusResultEntity> {
     List<SlackBusResultEntity> findAll(Specification specification);

@@ -33,25 +33,23 @@ import lombok.Getter;
 import lombok.Setter;
 import org.apache.commons.lang3.tuple.Pair;
 import org.gridsuite.computation.service.*;
+import org.gridsuite.loadflow.server.PropertyServerNameProvider;
 import org.gridsuite.loadflow.server.dto.CountryAdequacy;
 import org.gridsuite.loadflow.server.dto.Exchange;
-import org.gridsuite.loadflow.server.PropertyServerNameProvider;
-import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.modifications.TapPositionType;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.stereotype.Service;
-
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
-
 import static org.gridsuite.computation.utils.ComputationResultUtils.getViolationLocationId;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
 
@@ -119,13 +117,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
         runContext.getParameters().getLimitReductions().forEach(limitReduction -> {
             LimitReductionsByVoltageLevel.VoltageLevel voltageLevel = limitReduction.getVoltageLevel();
-            IdentifiableCriterion voltageLevelCriterion = new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(voltageLevel.getLowBound(), voltageLevel.getHighBound(), false, true)));
+            IdentifiableCriterion voltageLevelCriterion = new IdentifiableCriterion(new AtLeastOneNominalVoltageCriterion(VoltageInterval.between(voltageLevel.getLowBound(),
+                    voltageLevel.getHighBound(), false, true)));
             limitReductions.add(createLimitReduction(voltageLevelCriterion, new PermanentDurationCriterion(), limitReduction.getPermanentLimitReduction()));
             limitReduction.getTemporaryLimitReductions().forEach(temporaryLimitReduction -> {
                 LimitDurationCriterion limitDurationCriterion;
                 LimitReductionsByVoltageLevel.LimitDuration limitDuration = temporaryLimitReduction.getLimitDuration();
                 if (temporaryLimitReduction.getLimitDuration().getHighBound() != null) {
-                    limitDurationCriterion = IntervalTemporaryDurationCriterion.between(limitDuration.getLowBound(), limitDuration.getHighBound(), limitDuration.isLowClosed(), limitDuration.isHighClosed());
+                    limitDurationCriterion = IntervalTemporaryDurationCriterion.between(limitDuration.getLowBound(), limitDuration.getHighBound(), limitDuration.isLowClosed(),
+                            limitDuration.isHighClosed());
                 } else {
                     limitDurationCriterion = IntervalTemporaryDurationCriterion.greaterThan(limitDuration.getLowBound(), limitDuration.isLowClosed());
                 }
@@ -315,7 +315,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             Terminal terminal = load.getTerminal();
             ComponentValue componentValue = getValueFromTerminalInComponent(terminal);
             if (componentValue != null) {
-                ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+                ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0.,
+                        0., 0., 0.));
                 infos.setConsumptions(infos.getConsumptions() + componentValue.value);
             }
         });
@@ -325,7 +326,8 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             Terminal terminal = injection.getTerminal();
             ComponentValue componentValue = getValueFromTerminalInComponent(terminal);
             if (componentValue != null) {
-                ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+                ComponentCalculatedInfos infos = result.computeIfAbsent(Pair.of(componentValue.connectedComponentNum, componentValue.synchronousComponentNum), key -> new ComponentCalculatedInfos(0.,
+                        0., 0., 0.));
                 infos.setGenerations(infos.getGenerations() + componentValue.value);
             }
         });
@@ -337,8 +339,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             ComponentValue componentValue2 = getValueFromTerminalInComponent(terminals.getRight());
 
             if (componentValue1 != null && componentValue2 != null) {
-                ComponentCalculatedInfos infos1 = result.computeIfAbsent(Pair.of(componentValue1.connectedComponentNum, componentValue1.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
-                ComponentCalculatedInfos infos2 = result.computeIfAbsent(Pair.of(componentValue2.connectedComponentNum, componentValue2.synchronousComponentNum), key -> new ComponentCalculatedInfos(0., 0., 0., 0.));
+                ComponentCalculatedInfos infos1 = result.computeIfAbsent(Pair.of(componentValue1.connectedComponentNum, componentValue1.synchronousComponentNum), key -> new ComponentCalculatedInfos(
+                        0., 0., 0., 0.));
+                ComponentCalculatedInfos infos2 = result.computeIfAbsent(Pair.of(componentValue2.connectedComponentNum, componentValue2.synchronousComponentNum), key -> new ComponentCalculatedInfos(
+                        0., 0., 0., 0.));
 
                 if (componentValue1.connectedComponentNum != componentValue2.connectedComponentNum ||
                     componentValue1.synchronousComponentNum != componentValue2.synchronousComponentNum) {

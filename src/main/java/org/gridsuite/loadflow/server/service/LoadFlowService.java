@@ -136,13 +136,14 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             .build();
     }
 
-    private static List<SlackBusResult> getSlackBusResult(boolean hasChildFilter, List <SlackBusResultEntity> slackBusResultEntities, ComponentResultEntity componentResultEntity) {
-        List <SlackBusResultEntity> slackBusResults = new ArrayList<>();
+    private static List<SlackBusResult> getSlackBusResult(boolean hasChildFilter, List<SlackBusResultEntity> slackBusResultEntities, ComponentResultEntity componentResultEntity) {
+        List<SlackBusResultEntity> slackBusResults = new ArrayList<>();
         if (!hasChildFilter) {
             slackBusResults.addAll(componentResultEntity.getSlackBusResults());
         } else {
             // map the componentResultUuid to the associated slackBusResult entities
-            Map<UUID, List<SlackBusResultEntity>> map = slackBusResultEntities.stream().filter(Objects::nonNull).collect(Collectors.groupingBy(slackBusResultEntity -> slackBusResultEntity.getComponentResult().getComponentResultUuid()));
+            Map<UUID, List<SlackBusResultEntity>> map = slackBusResultEntities.stream().filter(Objects::nonNull).collect(
+                    Collectors.groupingBy(slackBusResultEntity -> slackBusResultEntity.getComponentResult().getComponentResultUuid()));
             if (map.isEmpty()) {
                 return List.of();
             }

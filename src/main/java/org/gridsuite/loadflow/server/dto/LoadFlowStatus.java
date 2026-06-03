@@ -7,7 +7,7 @@
 package org.gridsuite.loadflow.server.dto;
 
 /**
- * @author Anis Touri <anis.touri at rte-france.com
+ * @author Anis Touri <anis.touri at rte-france.com>
  */
 public enum LoadFlowStatus {
     NOT_DONE,

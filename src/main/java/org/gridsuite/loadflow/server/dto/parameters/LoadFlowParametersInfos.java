@@ -8,15 +8,12 @@ package org.gridsuite.loadflow.server.dto.parameters;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.powsybl.loadflow.LoadFlowParameters;
-
 import lombok.*;
-
+import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-
-import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>

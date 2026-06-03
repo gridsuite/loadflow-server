@@ -6,9 +6,7 @@
  */
 package org.gridsuite.loadflow.server.service;
 
-import java.util.*;
-import java.util.stream.Collectors;
-
+import com.powsybl.loadflow.LoadFlowParameters;
 import lombok.NonNull;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -19,8 +17,8 @@ import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersR
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.powsybl.loadflow.LoadFlowParameters;
+import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * @author Ayoub LABIDI <ayoub.labidi at rte-france.com>
