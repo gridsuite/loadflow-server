@@ -17,8 +17,4 @@ import java.util.UUID;
  */
 @Repository
 public interface GlobalStatusRepository extends JpaRepository<GlobalStatusEntity, UUID> {
-    GlobalStatusEntity findByResultUuid(UUID resultUuid);
-
-    void deleteByResultUuid(UUID resultUuid);
-
 }

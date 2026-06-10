@@ -1074,7 +1074,7 @@ public class LoadFlowControllerTest {
             .andExpect(status().isOk())
             .andReturn();
         assertEquals(LoadFlowStatus.RUNNING, mapper.readValue(result.getResponse().getContentAsString(), LoadFlowStatus.class));
-        assertEquals(LoadFlowStatus.RUNNING, globalStatusRepository.findByResultUuid(resultUuid).getStatus());
+        assertEquals(LoadFlowStatus.RUNNING, globalStatusRepository.findById(resultUuid).get().getStatus());
     }
 
     @Test

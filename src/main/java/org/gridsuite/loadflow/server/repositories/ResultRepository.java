@@ -10,7 +10,6 @@ import org.gridsuite.loadflow.server.entities.LoadFlowResultEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.Optional;
 import java.util.UUID;
 
 /**
@@ -18,7 +17,4 @@ import java.util.UUID;
  */
 @Repository
 public interface ResultRepository extends JpaRepository<LoadFlowResultEntity, UUID> {
-    Optional<LoadFlowResultEntity> findByResultUuid(UUID resultUuid);
-
-    void deleteByResultUuid(UUID resultUuid);
 }
