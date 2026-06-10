@@ -7,11 +7,9 @@
 package org.gridsuite.loadflow.server.entities;
 
 import com.powsybl.loadflow.LoadFlowResult;
-import lombok.*;
-
 import jakarta.persistence.*;
+import lombok.*;
 import lombok.experimental.FieldNameConstants;
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;

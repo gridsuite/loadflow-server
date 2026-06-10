@@ -21,7 +21,7 @@ public class Assertions extends org.assertj.core.api.Assertions {
     }
 
     @CheckReturnValue
-    public static DTOAssert<LoadFlowParametersValues > assertThat(LoadFlowParametersValues actual) {
+    public static DTOAssert<LoadFlowParametersValues> assertThat(LoadFlowParametersValues actual) {
         return new DTOAssert<>(actual);
     }
 }

@@ -10,7 +10,7 @@ package org.gridsuite.loadflow.server.dto;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 /**
- * @author Anis TOURI <anis.touri@rte-france.com>
+ * @author Anis TOURI <anis.touri at rte-france.com>
  */
 public enum Column {
     // Limit violation columns

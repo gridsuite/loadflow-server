@@ -50,9 +50,8 @@ import java.util.stream.Collectors;
 
 import static org.gridsuite.computation.utils.FilterUtils.fromStringFiltersToDTO;
 
-
 /**
- * @author Anis Touri <anis.touri at rte-france.com
+ * @author Anis Touri <anis.touri at rte-france.com>
  */
 @AllArgsConstructor
 @Service

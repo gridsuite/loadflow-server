@@ -169,8 +169,10 @@ public class LoadFlowControllerTest {
             assertEquals(limitViolationsDto.get(i).getValue(), limitViolations.get(i).getValue(), 0.01);
             assertEquals(limitViolationsDto.get(i).getSide(), limitViolations.get(i).getSide() != null ? limitViolations.get(i).getSide().name() : "");
             assertEquals(limitViolationsDto.get(i).getLimitType(), limitViolations.get(i).getLimitType());
-            assertEquals(limitViolationsDto.get(i).getActualOverloadDuration(), LoadFlowWorkerService.calculateActualOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i), network), network));
-            assertEquals(limitViolationsDto.get(i).getUpComingOverloadDuration(), LoadFlowWorkerService.calculateUpcomingOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i), network)));
+            assertEquals(limitViolationsDto.get(i).getActualOverloadDuration(),
+                    LoadFlowWorkerService.calculateActualOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i), network), network));
+            assertEquals(limitViolationsDto.get(i).getUpComingOverloadDuration(),
+                    LoadFlowWorkerService.calculateUpcomingOverloadDuration(LoadFlowWorkerService.toLimitViolationInfos(limitViolations.get(i), network)));
             assertEquals(limitViolationsDto.get(i).getOverload(), (limitViolations.get(i).getValue() / limitViolations.get(i).getLimit()) * 100, 0.01);
             Double patlLimit = LoadFlowWorkerService.getPatlLimit(limitViolationsDto.get(i), network);
             assertEquals(limitViolationsDto.get(i).getPatlLimit(), patlLimit);
@@ -245,7 +247,8 @@ public class LoadFlowControllerTest {
 
         VoltageLevel vl = twoWindingsTransformer.getTerminal1().getVoltageLevel();
         Bus nshunt = twoWindingsTransformer.getTerminal1().getBusBreakerView().getBus();
-        vl.newShuntCompensator().setId("SHUNT").setConnectableBus(nshunt.getId()).setSectionCount(1).setSolvedSectionCount(2).newLinearModel().setBPerSection(1.0E-5).setMaximumSectionCount(2).add().add();
+        vl.newShuntCompensator().setId("SHUNT").setConnectableBus(nshunt.getId()).setSectionCount(1).setSolvedSectionCount(2).newLinearModel().setBPerSection(1.0E-5).setMaximumSectionCount(2).add(
+                ).add();
     }
 
     @SneakyThrows
@@ -286,7 +289,8 @@ public class LoadFlowControllerTest {
 
     private void runTest(boolean applySolvedValues) throws Exception {
         MvcResult result = mockMvc.perform(post(
-                "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&applySolvedValues=" + applySolvedValues, NETWORK_UUID)
+                "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&applySolvedValues="
+                        + applySolvedValues, NETWORK_UUID)
                 .header(HEADER_USER_ID, "userId"))
             .andExpect(status().isOk())
             .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -348,7 +352,8 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                                    + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -383,7 +388,8 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                                    + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -449,7 +455,8 @@ public class LoadFlowControllerTest {
             doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                                    + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -506,7 +513,8 @@ public class LoadFlowControllerTest {
             doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&sort=limitName,asc&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&sort=limitName,asc&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                                    + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -676,7 +684,8 @@ public class LoadFlowControllerTest {
             doReturn(Optional.of(loadFlowParametersInfos)).when(loadFlowParametersService).getParametersValues(any(), any());
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                                    + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -917,7 +926,8 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID + "&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&reporterId=myReporter&receiver=me&reportUuid=" + REPORT_UUID + "&variantId=" + VARIANT_2_ID
+                                    + "&parametersUuid=" + PARAMETERS_UUID, NETWORK_UUID)
                             .header(HEADER_USER_ID, "user"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
@@ -1026,7 +1036,8 @@ public class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             MvcResult result = mockMvc.perform(post(
-                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID + "&limitReduction=0.7", NETWORK_UUID)
+                            "/" + VERSION + "/networks/{networkUuid}/run-and-save?reportType=LoadFlow&receiver=me&variantId=" + VARIANT_2_ID + "&parametersUuid=" + PARAMETERS_UUID
+                                    + "&limitReduction=0.7", NETWORK_UUID)
                             .header(HEADER_USER_ID, "userId"))
                     .andExpect(status().isOk())
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
