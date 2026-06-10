@@ -885,6 +885,39 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
+    public void testStatuses() {
+        MvcResult result = mockMvc.perform(post(
+                        "/" + VERSION + "/results/statuses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(List.of(RESULT_UUID, OTHER_RESULT_UUID))))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        Map<UUID, LoadFlowStatus> statuses = mapper.readValue(result.getResponse().getContentAsString(),
+                new TypeReference<Map<UUID, LoadFlowStatus>>() {
+                });
+        assertTrue(statuses.isEmpty());
+
+        mockMvc.perform(put("/" + VERSION + "/results/invalidate-status?resultUuid=" + RESULT_UUID))
+                .andExpect(status().isOk());
+
+        result = mockMvc.perform(post(
+                        "/" + VERSION + "/results/statuses")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(mapper.writeValueAsString(List.of(RESULT_UUID, OTHER_RESULT_UUID))))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andReturn();
+        statuses = mapper.readValue(result.getResponse().getContentAsString(),
+                new TypeReference<Map<UUID, LoadFlowStatus>>() {
+                });
+        assertEquals(1, statuses.size());
+        assertEquals(LoadFlowStatus.NOT_DONE, statuses.get(RESULT_UUID));
+        assertFalse(statuses.containsKey(OTHER_RESULT_UUID));
+    }
+
+    @SneakyThrows
+    @Test
     public void runWithReportTest() {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
