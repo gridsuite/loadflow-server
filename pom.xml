@@ -60,7 +60,7 @@
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
         <!-- FIXME: to remove at next version of powsybl-ws-dependencies -->
-        <powsybl-network-store.version>1.44.0</powsybl-network-store.version>
+        <powsybl-network-store.version>1.45.0</powsybl-network-store.version>
     </properties>
 
     <build>
