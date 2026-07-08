@@ -275,7 +275,7 @@ class LoadFlowParametersTest {
 
         UUID parametersUuid = saveAndReturnId(parametersToDuplicate);
 
-        mockMvc.perform(post(URI_PARAMETERS_BASE).queryParam("duplicateFrom", parametersUuid.toString()))
+        mockMvc.perform(post(URI_PARAMETERS_BASE + "/{uuid}/duplicate", parametersUuid))
                 .andExpect(status().isOk()).andReturn();
 
         List<LoadFlowParametersEntity> storedParameters = parametersRepository.findAll();
