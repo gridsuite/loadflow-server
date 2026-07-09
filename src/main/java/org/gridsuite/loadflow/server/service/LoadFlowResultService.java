@@ -207,13 +207,13 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     @Transactional
     public void delete(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        globalStatusRepository.deleteByResultUuid(resultUuid);
-        resultRepository.deleteByResultUuid(resultUuid);
+        globalStatusRepository.deleteById(resultUuid);
+        resultRepository.deleteById(resultUuid);
     }
 
     public Optional<LoadFlowResultEntity> findResults(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        return resultRepository.findByResultUuid(resultUuid);
+        return resultRepository.findById(resultUuid);
     }
 
     @Override
@@ -227,8 +227,8 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
     @Transactional(readOnly = true)
     public LoadFlowStatus findStatus(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
-        GlobalStatusEntity globalEntity = globalStatusRepository.findByResultUuid(resultUuid);
-        return globalEntity != null ? globalEntity.getStatus() : null;
+        Optional<GlobalStatusEntity> globalEntity = globalStatusRepository.findById(resultUuid);
+        return globalEntity.map(GlobalStatusEntity::getStatus).orElse(null);
     }
 
     @Override
