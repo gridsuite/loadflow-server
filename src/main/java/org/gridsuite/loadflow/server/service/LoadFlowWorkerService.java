@@ -7,8 +7,6 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.powsybl.balances_adjustment.util.BorderBasedCountryArea;
-import com.powsybl.balances_adjustment.util.CountryAreaFactory;
 import com.powsybl.contingency.violations.LimitViolation;
 import com.powsybl.contingency.violations.LimitViolationType;
 import com.powsybl.iidm.criteria.AtLeastOneNominalVoltageCriterion;
@@ -18,13 +16,14 @@ import com.powsybl.iidm.criteria.duration.IntervalTemporaryDurationCriterion;
 import com.powsybl.iidm.criteria.duration.LimitDurationCriterion;
 import com.powsybl.iidm.criteria.duration.PermanentDurationCriterion;
 import com.powsybl.iidm.network.*;
-import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlow;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.loadflow.LoadFlowResult;
 import com.powsybl.loadflow.LoadFlowRunParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.client.PreloadingStrategy;
+import com.powsybl.networkarea.BorderBasedCountryArea;
+import com.powsybl.networkarea.CountryAreaFactory;
 import com.powsybl.security.Security;
 import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
 import com.powsybl.security.limitreduction.LimitReduction;
@@ -226,7 +225,7 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
             return null;
         }
 
-        if (violationInfo.getLimitName().equals(LimitViolationUtils.PERMANENT_LIMIT_NAME)) {
+        if (violationInfo.getLimitName().equals(LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME)) {
             return currentLimits.get().getTemporaryLimits().stream().findFirst().orElse(null);
         }
 

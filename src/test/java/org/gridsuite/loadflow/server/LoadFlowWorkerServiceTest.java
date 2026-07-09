@@ -7,9 +7,9 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.contingency.violations.LimitViolationType;
+import com.powsybl.iidm.network.LoadingLimits;
 import com.powsybl.iidm.network.Network;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
-import com.powsybl.iidm.network.util.LimitViolationUtils;
 import com.powsybl.loadflow.LoadFlowParameters;
 import com.powsybl.network.store.client.NetworkStoreService;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
@@ -73,7 +73,7 @@ class LoadFlowWorkerServiceTest {
             .subjectId("NHV1_NHV2_1")
             .locationId("VLHV1")
             .limit(1100D)
-            .limitName(LimitViolationUtils.PERMANENT_LIMIT_NAME)
+            .limitName(LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME)
             .upComingOverloadDuration(600)
             .value(1150D)
             .side("TWO")
@@ -94,7 +94,7 @@ class LoadFlowWorkerServiceTest {
             .subjectId("NHV1_NHV2_1")
             .locationId("VLHV1")
             .limit(500D)
-            .limitName(LimitViolationUtils.PERMANENT_LIMIT_NAME)
+            .limitName(LoadingLimits.DEFAULT_PERMANENT_LIMIT_NAME)
             .value(600D)
             .side("ONE")
             .limitType(LimitViolationType.CURRENT)

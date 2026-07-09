@@ -45,7 +45,7 @@
 
         <jib.from.image>powsybl/java-dynawo:3.1.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>50.1.0</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>50.2.0-SNAPSHOT</gridsuite-dependencies.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -59,8 +59,6 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
-        <!-- FIXME: to remove at next version of powsybl-ws-dependencies -->
-        <powsybl-network-store.version>1.45.0</powsybl-network-store.version>
     </properties>
 
     <build>
@@ -95,24 +93,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- FIXME : to remove at next version of powsybl-ws-dependencies -->
-            <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-network-store-client</artifactId>
-                <version>${powsybl-network-store.version}</version>
-            </dependency>
-            <!-- FIXME : to remove at next version of powsybl-ws-dependencies -->
-            <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-network-store-iidm-impl</artifactId>
-                <version>${powsybl-network-store.version}</version>
-            </dependency>
-            <!-- FIXME : to remove at next version of powsybl-ws-dependencies -->
-            <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-network-store-model</artifactId>
-                <version>${powsybl-network-store.version}</version>
-            </dependency>
             <dependency>
                 <groupId>org.gridsuite</groupId>
                 <artifactId>gridsuite-dependencies</artifactId>
