@@ -14,31 +14,29 @@ import okhttp3.mockwebserver.MockResponse;
 import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.gridsuite.loadflow.server.service.ReportService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpStatus;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.web.client.RestClientException;
 
 import java.io.IOException;
 import java.util.Objects;
 import java.util.UUID;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * @author Anis Touri <anis.touri at rte-france.com
  */
-@RunWith(SpringRunner.class)
+
 @AutoConfigureMockMvc
 @SpringBootTest
-public class ReportServiceTest {
+class ReportServiceTest {
 
     private static final UUID REPORT_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID REPORT_ERROR_UUID = UUID.fromString("9928181c-7977-4592-ba19-88027e4254e4");
@@ -50,13 +48,13 @@ public class ReportServiceTest {
     @Autowired
     private ReportService reportService;
 
-    @Before
-    public void setUp() throws IOException {
+    @BeforeEach
+    void setUp() throws IOException {
         reportService.setReportServerBaseUri(initMockWebServer());
     }
 
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         try {
             server.shutdown();
         } catch (Exception e) {
@@ -91,7 +89,7 @@ public class ReportServiceTest {
     }
 
     @Test
-    public void test() {
+    void test() {
         Reporter reporter = new ReporterModel("test", "a test");
         reportService.sendReport(REPORT_UUID, reporter);
         assertThrows(RestClientException.class, () -> reportService.sendReport(REPORT_ERROR_UUID, reporter));

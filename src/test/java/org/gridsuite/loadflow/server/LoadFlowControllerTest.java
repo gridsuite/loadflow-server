@@ -27,10 +27,9 @@ import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.service.NotificationService;
 import org.gridsuite.loadflow.server.service.ReportService;
 import org.gridsuite.loadflow.server.service.UuidGeneratorService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
@@ -44,7 +43,6 @@ import org.springframework.http.MediaType;
 import org.springframework.messaging.Message;
 import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -55,7 +53,7 @@ import java.util.concurrent.CompletableFuture;
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.gridsuite.loadflow.server.service.NotificationService.CANCEL_MESSAGE;
 import static org.gridsuite.loadflow.server.service.NotificationService.HEADER_USER_ID;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.BDDMockito.given;
@@ -67,11 +65,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
-@RunWith(SpringRunner.class)
+
 @AutoConfigureMockMvc
 @SpringBootTest
 @ContextHierarchy({@ContextConfiguration(classes = {LoadFlowApplication.class, TestChannelBinderConfiguration.class})})
-public class LoadFlowControllerTest {
+class LoadFlowControllerTest {
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5d");
@@ -135,9 +133,9 @@ public class LoadFlowControllerTest {
         }
     }
 
-    @Before
-    public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+    @BeforeEach
+    void setUp() throws Exception {
+        MockitoAnnotations.openMocks(this);
 
         // network store service mocking
         network = EurostagTutorialExample1Factory.createWithMoreGenerators(new NetworkFactoryImpl());
@@ -177,14 +175,14 @@ public class LoadFlowControllerTest {
     }
 
     @SneakyThrows
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         mockMvc.perform(delete("/" + VERSION + "/results/all"))
                 .andExpect(status().isOk());
     }
 
     @Test
-    public void runTest() throws Exception {
+    void runTest() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -226,7 +224,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testDeleteResults() throws Exception {
+    void testDeleteResults() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -264,7 +262,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void stopTest() throws Exception {
+    void stopTest() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -295,7 +293,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void mergingViewTest() {
+    void mergingViewTest() {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -316,7 +314,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void testStatus() {
+    void testStatus() {
         MvcResult result = mockMvc.perform(get(
                         "/" + VERSION + "/results/{resultUuid}/status", RESULT_UUID))
                 .andExpect(status().isOk())
@@ -336,7 +334,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void runWithReportTest() {
+    void runWithReportTest() {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -355,7 +353,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void getProvidersTest() {
+    void getProvidersTest() {
 
         String result = mockMvc.perform(get("/" + VERSION + "/providers")
                 )
@@ -373,7 +371,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void getDefaultProviderTest() throws Exception {
+    void getDefaultProviderTest() throws Exception {
         String result = mockMvc.perform(get("/" + VERSION + "/default-provider"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(new MediaType(MediaType.TEXT_PLAIN, StandardCharsets.UTF_8)))
@@ -383,7 +381,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void getSpecificParametersTest() throws Exception {
+    void getSpecificParametersTest() throws Exception {
         // just Hades2
         String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=Hades2"))
                 .andExpect(status().isOk())
