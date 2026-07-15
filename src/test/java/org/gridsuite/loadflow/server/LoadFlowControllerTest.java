@@ -382,7 +382,7 @@ public class LoadFlowControllerTest {
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolationsWithThreeSides);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
@@ -986,7 +986,11 @@ public class LoadFlowControllerTest {
                 new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
                 new LimitViolation("NHV1_NHV2_1", "lineName2", LimitViolationType.CURRENT, "limit2", 60, 1500, 0.7F, 1000, TwoSides.TWO),
                 new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
-                new LimitViolation("NHV1_NHV2_2", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, ThreeSides.THREE));
+                new LimitViolation("NHV1_NHV2_2", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, TwoSides.TWO));
+        static List<LimitViolation> limitViolationsWithThreeSides = List.of(
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
+                new LimitViolation("THREE_WINDING_TRANSFORMER", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, ThreeSides.THREE));
     }
 
     @Test
