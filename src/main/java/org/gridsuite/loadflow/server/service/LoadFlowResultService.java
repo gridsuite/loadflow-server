@@ -9,7 +9,7 @@ package org.gridsuite.loadflow.server.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.powsybl.contingency.violations.LimitViolationType;
-import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.loadflow.LoadFlowResult;
 import lombok.AllArgsConstructor;
 import org.apache.commons.lang3.tuple.Pair;
@@ -373,7 +373,7 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return limitViolationRepository.findLimitTypes(resultUuid);
     }
 
-    public List<TwoSides> getBranchSides(UUID resultUuid) {
+    public List<ThreeSides> getBranchSides(UUID resultUuid) {
         Objects.requireNonNull(resultUuid);
         return limitViolationRepository.findBranchSides(resultUuid);
     }

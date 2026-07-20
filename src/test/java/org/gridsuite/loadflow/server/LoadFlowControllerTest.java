@@ -45,10 +45,9 @@ import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
 import org.gridsuite.loadflow.server.service.LoadFlowResultService;
 import org.gridsuite.loadflow.server.service.LoadFlowWorkerService;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -65,7 +64,6 @@ import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.ContextHierarchy;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
@@ -81,7 +79,7 @@ import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.gridsuite.computation.service.NotificationService.HEADER_USER_ID;
 import static org.gridsuite.loadflow.server.service.LoadFlowService.COMPUTATION_TYPE;
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.*;
@@ -92,11 +90,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 /**
  * @author Anis Touri <anis.touri at rte-france.com>
  */
-@RunWith(SpringRunner.class)
 @AutoConfigureMockMvc
 @SpringBootTest
 @ContextHierarchy({@ContextConfiguration(classes = {LoadFlowApplication.class, TestChannelBinderConfiguration.class, RestTemplateConfig.class})})
-public class LoadFlowControllerTest {
+class LoadFlowControllerTest {
 
     private static final UUID NETWORK_UUID = UUID.fromString("7928181c-7977-4592-ba19-88027e4254e4");
     private static final UUID RESULT_UUID = UUID.fromString("0c8de370-3e6c-4d72-b292-d355a97e0d5d");
@@ -143,6 +140,7 @@ public class LoadFlowControllerTest {
     protected WireMockServer wireMockServer;
     @Autowired
     private GlobalStatusRepository globalStatusRepository;
+    private AutoCloseable mocks;
 
     private static void assertResultsEquals(LoadFlowResult result, org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto) {
         assertEquals(result.getComponentResults().size(), resultDto.getComponentResults().size());
@@ -181,9 +179,9 @@ public class LoadFlowControllerTest {
         }
     }
 
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
+    @BeforeEach
+    void setUp() {
+        mocks = MockitoAnnotations.openMocks(this);
 
         // network store service mocking
         network = EurostagTutorialExample1Factory.createWithFixedCurrentLimits(new NetworkFactoryImpl());
@@ -252,14 +250,16 @@ public class LoadFlowControllerTest {
     }
 
     @SneakyThrows
-    @After
-    public void tearDown() {
+    @AfterEach
+    void tearDown() {
         mockMvc.perform(delete("/" + VERSION + "/results"))
                 .andExpect(status().isOk());
+
+        mocks.close();
     }
 
     @Test
-    public void runTest() throws Exception {
+    void runTest() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
@@ -341,7 +341,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testGetLimitViolations() throws Exception {
+    void testGetLimitViolations() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
@@ -377,12 +377,12 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testGetEnumValues() throws Exception {
+    void testGetEnumValues() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
-            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolations);
+            securityMockedStatic.when(() -> Security.checkLimitsDc(any(), any(), anyDouble())).thenReturn(LimitViolationsMock.limitViolationsWithThreeSides);
 
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
@@ -416,11 +416,12 @@ public class LoadFlowControllerTest {
                             status().isOk(),
                             content().contentType(MediaType.APPLICATION_JSON)
                     ).andReturn();
-            List<TwoSides> sides = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() {
+            List<ThreeSides> sides = mapper.readValue(mvcResult.getResponse().getContentAsString(), new TypeReference<>() {
             });
-            assertEquals(2, sides.size());
-            assertTrue(sides.contains(TwoSides.ONE));
-            assertTrue(sides.contains(TwoSides.TWO));
+            assertEquals(3, sides.size());
+            assertTrue(sides.contains(ThreeSides.ONE));
+            assertTrue(sides.contains(ThreeSides.TWO));
+            assertTrue(sides.contains(ThreeSides.THREE));
 
             // get loadflow computing status
             mvcResult = mockMvc.perform(get("/" + VERSION + "/results/{resultUuid}/computation-status", RESULT_UUID))
@@ -436,7 +437,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testGetLimitViolationsWithFilters() throws Exception {
+    void testGetLimitViolationsWithFilters() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
@@ -494,7 +495,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testGetLimitViolationsWithGlobalFilters() throws Exception {
+    void testGetLimitViolationsWithGlobalFilters() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
@@ -665,7 +666,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testComponentResultWithFilters() throws Exception {
+    void testComponentResultWithFilters() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
              MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {
@@ -767,7 +768,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testDeleteResults() throws Exception {
+    void testDeleteResults() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -804,7 +805,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void stopTest() throws Exception {
+    void stopTest() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -835,7 +836,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void saveResultShouldSaveResultToDatabase() throws Exception {
+    void saveResultShouldSaveResultToDatabase() throws Exception {
         UUID resultUuid = UUID.randomUUID();
         LoadFlowResult result = new LoadFlowResultImpl(true, Collections.emptyMap(), null, Collections.emptyList());
         when(uuidGeneratorService.generate()).thenReturn(resultUuid);
@@ -865,7 +866,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void testStatus() {
+    void testStatus() {
         MvcResult result = mockMvc.perform(get(
                         "/" + VERSION + "/results/{resultUuid}/status", RESULT_UUID))
                 .andExpect(status().isOk())
@@ -885,7 +886,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void runWithReportTest() {
+    void runWithReportTest() {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -904,7 +905,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void runWithDefaultVariant() {
+    void runWithDefaultVariant() {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
@@ -922,7 +923,7 @@ public class LoadFlowControllerTest {
 
     @SneakyThrows
     @Test
-    public void getProvidersTest() {
+    void getProvidersTest() {
 
         String result = mockMvc.perform(get("/" + VERSION + "/providers")
                 )
@@ -939,7 +940,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void getSpecificParametersTest() throws Exception {
+    void getSpecificParametersTest() throws Exception {
         // just OpenLoadFlow
         String result = mockMvc.perform(get("/" + VERSION + "/specific-parameters?provider=OpenLoadFlow"))
                 .andExpect(status().isOk())
@@ -986,10 +987,14 @@ public class LoadFlowControllerTest {
                 new LimitViolation("NHV1_NHV2_1", "lineName2", LimitViolationType.CURRENT, "limit2", 60, 1500, 0.7F, 1000, TwoSides.TWO),
                 new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
                 new LimitViolation("NHV1_NHV2_2", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, TwoSides.TWO));
+        static List<LimitViolation> limitViolationsWithThreeSides = List.of(
+                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
+                new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
+                new LimitViolation("THREE_WINDING_TRANSFORMER", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, ThreeSides.THREE));
     }
 
     @Test
-    public void testGetLimitViolationsVoltage() throws Exception {
+    void testGetLimitViolationsVoltage() throws Exception {
         ((Bus) network.getIdentifiable("NHV1")).setV(380.0).getVoltageLevel().setLowVoltageLimit(400.0).setHighVoltageLimit(450.0);
         ((Bus) network.getIdentifiable("NHV2")).setV(380.0).getVoltageLevel().setLowVoltageLimit(300.0).setHighVoltageLimit(350.0);
 
@@ -1029,7 +1034,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testCreateRunningStatus() throws Exception {
+    void testCreateRunningStatus() throws Exception {
         MvcResult mvcResult = mockMvc.perform(post("/" + VERSION + "/results/running-status"))
             .andExpect(status().isOk())
             .andReturn();
@@ -1045,7 +1050,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testprovider() throws Exception {
+    void testprovider() throws Exception {
         doReturn(LF_PROVIDER).when(loadFlowParametersService).getProvider(any());
         MvcResult result = mockMvc.perform(get(
                         "/" + VERSION + "/parameters/{parametersUuid}/provider", UUID.randomUUID()))
@@ -1055,7 +1060,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testGetLoadFlowModifications() throws Exception {
+    void testGetLoadFlowModifications() throws Exception {
         LoadFlowModificationInfos expectedResultValues = new LoadFlowModificationInfos();
         expectedResultValues.add2WTTapPositionValues("test2wtId", 10, 12, TapPositionType.RATIO_TAP);
         expectedResultValues.add2WTTapPositionValues("test2wt2Id", 15, 17, TapPositionType.PHASE_TAP);
@@ -1071,7 +1076,7 @@ public class LoadFlowControllerTest {
     }
 
     @Test
-    public void testGetCurrentLimitViolations() throws Exception {
+    void testGetCurrentLimitViolations() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class);
             MockedStatic<Security> securityMockedStatic = Mockito.mockStatic(Security.class)) {

@@ -7,7 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.contingency.violations.LimitViolationType;
-import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.ThreeSides;
 import com.powsybl.loadflow.LoadFlowResult.ComponentResult.Status;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -207,7 +207,7 @@ public class LoadFlowController {
     @GetMapping(value = "/results/{resultUuid}/branch-sides", produces = APPLICATION_JSON_VALUE)
     @Operation(summary = "Get the list of branch sides values")
     @ApiResponses(@ApiResponse(responseCode = "200", description = "List of branch sides values by result"))
-    public ResponseEntity<List<TwoSides>> getBranchSides(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
+    public ResponseEntity<List<ThreeSides>> getBranchSides(@Parameter(description = "Result UUID") @PathVariable("resultUuid") UUID resultUuid) {
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON).body(loadFlowResultService.getBranchSides(resultUuid));
     }
 
