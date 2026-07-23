@@ -7,7 +7,7 @@
 package org.gridsuite.loadflow.server.repositories;
 
 import com.powsybl.contingency.violations.LimitViolationType;
-import com.powsybl.iidm.network.TwoSides;
+import com.powsybl.iidm.network.ThreeSides;
 import org.gridsuite.loadflow.server.entities.LimitViolationEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
@@ -33,5 +33,5 @@ public interface LimitViolationRepository extends JpaRepository<LimitViolationEn
     @Query(value = "SELECT distinct l.side from LimitViolationEntity as l " +
             "where l.loadFlowResult.resultUuid = :resultUuid AND l.side != ''" +
             "order by l.side")
-    List<TwoSides> findBranchSides(UUID resultUuid);
+    List<ThreeSides> findBranchSides(UUID resultUuid);
 }
