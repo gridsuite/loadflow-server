@@ -147,6 +147,11 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-balances-adjustment</artifactId>
         </dependency>
+        <!-- to remove, needed for private provider -->
+        <dependency>
+            <groupId>com.powsybl</groupId>
+            <artifactId>powsybl-loadflow-results-completion</artifactId>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
