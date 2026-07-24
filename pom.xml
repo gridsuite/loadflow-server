@@ -147,6 +147,7 @@
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-balances-adjustment</artifactId>
         </dependency>
+        <!-- needed for private provider -->
         <dependency>
             <groupId>com.powsybl</groupId>
             <artifactId>powsybl-loadflow-results-completion</artifactId>
