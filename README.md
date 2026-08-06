@@ -21,14 +21,16 @@ It provides the following capabilities:
 ---
 ## Technical Stack
 
-- Spring Boot (Web, Data JPA, Actuator, Cloud Stream) 
+- Spring Boot (Web, Data JPA, Actuator, Cloud Stream)
 - PostgreSQL
 - Liquibase
-- RabbitMQ via Spring Cloud Stream 
-- API documentation : OpenAPI / Swagger (`springdoc`) 
-- Micrometer / Prometheus 
+- RabbitMQ via Spring Cloud Stream
+- API documentation : OpenAPI / Swagger (`springdoc`)
+- Micrometer / Prometheus
+- [gridsuite-computation](https://github.com/gridsuite/computation)
 
 ---
+
 
 
 ## Development Scripts
@@ -46,7 +48,7 @@ Please read [liquibase usage](https://github.com/powsybl/powsybl-parent/#liquiba
 
 ## Interactions with Other Microservices
 
-```
+```text
 ┌──────────────────────┐
 │   loadflow-server    │──► network-store-server  (read/write network topology)
 │                      │──► filter-server          (resolve equipment filters for limit violations)
@@ -86,6 +88,21 @@ A load flow result is composed of several complementary datasets exposed through
 All major computation steps (network loading, computation execution, result saving, network flushing) are wrapped in named Micrometer observations via `LoadFlowObserver`, enabling distributed tracing and metric collection without cluttering business logic.
 
 ---
+
+## Built on gridsuite-computation
+
+The following capabilities are provided by the gridsuite-computation shared library:
+
+ - asynchronous run/cancel pipeline,
+ - transactional result notifications,
+ - network equipment filtering,
+ - report integration,
+ - Micrometer observability.
+
+The loadflow-server itself focuses on load flow-specific logic (parameters, result model, providers) and delegates the common computation infrastructure to this lib.
+
+---
+
 
 ## Useful Links
 
