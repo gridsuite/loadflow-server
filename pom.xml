@@ -50,6 +50,8 @@
         <jib.from.image>powsybl/java-dynawo:4.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
         <gridsuite-dependencies.version>51.1.0</gridsuite-dependencies.version>
+        <!-- need to override the version v3.17.0 in liquibase because powsybl-open-loadflow uses v3.20.0 -->
+        <commonslang3.version>3.20.0</commonslang3.version>
         <!--
         antlr4 from openloadflow conflicts ? Only on repository.count() method in this project..
         [ERROR] org.gridsuite.loadflow.server.SupervisionControllerTest.testResultCount <<< ERROR!
@@ -103,6 +105,12 @@
                 <version>${gridsuite-dependencies.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <!-- need to override the version v3.17.0 in liquibase because powsybl-open-loadflow uses v3.20.0 -->
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commonslang3.version}</version>
             </dependency>
 
             <!-- project specific dependencies -->
