@@ -28,6 +28,7 @@ It provides the following capabilities:
 - API documentation : OpenAPI / Swagger (`springdoc`)
 - Micrometer / Prometheus
 - [gridsuite-computation](https://github.com/gridsuite/computation)
+- [powsybl-loadflow-api](https://powsybl.readthedocs.io/projects/powsybl-core/en/stable/simulation/loadflow/index.html): powsybl API/SPI for load flow computation, used to run the analysis and model its inputs/outputs (parameters, results). The concrete computation engine is a pluggable provider (OpenLoadFlow, DynaFlow), resolved at runtime via `ServiceLoader`.
 
 ---
 
