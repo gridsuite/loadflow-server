@@ -65,6 +65,8 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
+        <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+        <gridsuite-computation.version>2.6.0</gridsuite-computation.version>
     </properties>
 
     <build>
@@ -138,6 +140,8 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
