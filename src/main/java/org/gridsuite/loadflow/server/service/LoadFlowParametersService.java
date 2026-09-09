@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server.service;
 
 import com.powsybl.loadflow.LoadFlowParameters;
+import lombok.Getter;
 import lombok.NonNull;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
@@ -32,6 +33,7 @@ public class LoadFlowParametersService {
 
     private final LimitReductionService limitReductionService;
 
+    @Getter
     private final String defaultProvider;
 
     public LoadFlowParametersService(@NonNull LoadFlowParametersRepository loadFlowParametersRepository,
@@ -125,6 +127,10 @@ public class LoadFlowParametersService {
 
     public List<LimitReductionsByVoltageLevel> getDefaultLimitReductions() {
         return limitReductionService.createDefaultLimitReductions();
+    }
+
+    public LoadFlowParameters getDefaultCommonParameters() {
+        return LoadFlowParameters.load();
     }
 
     public LoadFlowParametersInfos toLoadFlowParametersInfos(LoadFlowParametersEntity entity) {

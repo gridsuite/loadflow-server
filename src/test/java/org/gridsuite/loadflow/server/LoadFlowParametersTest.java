@@ -217,6 +217,27 @@ class LoadFlowParametersTest {
     }
 
     @Test
+    void testGetDefaultCommonParameters() throws Exception {
+        MvcResult mvcResult = mockMvc.perform(get("/v1/parameters/default-values")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseContent = mvcResult.getResponse().getContentAsString();
+        LoadFlowParameters commonParameters = mapper.readValue(responseContent, LoadFlowParameters.class);
+
+        assertNotNull(commonParameters);
+        assertEquals(mapper.writeValueAsString(LoadFlowParameters.load()), responseContent);
+    }
+
+    @Test
+    void testGetDefaultProvider() throws Exception {
+        mockMvc.perform(get("/v1/parameters/default-provider"))
+                .andExpect(status().isOk())
+                .andExpect(content().string(defaultLoadFlowProvider));
+    }
+
+    @Test
     void testUpdate() throws Exception {
 
         LoadFlowParametersInfos parametersToUpdate = buildParameters();
