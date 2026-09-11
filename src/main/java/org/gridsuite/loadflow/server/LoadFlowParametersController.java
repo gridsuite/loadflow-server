@@ -6,6 +6,7 @@
  */
 package org.gridsuite.loadflow.server;
 
+import com.powsybl.loadflow.LoadFlowParameters;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -57,6 +58,21 @@ public class LoadFlowParametersController {
     @ApiResponse(responseCode = "200", description = "Default parameters were created")
     public ResponseEntity<UUID> createDefaultParameters() {
         return ResponseEntity.ok(parametersService.createDefaultParameters());
+    }
+
+    @GetMapping(value = "/default-values", produces = MediaType.APPLICATION_JSON_VALUE)
+    @Operation(summary = "Get default common parameters")
+    @ApiResponse(responseCode = "200", description = "The default common parameters")
+    public ResponseEntity<LoadFlowParameters> getDefaultCommonParameters() {
+        return ResponseEntity.ok().contentType(MediaType.APPLICATION_JSON)
+                .body(parametersService.getDefaultCommonParameters());
+    }
+
+    @GetMapping(value = "/default-provider", produces = MediaType.TEXT_PLAIN_VALUE)
+    @Operation(summary = "Get the default provider")
+    @ApiResponse(responseCode = "200", description = "The default provider")
+    public ResponseEntity<String> getDefaultProvider() {
+        return ResponseEntity.ok().body(parametersService.getDefaultProvider());
     }
 
     @PostMapping(value = "/{uuid}/duplicate", produces = MediaType.APPLICATION_JSON_VALUE)
