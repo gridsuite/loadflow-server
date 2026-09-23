@@ -66,7 +66,7 @@
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
         <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-        <gridsuite-computation.version>2.6.0</gridsuite-computation.version>
+        <gridsuite-computation.version>2.7.0-SNAPSHOT</gridsuite-computation.version>
     </properties>
 
     <build>
