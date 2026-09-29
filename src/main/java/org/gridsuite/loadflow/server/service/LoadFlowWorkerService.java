@@ -598,4 +598,10 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         resultService.insertStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
     }
 
+    @Override
+    protected void canBeCancelled(UUID resultUuid) {
+        if (resultService.findStatus(resultUuid) != LoadFlowStatus.RUNNING) {
+            throw new IllegalArgumentException("Loadflow cannot be cancelled because it is not running");
+        }
+    }
 }
