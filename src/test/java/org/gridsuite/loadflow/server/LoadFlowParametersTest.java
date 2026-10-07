@@ -18,6 +18,7 @@ import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntit
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
 import org.gridsuite.loadflow.server.service.LoadFlowParametersService;
+import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
@@ -429,6 +431,55 @@ class LoadFlowParametersTest {
     void testGetParametersWithDifferencesForUnknownParameters() throws Exception {
         mockMvc.perform(get(URI_PARAMETERS_GET_PUT + UUID.randomUUID()).queryParam("withDifferences", "true"))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void testGetParametersWithDifferencesForSpecificParameters() throws Exception {
+        Map<String, List<com.powsybl.commons.parameters.Parameter>> specificParameters = LoadFlowService.getSpecificLoadFlowParameters(null);
+
+        Map.Entry<String, List<com.powsybl.commons.parameters.Parameter>> providerEntry = specificParameters.entrySet().stream()
+                .filter(entry -> entry.getValue().stream()
+                    .anyMatch(parameter -> parameter.getDefaultValue() != null))
+                .findFirst()
+                .orElseThrow();
+
+        String provider = providerEntry.getKey();
+        com.powsybl.commons.parameters.Parameter referenceParameter = providerEntry.getValue().stream()
+            .filter(parameter -> parameter.getDefaultValue() != null)
+            .findFirst()
+            .orElseThrow();
+
+        String parameterName = referenceParameter.getNames().getFirst();
+        String defaultValue = String.valueOf(referenceParameter.getDefaultValue());
+        String differentValue = Boolean.toString(!Objects.equals(defaultValue, "true"));
+
+        LoadFlowParametersInfos referenceParameters = buildParametersWithProvider(provider);
+        LoadFlowParametersInfos parameters = buildParametersWithProvider(provider);
+
+        if (limitReductionService.getProviders().contains(provider)) {
+            List<LimitReductionsByVoltageLevel> defaultLimitReductions = limitReductionService.createDefaultLimitReductions();
+            referenceParameters.setLimitReduction(null);
+            referenceParameters.setLimitReductions(defaultLimitReductions);
+            parameters.setLimitReduction(null);
+            parameters.setLimitReductions(defaultLimitReductions);
+        }
+
+        UUID referenceParametersUuid = saveAndReturnId(referenceParameters);
+
+        parameters.setSpecificParametersPerProvider(Map.of(provider, Map.of(parameterName, differentValue)));
+        UUID parametersUuid = parametersService.createParameters(parameters);
+
+        MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true").queryParam("referenceUuid", referenceParametersUuid.toString()))
+            .andExpectAll(status().isOk(), content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
+
+        parameters.setParametersDifferences(Map.of(parameterName, new ParameterDifference(differentValue, referenceParameter.getDefaultValue())));
+
+        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertNotNull(receivedParameters.getParametersDifferences());
+        assertEquals(new ParameterDifference(differentValue, referenceParameter.getDefaultValue()), receivedParameters.getParametersDifferences().get(parameterName));
     }
 
     /** Save parameters into the repository and return its UUID. */
