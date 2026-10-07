@@ -269,11 +269,23 @@ class LoadFlowParametersTest {
                 .build();
         UUID parametersUuid = saveAndReturnId(parametersToUpdate);
 
-        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid + "/reset"))
                 .andExpect(status().isOk());
 
         LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
         assertThat(updatedParameters).recursivelyEquals(defaultValues);
+    }
+
+    @Test
+    void testUpdateWithoutBody() throws Exception {
+        LoadFlowParametersInfos parameters = buildParameters();
+        UUID parametersUuid = saveAndReturnId(parameters);
+
+        // an update without body is rejected and no longer resets to default values
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON));
+
+        LoadFlowParametersInfos storedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
+        assertThat(storedParameters).recursivelyEquals(parameters);
     }
 
     @Test
