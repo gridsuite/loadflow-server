@@ -90,12 +90,13 @@ public class LoadFlowParametersService {
     @Transactional
     public void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parametersInfos) {
         LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
-        //if the parameters is null it means it's a reset to defaultValues
-        if (parametersInfos == null) {
-            loadFlowParametersEntity.update(getDefaultParametersValues());
-        } else {
-            loadFlowParametersEntity.update(parametersInfos);
-        }
+        loadFlowParametersEntity.update(parametersInfos);
+    }
+
+    @Transactional
+    public void resetParameters(UUID parametersUuid) {
+        LoadFlowParametersEntity loadFlowParametersEntity = loadFlowParametersRepository.findById(parametersUuid).orElseThrow();
+        loadFlowParametersEntity.update(getDefaultParametersValues());
     }
 
     public void deleteParameters(UUID parametersUuid) {
