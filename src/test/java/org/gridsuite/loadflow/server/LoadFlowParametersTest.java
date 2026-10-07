@@ -13,6 +13,7 @@ import org.gridsuite.computation.error.ComputationException;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersValues;
+import org.gridsuite.loadflow.server.dto.parameters.ParameterDifference;
 import org.gridsuite.loadflow.server.entities.parameters.LoadFlowParametersEntity;
 import org.gridsuite.loadflow.server.repositories.parameters.LoadFlowParametersRepository;
 import org.gridsuite.loadflow.server.service.LimitReductionService;
@@ -349,6 +350,85 @@ class LoadFlowParametersTest {
                 .andReturn();
 
         assertThat(result.getResponse().getContentAsString()).isEqualTo(parameters.getProvider());
+    }
+
+    @Test
+    void testGetParametersWithoutDifferences() throws Exception {
+        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        UUID parametersUuid = saveAndReturnId(parameters);
+
+        MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid)).andExpectAll(
+            status().isOk(), content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        LoadFlowParametersInfos receivedParameters = mapper.readValue(
+            result.getResponse().getContentAsString(),
+            LoadFlowParametersInfos.class
+        );
+
+        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertNull(receivedParameters.getParametersDifferences());
+    }
+
+    @Test
+    void testGetParametersWithDifferencesAgainstDefaultValues() throws Exception {
+        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        UUID parametersUuid = saveAndReturnId(parameters);
+
+        MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true"))
+            .andExpectAll(status().isOk(), content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
+
+        parameters.setParametersDifferences(Map.of("dc", new ParameterDifference(true, false)));
+        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertNotNull(receivedParameters.getParametersDifferences());
+        assertEquals(new ParameterDifference(true, false), receivedParameters.getParametersDifferences().get("dc"));
+    }
+
+    @Test
+    void testGetParametersWithDifferencesAgainstReferenceParameters() throws Exception {
+        LoadFlowParametersInfos referenceParameters = buildParameters();
+        UUID referenceParametersUuid = saveAndReturnId(referenceParameters);
+
+        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        UUID parametersUuid = parametersService.createParameters(parameters);
+
+        MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true").queryParam("referenceUuid", referenceParametersUuid.toString()))
+            .andExpectAll(status().isOk(), content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
+
+        parameters.setParametersDifferences(Map.of("dc", new ParameterDifference(true, false)));
+
+        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertNotNull(receivedParameters.getParametersDifferences());
+        assertEquals(new ParameterDifference(true, false), receivedParameters.getParametersDifferences().get("dc"));
+    }
+
+    @Test
+    void testGetParametersWithDifferencesAndMissingReferenceUsesDefaultValues() throws Exception {
+        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        UUID parametersUuid = saveAndReturnId(parameters);
+
+        MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true").queryParam("referenceUuid", UUID.randomUUID().toString()))
+            .andExpectAll(status().isOk(), content().contentType(MediaType.APPLICATION_JSON))
+            .andReturn();
+
+        LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
+
+        parameters.setParametersDifferences(Map.of("dc", new ParameterDifference(true, false)));
+
+        assertNotNull(receivedParameters.getParametersDifferences());
+        assertEquals(new ParameterDifference(true, false), receivedParameters.getParametersDifferences().get("dc"));
+    }
+
+    @Test
+    void testGetParametersWithDifferencesForUnknownParameters() throws Exception {
+        mockMvc.perform(get(URI_PARAMETERS_GET_PUT + UUID.randomUUID()).queryParam("withDifferences", "true"))
+            .andExpect(status().isNotFound());
     }
 
     /** Save parameters into the repository and return its UUID. */
