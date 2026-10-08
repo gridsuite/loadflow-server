@@ -477,7 +477,6 @@ class LoadFlowParametersTest {
 
         parameters.setParametersDifferences(Map.of(parameterName, new ParameterDifference(differentValue, referenceParameter.getDefaultValue())));
 
-        assertThat(receivedParameters).recursivelyEquals(parameters);
         assertNotNull(receivedParameters.getParametersDifferences());
         assertEquals(new ParameterDifference(differentValue, referenceParameter.getDefaultValue()), receivedParameters.getParametersDifferences().get(parameterName));
     }

@@ -74,10 +74,10 @@ public class LoadFlowParametersService {
                                                     LoadFlowParameters referenceLoadFlowParameters,
                                                     Map<String, ParameterDifference> parametersDifferences) {
         Map<String, Object> mapParameters = loadFlowParameters.toMap();
-        Map<String, Object> mapReferenceParaeters = referenceLoadFlowParameters.toMap();
+        Map<String, Object> mapReferenceParameters = referenceLoadFlowParameters.toMap();
         mapParameters.forEach((parameterName, parameterValue) -> {
-            Object referenceValue = mapReferenceParaeters.get(parameterName);
-            if (referenceValue != null && !Objects.equals(parameterValue, referenceValue)) {
+            Object referenceValue = mapReferenceParameters.get(parameterName);
+            if (!Objects.equals(parameterValue, referenceValue)) {
                 parametersDifferences.put(parameterName, new ParameterDifference(parameterValue, referenceValue));
             }
         });
@@ -94,7 +94,8 @@ public class LoadFlowParametersService {
                 String referenceParameterName = referenceParameter.getNames().getFirst();
                 Object defaultValue = referenceParameter.getDefaultValue();
                 String parameterValue = specificParameters.get(referenceParameterName);
-                if (parameterValue != null && defaultValue != null && !Objects.equals(parameterValue, String.valueOf(defaultValue))) {
+                Object defaultValueToCompare = defaultValue == null ? null : String.valueOf(defaultValue);
+                if (!Objects.equals(parameterValue, defaultValueToCompare)) {
                     parametersDifferences.put(referenceParameterName, new ParameterDifference(parameterValue, defaultValue));
                 }
             });
