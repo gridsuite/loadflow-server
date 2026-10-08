@@ -76,9 +76,11 @@ public class LoadFlowParametersService {
         Map<String, Object> mapParameters = loadFlowParameters.toMap();
         Map<String, Object> mapReferenceParameters = referenceLoadFlowParameters.toMap();
         mapParameters.forEach((parameterName, parameterValue) -> {
-            Object referenceValue = mapReferenceParameters.get(parameterName);
-            if (!Objects.equals(parameterValue, referenceValue)) {
-                parametersDifferences.put(parameterName, new ParameterDifference(parameterValue, referenceValue));
+            if (mapReferenceParameters.containsKey(parameterName)) {
+                Object referenceValue = mapReferenceParameters.get(parameterName);
+                if (!Objects.equals(parameterValue, referenceValue)) {
+                    parametersDifferences.put(parameterName, new ParameterDifference(parameterValue, referenceValue));
+                }
             }
         });
     }
@@ -93,10 +95,12 @@ public class LoadFlowParametersService {
             referenceParameters.forEach(referenceParameter -> {
                 String referenceParameterName = referenceParameter.getNames().getFirst();
                 Object defaultValue = referenceParameter.getDefaultValue();
-                String parameterValue = specificParameters.get(referenceParameterName);
-                Object defaultValueToCompare = defaultValue == null ? null : String.valueOf(defaultValue);
-                if (!Objects.equals(parameterValue, defaultValueToCompare)) {
-                    parametersDifferences.put(referenceParameterName, new ParameterDifference(parameterValue, defaultValue));
+                if (specificParameters.containsKey(referenceParameterName)) {
+                    String parameterValue = specificParameters.get(referenceParameterName);
+                    Object defaultValueToCompare = defaultValue == null ? null : String.valueOf(defaultValue);
+                    if (!Objects.equals(parameterValue, defaultValueToCompare)) {
+                        parametersDifferences.put(referenceParameterName, new ParameterDifference(parameterValue, defaultValue));
+                    }
                 }
             });
         }
