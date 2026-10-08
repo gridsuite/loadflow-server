@@ -36,6 +36,7 @@ import org.gridsuite.loadflow.server.PropertyServerNameProvider;
 import org.gridsuite.loadflow.server.dto.CountryAdequacy;
 import org.gridsuite.loadflow.server.dto.Exchange;
 import org.gridsuite.loadflow.server.dto.LimitViolationInfos;
+import org.gridsuite.loadflow.server.dto.LoadFlowStatus;
 import org.gridsuite.loadflow.server.dto.modifications.LoadFlowModificationInfos;
 import org.gridsuite.loadflow.server.dto.modifications.TapPositionType;
 import org.gridsuite.loadflow.server.dto.parameters.LimitReductionsByVoltageLevel;
@@ -590,5 +591,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         additionalData.put(HEADER_WITH_RATIO_TAP_CHANGERS, resultContext.getRunContext().isWithRatioTapChangers());
         notificationService.sendResultMessage(resultContext.getResultUuid(), resultContext.getRunContext().getReceiver(),
             resultContext.getRunContext().getUserId(), additionalData);
+    }
+
+    @Override
+    protected void setRunningStatus(UUID resultUuid) {
+        resultService.insertStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
+    }
+
+    @Override
+    protected boolean canBeCancelled(UUID resultUuid) {
+        return resultService.findStatus(resultUuid) == LoadFlowStatus.RUNNING;
     }
 }

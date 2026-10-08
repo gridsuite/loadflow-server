@@ -807,6 +807,7 @@ class LoadFlowControllerTest {
     @Test
     void stopTest() throws Exception {
         LoadFlow.Runner runner = Mockito.mock(LoadFlow.Runner.class);
+        when(loadFlowResultService.findStatus(RESULT_UUID)).thenReturn(LoadFlowStatus.RUNNING);
         try (MockedStatic<LoadFlow> loadFlowMockedStatic = Mockito.mockStatic(LoadFlow.class)) {
             loadFlowMockedStatic.when(() -> LoadFlow.find(any())).thenReturn(runner);
             Mockito.when(runner.runAsync(eq(network), eq(VARIANT_2_ID), any(LoadFlowRunParameters.class)))
@@ -819,7 +820,7 @@ class LoadFlowControllerTest {
                     .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                     .andReturn();
 
-            // stop loadlow
+            // stop loadflow
             assertNotNull(output.receive(TIMEOUT, "loadflow.run"));
             mockMvc.perform(put("/" + VERSION + "/results/{resultUuid}/stop" + "?receiver=me", RESULT_UUID)
                             .header(HEADER_USER_ID, "userId"))
