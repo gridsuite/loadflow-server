@@ -454,6 +454,7 @@ class LoadFlowParametersTest {
         String differentValue = Boolean.toString(!Objects.equals(defaultValue, "true"));
 
         LoadFlowParametersInfos referenceParameters = buildParametersWithProvider(provider);
+        referenceParameters.setSpecificParametersPerProvider(Map.of(provider, Map.of(parameterName, defaultValue)));
         LoadFlowParametersInfos parameters = buildParametersWithProvider(provider);
 
         if (limitReductionService.getProviders().contains(provider)) {
@@ -475,11 +476,11 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
 
-        parameters.setParametersDifferences(Map.of(parameterName, new ParameterDifference(differentValue, referenceParameter.getDefaultValue())));
+        parameters.setParametersDifferences(Map.of(parameterName, new ParameterDifference(differentValue, defaultValue)));
 
         assertThat(receivedParameters).recursivelyEquals(parameters);
         assertNotNull(receivedParameters.getParametersDifferences());
-        assertEquals(new ParameterDifference(differentValue, referenceParameter.getDefaultValue()), receivedParameters.getParametersDifferences().get(parameterName));
+        assertEquals(new ParameterDifference(differentValue, defaultValue), receivedParameters.getParametersDifferences().get(parameterName));
     }
 
     /** Save parameters into the repository and return its UUID. */
