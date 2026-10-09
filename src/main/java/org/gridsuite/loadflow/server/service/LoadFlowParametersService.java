@@ -85,48 +85,29 @@ public class LoadFlowParametersService {
         });
     }
 
-    private void computeSpecificParametersDifferences(LoadFlowParametersInfos loadFlowParametersInfos,
-                                                      Map<String, Map<String, String>> referenceSpecificParameters,
-                                                      boolean referenceLoadFlowParametersFound,
+    private void computeSpecificParametersDifferences(Map<String, String> specificParameters,
+                                                      Map<String, String> referenceSpecificParameters,
                                                       Map<String, ParameterDifference> parametersDifferences) {
-        String provider = loadFlowParametersInfos.getProvider();
-        Map<String, String> specificParameters = loadFlowParametersInfos.getSpecificParametersPerProvider().get(provider);
-        Map<String, String> referenceParameters = referenceSpecificParameters.get(provider);
-
-        if (specificParameters == null) {
-            specificParameters = Collections.emptyMap();
-        }
-        if (referenceParameters == null) {
-            referenceParameters = Collections.emptyMap();
-        }
-
-        Map<String, String> finalReferenceParameters = referenceParameters;
         specificParameters.forEach((parameterName, parameterValue) -> {
-            if (finalReferenceParameters.containsKey(parameterName)) {
-                String referenceValue = finalReferenceParameters.get(parameterName);
+            if (referenceSpecificParameters.containsKey(parameterName)) {
+                String referenceValue = referenceSpecificParameters.get(parameterName);
                 if (!Objects.equals(parameterValue, referenceValue)) {
                     parametersDifferences.put(parameterName, new ParameterDifference(parameterValue, referenceValue));
                 }
             }
         });
-
-        if (referenceLoadFlowParametersFound) {
-            Map<String, String> finalSpecificParameters = specificParameters;
-            referenceParameters.forEach((parameterName, referenceValue) -> {
-                if (!finalSpecificParameters.containsKey(parameterName)) {
-                    parametersDifferences.put(parameterName, new ParameterDifference(null, referenceValue));
-                }
-            });
-        }
     }
 
     private LoadFlowParametersInfos computeDifferences(LoadFlowParametersInfos loadFlowParametersInfos,
-                                                        LoadFlowParameters referenceLoadFlowParameters,
-                                                        Map<String, Map<String, String>> referenceSpecificParameters,
-                                                        boolean referenceLoadFlowParametersFound) {
+                                                       LoadFlowParameters referenceLoadFlowParameters,
+                                                       Map<String, String> referenceSpecificParameters) {
         Map<String, ParameterDifference> parametersDifferences = new HashMap<>();
+
         computeCommonParametersDifferences(loadFlowParametersInfos.getCommonParameters(), referenceLoadFlowParameters, parametersDifferences);
-        computeSpecificParametersDifferences(loadFlowParametersInfos, referenceSpecificParameters, referenceLoadFlowParametersFound, parametersDifferences);
+
+        String provider = loadFlowParametersInfos.getProvider();
+        Map<String, String> specificParameters = loadFlowParametersInfos.getSpecificParametersPerProvider().getOrDefault(provider, Collections.emptyMap());
+        computeSpecificParametersDifferences(specificParameters, referenceSpecificParameters, parametersDifferences);
 
         if (!parametersDifferences.isEmpty()) {
             loadFlowParametersInfos.setParametersDifferences(parametersDifferences);
@@ -144,16 +125,13 @@ public class LoadFlowParametersService {
             if (loadFlowParametersInfos.isPresent()) {
                 String provider = loadFlowParametersInfos.get().getProvider();
 
-                Optional<LoadFlowParametersInfos> referenceLoadFlowParametersInfos;
                 LoadFlowParameters referenceLoadFlowParameters;
-                Map<String, Map<String, String>> referenceSpecificParameters;
-                boolean referenceLoadFlowParametersFound = false;
+                Map<String, String> referenceSpecificParameters;
                 if (referenceParametersUuid != null) {
-                    referenceLoadFlowParametersInfos = loadFlowParametersRepository.findById(referenceParametersUuid).map(this::toLoadFlowParametersInfos);
+                    Optional<LoadFlowParametersInfos> referenceLoadFlowParametersInfos = loadFlowParametersRepository.findById(referenceParametersUuid).map(this::toLoadFlowParametersInfos);
                     if (referenceLoadFlowParametersInfos.isPresent()) {
                         referenceLoadFlowParameters = referenceLoadFlowParametersInfos.get().getCommonParameters();
-                        referenceSpecificParameters = referenceLoadFlowParametersInfos.get().getSpecificParametersPerProvider();
-                        referenceLoadFlowParametersFound = true;
+                        referenceSpecificParameters = referenceLoadFlowParametersInfos.get().getSpecificParametersPerProvider().getOrDefault(provider, Collections.emptyMap());
                     } else {
                         referenceSpecificParameters = new HashMap<>();
                         referenceLoadFlowParameters = LoadFlowParameters.load();
@@ -163,25 +141,18 @@ public class LoadFlowParametersService {
                     referenceLoadFlowParameters = LoadFlowParameters.load();
                 }
 
-                if (!referenceLoadFlowParametersFound) {
-                    // get default specific loadflow parameters for the provider
-                    Map<String, List<com.powsybl.commons.parameters.Parameter>> specificParameters = LoadFlowService.getSpecificLoadFlowParameters(provider);
-                    specificParameters.forEach((providerName, parameters) -> {
-                        Map<String, String> defaultParameters = new HashMap<>();
-                        parameters.forEach(parameter -> {
-                            String parameterName = parameter.getNames().getFirst();
-                            String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
-                            defaultParameters.put(parameterName, defaultValue);
-                        });
-                        referenceSpecificParameters.put(providerName, defaultParameters);
+                // merge reference-specific parameters with default-specific parameters only for the current provider
+                List<com.powsybl.commons.parameters.Parameter> specificParameters = LoadFlowService.getSpecificLoadFlowParameters(provider).getOrDefault(provider, Collections.emptyList());
+                    specificParameters.forEach(parameter -> {
+                        String parameterName = parameter.getNames().getFirst();
+                        String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
+                        referenceSpecificParameters.putIfAbsent(parameterName, defaultValue);
                     });
-                }
 
                 // compute all the differences between loadflow parameters and reference loadflow parameters
                 return Optional.of(computeDifferences(loadFlowParametersInfos.get(),
                     referenceLoadFlowParameters,
-                    referenceSpecificParameters,
-                    referenceLoadFlowParametersFound));
+                    referenceSpecificParameters));
             }
             return result;
         }
