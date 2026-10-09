@@ -147,7 +147,9 @@ public class LoadFlowParametersService {
             specificParameters.forEach(parameter -> {
                 String parameterName = parameter.getNames().getFirst();
                 String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
-                referenceSpecificParameters.putIfAbsent(parameterName, defaultValue);
+                if (!referenceSpecificParameters.containsKey(parameterName)) {
+                    referenceSpecificParameters.put(parameterName, defaultValue);
+                }
             });
 
             // compute all the differences between loadflow parameters and reference loadflow parameters
