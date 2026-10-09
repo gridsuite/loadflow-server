@@ -87,7 +87,17 @@ public class LoadFlowParametersService {
 
     private void computeSpecificParametersDifferences(Map<String, String> specificParameters,
                                                       Map<String, String> referenceSpecificParameters,
-                                                      Map<String, ParameterDifference> parametersDifferences) {
+                                                      Map<String, ParameterDifference> parametersDifferences,
+                                                      String provider) {
+        // build default specific parameters
+        List<com.powsybl.commons.parameters.Parameter> specificLoadFlowParameters = LoadFlowService.getSpecificLoadFlowParameters(provider).getOrDefault(provider, Collections.emptyList());
+        Map<String, String> defaultSpecificParameters = new HashMap<>();
+        specificLoadFlowParameters.forEach(parameter -> {
+            String parameterName = parameter.getNames().getFirst();
+            String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
+            defaultSpecificParameters.put(parameterName, defaultValue);
+        });
+
         specificParameters.forEach((parameterName, parameterValue) -> {
             if (referenceSpecificParameters.containsKey(parameterName)) {
                 String referenceValue = referenceSpecificParameters.get(parameterName);
@@ -96,6 +106,16 @@ public class LoadFlowParametersService {
                 }
             }
         });
+
+        defaultSpecificParameters.forEach((parameterName, referenceValue) -> {
+            if (specificParameters.containsKey(parameterName) && !referenceSpecificParameters.containsKey(parameterName)) {
+                parametersDifferences.put(parameterName, new ParameterDifference(specificParameters.get(referenceValue), defaultSpecificParameters.get(parameterName)));
+            }
+            if (!specificParameters.containsKey(parameterName) && referenceSpecificParameters.containsKey(parameterName)) {
+                parametersDifferences.put(parameterName, new ParameterDifference(defaultSpecificParameters.get(parameterName), referenceSpecificParameters.get(parameterName)));
+            }
+        });
+
     }
 
     private LoadFlowParametersInfos computeDifferences(LoadFlowParametersInfos loadFlowParametersInfos,
@@ -107,7 +127,7 @@ public class LoadFlowParametersService {
 
         String provider = loadFlowParametersInfos.getProvider();
         Map<String, String> specificParameters = loadFlowParametersInfos.getSpecificParametersPerProvider().getOrDefault(provider, Collections.emptyMap());
-        computeSpecificParametersDifferences(specificParameters, referenceSpecificParameters, parametersDifferences);
+        computeSpecificParametersDifferences(specificParameters, referenceSpecificParameters, parametersDifferences, provider);
 
         if (!parametersDifferences.isEmpty()) {
             loadFlowParametersInfos.setParametersDifferences(parametersDifferences);
@@ -141,16 +161,6 @@ public class LoadFlowParametersService {
                 referenceSpecificParameters = new HashMap<>();
                 referenceLoadFlowParameters = LoadFlowParameters.load();
             }
-
-            // merge reference-specific parameters with default-specific parameters only for the current provider
-            List<com.powsybl.commons.parameters.Parameter> specificParameters = LoadFlowService.getSpecificLoadFlowParameters(provider).getOrDefault(provider, Collections.emptyList());
-            specificParameters.forEach(parameter -> {
-                String parameterName = parameter.getNames().getFirst();
-                String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
-                if (!referenceSpecificParameters.containsKey(parameterName)) {
-                    referenceSpecificParameters.put(parameterName, defaultValue);
-                }
-            });
 
             // compute all the differences between loadflow parameters and reference loadflow parameters
             return Optional.of(computeDifferences(loadFlowParametersInfos.get(),
