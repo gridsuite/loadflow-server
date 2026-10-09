@@ -145,9 +145,9 @@ public class LoadFlowParametersService {
             // merge reference-specific parameters with default-specific parameters only for the current provider
             List<com.powsybl.commons.parameters.Parameter> specificParameters = LoadFlowService.getSpecificLoadFlowParameters(provider).getOrDefault(provider, Collections.emptyList());
             specificParameters.forEach(parameter -> {
-                    String parameterName = parameter.getNames().getFirst();
-                    String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
-                    referenceSpecificParameters.putIfAbsent(parameterName, defaultValue);
+                String parameterName = parameter.getNames().getFirst();
+                String defaultValue = parameter.getDefaultValue() == null ? null : String.valueOf(parameter.getDefaultValue());
+                referenceSpecificParameters.putIfAbsent(parameterName, defaultValue);
             });
 
             // compute all the differences between loadflow parameters and reference loadflow parameters
