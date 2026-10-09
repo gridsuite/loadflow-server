@@ -132,7 +132,7 @@ public class LoadFlowParametersService {
                 Optional<LoadFlowParametersInfos> referenceLoadFlowParametersInfos = loadFlowParametersRepository.findById(referenceParametersUuid).map(this::toLoadFlowParametersInfos);
                 if (referenceLoadFlowParametersInfos.isPresent()) {
                     referenceLoadFlowParameters = referenceLoadFlowParametersInfos.get().getCommonParameters();
-                    referenceSpecificParameters = referenceLoadFlowParametersInfos.get().getSpecificParametersPerProvider().getOrDefault(provider, Collections.emptyMap());
+                    referenceSpecificParameters = referenceLoadFlowParametersInfos.get().getSpecificParametersPerProvider().getOrDefault(provider, new HashMap<>());
                 } else {
                     referenceSpecificParameters = new HashMap<>();
                     referenceLoadFlowParameters = LoadFlowParameters.load();
