@@ -453,21 +453,26 @@ class LoadFlowParametersTest {
         String defaultValue = String.valueOf(referenceParameter.getDefaultValue());
         String differentValue = Boolean.toString(!Objects.equals(defaultValue, "true"));
 
-        LoadFlowParametersInfos referenceParameters = buildParametersWithProvider(provider);
-        referenceParameters.setSpecificParametersPerProvider(Map.of(provider, Map.of(parameterName, defaultValue)));
-        LoadFlowParametersInfos parameters = buildParametersWithProvider(provider);
+        boolean providerHasLimitReductions = limitReductionService.getProviders().contains(provider);
+        Float limitReduction = providerHasLimitReductions ? null : 0.8f;
+        List<LimitReductionsByVoltageLevel> limitReductions = providerHasLimitReductions
+            ? limitReductionService.createDefaultLimitReductions()
+            : null;
 
-        if (limitReductionService.getProviders().contains(provider)) {
-            List<LimitReductionsByVoltageLevel> defaultLimitReductions = limitReductionService.createDefaultLimitReductions();
-            referenceParameters.setLimitReduction(null);
-            referenceParameters.setLimitReductions(defaultLimitReductions);
-            parameters.setLimitReduction(null);
-            parameters.setLimitReductions(defaultLimitReductions);
-        }
+        LoadFlowParametersInfos referenceParameters = buildCommonAndSpecificParameters()
+            .provider(provider)
+            .limitReduction(limitReduction)
+            .limitReductions(limitReductions)
+            .specificParametersPerProvider(Map.of(provider, Map.of(parameterName, defaultValue)))
+            .build();
+        LoadFlowParametersInfos parameters = buildCommonAndSpecificParameters()
+            .provider(provider)
+            .limitReduction(limitReduction)
+            .limitReductions(limitReductions)
+            .specificParametersPerProvider(Map.of(provider, Map.of(parameterName, differentValue)))
+            .build();
 
         UUID referenceParametersUuid = saveAndReturnId(referenceParameters);
-
-        parameters.setSpecificParametersPerProvider(Map.of(provider, Map.of(parameterName, differentValue)));
         UUID parametersUuid = parametersService.createParameters(parameters);
 
         MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true").queryParam("referenceUuid", referenceParametersUuid.toString()))
