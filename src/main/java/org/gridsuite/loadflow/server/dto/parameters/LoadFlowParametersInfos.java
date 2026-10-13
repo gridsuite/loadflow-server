@@ -21,7 +21,6 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Getter
-@Setter
 @Builder
 public class LoadFlowParametersInfos {
     private UUID uuid;
@@ -33,6 +32,7 @@ public class LoadFlowParametersInfos {
 
     private Float limitReduction; // Only for providers other than OpenLoadFlow
 
+    @Setter
     private Map<String, ParameterDifference> parametersDifferences;
 
     public LoadFlowParametersEntity toEntity() {
