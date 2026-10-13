@@ -88,8 +88,10 @@ public class LoadFlowParametersController {
     @ApiResponse(responseCode = "200", description = "parameters were returned")
     @ApiResponse(responseCode = "404", description = "parameters were not found")
     public ResponseEntity<LoadFlowParametersInfos> getParameters(
-            @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid) {
-        return ResponseEntity.of(parametersService.getParameters(parametersUuid));
+            @Parameter(description = "parameters UUID") @PathVariable("uuid") UUID parametersUuid,
+            @Parameter(description = "with differences") @RequestParam(name = "withDifferences", required = false, defaultValue = "false") boolean withDifferences,
+            @Parameter(description = "reference parameters UUID") @RequestParam(name = "referenceUuid", required = false) UUID referenceParametersUuid) {
+        return ResponseEntity.of(parametersService.getParameters(parametersUuid, withDifferences, referenceParametersUuid));
     }
 
     @GetMapping(value = "/{uuid}/values", produces = MediaType.APPLICATION_JSON_VALUE)
