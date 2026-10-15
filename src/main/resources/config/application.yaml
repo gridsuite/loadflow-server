@@ -2,6 +2,10 @@ spring:
   application:
     name: loadflow-server
 
+  http:
+    converters:
+      preferred-json-mapper: jackson2
+
   cloud:
     function:
       definition: consumeRun1;consumeRun2;consumeRun3;consumeRun4;consumeCancel
