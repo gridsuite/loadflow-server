@@ -112,13 +112,7 @@ public class LoadFlowParametersEntity {
         assignAttributes(loadFlowParametersInfos);
     }
 
-    public void assignAttributes(LoadFlowParametersInfos loadFlowParametersInfos) {
-        if (loadFlowParametersInfos == null) {
-            assignCommonValues(LoadFlowParameters.load());
-            assignSpecificValues(null);
-            return;
-        }
-
+    public void assignAttributes(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
         provider = loadFlowParametersInfos.getProvider();
         limitReduction = loadFlowParametersInfos.getLimitReduction();
         assignCommonValues(loadFlowParametersInfos.getCommonParameters());
