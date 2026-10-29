@@ -182,33 +182,16 @@ public class LoadFlowParametersEntity {
             specificParameters = newParametersByProvider.values().stream().flatMap(Collection::stream).toList();
         } else {
             if (!newParametersByProvider.isEmpty()) {
-                // build existing specific parameters by provider
                 Map<String, List<LoadFlowSpecificParameterEntity>> existingParametersByProvider = specificParameters.stream()
                     .collect(Collectors.groupingBy(LoadFlowSpecificParameterEntity::getProvider));
 
-                // merge existing and add new specific parameters for each present provider
                 newParametersByProvider.forEach((provider, providerParameters) -> {
-                    List<LoadFlowSpecificParameterEntity> existingParameters = existingParametersByProvider.getOrDefault(provider, new ArrayList<>());
-                    Map<String, LoadFlowSpecificParameterEntity> parametersByName = existingParameters.stream()
-                        .collect(Collectors.toMap(LoadFlowSpecificParameterEntity::getName, p -> p));
-
-                    List<LoadFlowSpecificParameterEntity> mergedParameters = new ArrayList<>();
-                    for (LoadFlowSpecificParameterEntity parameterEntity : providerParameters) {
-                        String nameKey = parameterEntity.getName();
-                        if (parametersByName.get(nameKey) != null) {
-                            LoadFlowSpecificParameterEntity existingEntity = parametersByName.get(nameKey);
-                            existingEntity.setValue(parameterEntity.getValue());
-                            mergedParameters.add(existingEntity);
-                        } else {
-                            mergedParameters.add(parameterEntity);
-                        }
-                    }
-                    existingParametersByProvider.put(provider, mergedParameters);
+                    existingParametersByProvider.put(provider, providerParameters);
                 });
 
-                // aggregate all merged specific parameters by provider
                 List<LoadFlowSpecificParameterEntity> allMergedParameters = existingParametersByProvider.values()
                     .stream().flatMap(Collection::stream).toList();
+
                 specificParameters.clear();
                 specificParameters.addAll(allMergedParameters);
             }
