@@ -16,8 +16,6 @@ import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.util.UUID;
 
 /**
@@ -43,7 +41,6 @@ public class LoadFlowSpecificParameterEntity {
     @Column(name = "name")
     private String name;
 
-    @Setter
     @Column(name = "value_")
     private String value;
 }
