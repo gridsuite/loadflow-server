@@ -164,11 +164,11 @@ public class LoadFlowParametersEntity {
 
         //  build new entities from provided parameters
         List<LoadFlowSpecificParameterEntity> newEntities = new ArrayList<>();
-        specificParametersPerProvider.forEach((_provider, params) -> {
-            if (params != null) {
-                params.forEach((name, value) -> {
+        specificParametersPerProvider.forEach((currProvider, currParams) -> {
+            if (currParams != null) {
+                currParams.forEach((name, value) -> {
                     if (value != null) {
-                        newEntities.add(new LoadFlowSpecificParameterEntity(null, _provider, name, value));
+                        newEntities.add(new LoadFlowSpecificParameterEntity(null, currProvider, name, value));
                     }
                 });
             }
