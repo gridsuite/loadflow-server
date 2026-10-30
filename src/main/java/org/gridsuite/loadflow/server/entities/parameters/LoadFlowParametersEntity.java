@@ -156,13 +156,13 @@ public class LoadFlowParametersEntity {
             specificParameters = new ArrayList<>();
         }
 
-        // nothing provided: clear every existing specific parameter
+        // nothing provided: clear every existing specific parameters
         if (specificParametersPerProvider == null || specificParametersPerProvider.isEmpty()) {
             specificParameters.clear();
             return;
         }
 
-        //  build new entities from provided parameters
+        //  build new entities from provided specific parameters
         List<LoadFlowSpecificParameterEntity> newEntities = new ArrayList<>();
         specificParametersPerProvider.forEach((currProvider, currParams) -> {
             if (currParams != null) {
@@ -174,9 +174,8 @@ public class LoadFlowParametersEntity {
             }
         });
 
-        // remove parameters whose its provider is in present providers, keep the others untouched
+        // override all specific parameters of the selected provider, keep specific parameters of other providers untouched
         specificParameters.removeIf(param -> specificParametersPerProvider.containsKey(param.getProvider()));
-        // add all new entities
         specificParameters.addAll(newEntities);
     }
 
