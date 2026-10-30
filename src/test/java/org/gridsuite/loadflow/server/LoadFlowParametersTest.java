@@ -30,10 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,6 +53,10 @@ class LoadFlowParametersTest {
     private static final String URI_PARAMETERS_GET_PUT = URI_PARAMETERS_BASE + "/";
 
     private static final String PROVIDER = "LFProvider";
+
+    private static final String OPEN_LOADFLOW_PROVIDER = "OpenLoadFlow";
+
+    private static final String DYNAFLOW_PROVIDER = "DynaFlow";
 
     @Autowired
     MockMvc mockMvc;
@@ -488,6 +489,92 @@ class LoadFlowParametersTest {
         assertEquals(new ParameterDifference(differentValue, defaultValue), receivedParameters.getParametersDifferences().get(parameterName));
     }
 
+    // --- test specific parameters --- //
+
+    @Test
+    void testKeepsSpecificParamsOfAbsentProvider() throws Exception {
+        // initial state: both providers have specific parameters
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                OPEN_LOADFLOW_PROVIDER, Map.of("olfParam1", "olfParam1Value1", "olfParam2", "1.0"),
+                DYNAFLOW_PROVIDER, Map.of("dfParam1", "true", "dfParam2", "false"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // update: only OpenLoadFlow is present, DynaFlow is absent
+        Map<String, Map<String, String>> updatedSpecific = Map.of(
+                OPEN_LOADFLOW_PROVIDER, Map.of("olfParam1", "olfParam1Value2"));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
+        assertEquals(2, savedSpecificParams.size());
+        // OpenLoadFlow parameters are fully replaced
+        assertEquals(Map.of("olfParam1", "olfParam1Value2"), savedSpecificParams.get(OPEN_LOADFLOW_PROVIDER));
+        // DynaFlow parameters are untouched
+        assertEquals(Map.of("dfParam1", "true", "dfParam2", "false"), savedSpecificParams.get(DYNAFLOW_PROVIDER));
+    }
+
+    @Test
+    void testReplacesAllSpecificParamsOfPresentProvider() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                DYNAFLOW_PROVIDER, Map.of("dfParam1", "true", "dfParam2", "false", "dfParam3", "63.0"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // "dfParam1" is changed, "dfParam2" and "dfParam3" are removed, "dfParam4" is added
+        Map<String, Map<String, String>> updatedSpecific = Map.of(
+                DYNAFLOW_PROVIDER, Map.of("dfParam1", "false", "dfParam4", "warm"));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
+        assertEquals(Set.of(DYNAFLOW_PROVIDER), savedSpecificParams.keySet());
+        assertEquals(Map.of("dfParam1", "false", "dfParam4", "warm"), savedSpecificParams.get(DYNAFLOW_PROVIDER));
+    }
+
+    @Test
+    void testReplacesSpecificParamsOfAllPresentProviders() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                OPEN_LOADFLOW_PROVIDER, Map.of("olfParam1", "olfParam1Value1", "olfParam2", "1.0"),
+                DYNAFLOW_PROVIDER, Map.of("dfParam1", "true", "dfParam2", "false"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        Map<String, Map<String, String>> updatedSpecific = Map.of(
+                OPEN_LOADFLOW_PROVIDER, Map.of("olfParam2", "2.5"),
+                DYNAFLOW_PROVIDER, Map.of("dfParam2", "true"));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
+        assertEquals(updatedSpecific, savedSpecificParams);
+    }
+
+    @Test
+    void testDeleteSpecificParamsOfPresentProviderWithEmpty() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                OPEN_LOADFLOW_PROVIDER, Map.of("olfParam1", "olfParam1Value1"),
+                DYNAFLOW_PROVIDER, Map.of("dfParam1", "true"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // OpenLoadFlow is present but with an empty map: all its parameters are deleted, DynaFlow is kept
+        Map<String, Map<String, String>> updatedSpecific = Map.of(OPEN_LOADFLOW_PROVIDER, Map.of());
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> stored = getSavedSpecificParameters(parametersUuid);
+        assertEquals(Set.of(DYNAFLOW_PROVIDER), stored.keySet());
+        assertEquals(Map.of("dfParam1", "true"), stored.get(DYNAFLOW_PROVIDER));
+    }
+
+    @Test
+    void testClearsAllProvidersWithNoSpecificParams() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                OPEN_LOADFLOW_PROVIDER, Map.of("olfParam1", "olfParam1Value1"),
+                DYNAFLOW_PROVIDER, Map.of("dfParam1", "true"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // no provider at all: every existing specific parameter is cleared
+        updateParameters(parametersUuid, buildParametersWithSpecific(Map.of()));
+
+        assertTrue(getSavedSpecificParameters(parametersUuid).isEmpty());
+    }
+
+    // --- test helpers   --- //
+
     /** Save parameters into the repository and return its UUID. */
     protected UUID saveAndReturnId(LoadFlowParametersInfos parametersInfos) {
         parametersRepository.save(parametersInfos.toEntity());
@@ -519,5 +606,26 @@ class LoadFlowParametersTest {
             .commonParameters(loadFlowParameters)
             .specificParametersPerProvider(Map.of())
              .build();
+    }
+
+    private LoadFlowParametersInfos buildParametersWithSpecific(Map<String, Map<String, String>> specificParametersPerProvider) {
+        return buildCommonAndSpecificParameters()
+                .provider(PROVIDER)
+                .limitReduction(0.8f)
+                .specificParametersPerProvider(specificParametersPerProvider)
+                .build();
+    }
+
+    private Map<String, Map<String, String>> getSavedSpecificParameters(UUID parametersUuid) {
+        return parametersService
+                .toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).orElseThrow())
+                .getSpecificParametersPerProvider();
+    }
+
+    private void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parameters) throws Exception {
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid)
+                        .content(mapper.writeValueAsString(parameters))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 }
