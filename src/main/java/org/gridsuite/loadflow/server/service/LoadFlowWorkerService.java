@@ -25,8 +25,8 @@ import com.powsybl.network.store.client.PreloadingStrategy;
 import com.powsybl.networkarea.BorderBasedCountryArea;
 import com.powsybl.networkarea.CountryAreaFactory;
 import com.powsybl.security.Security;
-import com.powsybl.security.limitreduction.DefaultLimitReductionsApplier;
-import com.powsybl.security.limitreduction.LimitReduction;
+import com.powsybl.security.limitscaling.DefaultLimitScalingsApplier;
+import com.powsybl.security.limitscaling.LimitScaling;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.Setter;
@@ -105,15 +105,15 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
         );
     }
 
-    private LimitReduction createLimitReduction(IdentifiableCriterion voltageLevelCriterion, LimitDurationCriterion limitDurationCriterion, double value) {
-        return LimitReduction.builder(LimitType.CURRENT, value)
+    private LimitScaling createLimitReduction(IdentifiableCriterion voltageLevelCriterion, LimitDurationCriterion limitDurationCriterion, double value) {
+        return LimitScaling.builder(LimitType.CURRENT, value)
                 .withNetworkElementCriteria(voltageLevelCriterion)
                 .withLimitDurationCriteria(limitDurationCriterion)
                 .build();
     }
 
-    private List<LimitReduction> createLimitReductions(LoadFlowRunContext runContext) {
-        List<LimitReduction> limitReductions = new ArrayList<>(limitReductionService.getVoltageLevels().size() * limitReductionService.getLimitDurations().size());
+    private List<LimitScaling> createLimitReductions(LoadFlowRunContext runContext) {
+        List<LimitScaling> limitReductions = new ArrayList<>(limitReductionService.getVoltageLevels().size() * limitReductionService.getLimitDurations().size());
 
         runContext.getParameters().getLimitReductions().forEach(limitReduction -> {
             LimitReductionsByVoltageLevel.VoltageLevel voltageLevel = limitReduction.getVoltageLevel();
@@ -508,14 +508,14 @@ public class LoadFlowWorkerService extends AbstractWorkerService<LoadFlowResult,
 
         if (lfCommonParams.isDc()) {
             if (limitReductionService.getProviders().contains(loadFlowRunContext.getProvider())) {
-                violations = Security.checkLimitsDc(network, new DefaultLimitReductionsApplier(createLimitReductions(loadFlowRunContext)), lfCommonParams.getDcPowerFactor());
+                violations = Security.checkLimitsDc(network, new DefaultLimitScalingsApplier(createLimitReductions(loadFlowRunContext)), lfCommonParams.getDcPowerFactor());
 
             } else {
                 violations = Security.checkLimitsDc(network, loadFlowRunContext.getParameters().getLimitReduction(), lfCommonParams.getDcPowerFactor());
             }
         } else {
             if (limitReductionService.getProviders().contains(loadFlowRunContext.getProvider())) {
-                violations = Security.checkLimits(network, new DefaultLimitReductionsApplier(createLimitReductions(loadFlowRunContext)));
+                violations = Security.checkLimits(network, new DefaultLimitScalingsApplier(createLimitReductions(loadFlowRunContext)));
             } else {
                 violations = Security.checkLimits(network, loadFlowRunContext.getParameters().getLimitReduction());
             }
