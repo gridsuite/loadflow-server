@@ -30,10 +30,7 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 import static com.powsybl.network.store.model.NetworkStoreApi.VERSION;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,6 +53,10 @@ class LoadFlowParametersTest {
     private static final String URI_PARAMETERS_GET_PUT = URI_PARAMETERS_BASE + "/";
 
     private static final String PROVIDER = "LFProvider";
+
+    private static final String PROVIDER_1 = "Provider_1";
+
+    private static final String PROVIDER_2 = "Provider_2";
 
     @Autowired
     MockMvc mockMvc;
@@ -488,6 +489,92 @@ class LoadFlowParametersTest {
         assertEquals(new ParameterDifference(differentValue, defaultValue), receivedParameters.getParametersDifferences().get(parameterName));
     }
 
+    // --- test specific parameters --- //
+
+    @Test
+    void testKeepsSpecificParamsOfAbsentProvider() throws Exception {
+        // initial state: both providers have specific parameters
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1", "pro1Param2", "1.0"),
+                PROVIDER_2, Map.of("pro2Param1", "true", "pro2Param2", "false"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // update: only PROVIDER_1 is present, PROVIDER_2 is absent
+        Map<String, Map<String, String>> updatedSpecific = Map.of(
+                PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value2"));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
+        assertEquals(2, savedSpecificParams.size());
+        // PROVIDER_1 parameters are fully replaced
+        assertEquals(Map.of("pro1Param1", "pro1Param1Value2"), savedSpecificParams.get(PROVIDER_1));
+        // PROVIDER_2 parameters are untouched
+        assertEquals(Map.of("pro2Param1", "true", "pro2Param2", "false"), savedSpecificParams.get(PROVIDER_2));
+    }
+
+    @Test
+    void testReplacesAllSpecificParamsOfPresentProvider() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                PROVIDER_2, Map.of("pro2Param1", "true", "pro2Param2", "false", "pro2Param3", "63.0"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // "pro2Param1" is changed, "pro2Param2" and "pro2Param3" are removed, "pro2Param4" is added
+        Map<String, Map<String, String>> updatedSpecific = Map.of(
+                PROVIDER_2, Map.of("pro2Param1", "false", "pro2Param4", "warm"));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
+        assertEquals(Set.of(PROVIDER_2), savedSpecificParams.keySet());
+        assertEquals(Map.of("pro2Param1", "false", "pro2Param4", "warm"), savedSpecificParams.get(PROVIDER_2));
+    }
+
+    @Test
+    void testReplacesSpecificParamsOfAllPresentProviders() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1", "pro1Param2", "1.0"),
+                PROVIDER_2, Map.of("pro2Param1", "true", "pro2Param2", "false"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        Map<String, Map<String, String>> updatedSpecific = Map.of(
+                PROVIDER_1, Map.of("pro1Param2", "2.5"),
+                PROVIDER_2, Map.of("pro2Param2", "true"));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
+        assertEquals(updatedSpecific, savedSpecificParams);
+    }
+
+    @Test
+    void testDeleteSpecificParamsOfPresentProviderWithEmpty() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1"),
+                PROVIDER_2, Map.of("pro2Param1", "true"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // PROVIDER_1 is present but with an empty map: all its parameters are deleted, PROVIDER_2 is kept
+        Map<String, Map<String, String>> updatedSpecific = Map.of(PROVIDER_1, Map.of());
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+
+        Map<String, Map<String, String>> stored = getSavedSpecificParameters(parametersUuid);
+        assertEquals(Set.of(PROVIDER_2), stored.keySet());
+        assertEquals(Map.of("pro2Param1", "true"), stored.get(PROVIDER_2));
+    }
+
+    @Test
+    void testClearsAllProvidersWithNoSpecificParams() throws Exception {
+        Map<String, Map<String, String>> initialSpecific = Map.of(
+                PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1"),
+                PROVIDER_2, Map.of("pro2Param1", "true"));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+
+        // no provider at all: every existing specific parameter is cleared
+        updateParameters(parametersUuid, buildParametersWithSpecific(Map.of()));
+
+        assertTrue(getSavedSpecificParameters(parametersUuid).isEmpty());
+    }
+
+    // --- test helpers   --- //
+
     /** Save parameters into the repository and return its UUID. */
     protected UUID saveAndReturnId(LoadFlowParametersInfos parametersInfos) {
         parametersRepository.save(parametersInfos.toEntity());
@@ -519,5 +606,26 @@ class LoadFlowParametersTest {
             .commonParameters(loadFlowParameters)
             .specificParametersPerProvider(Map.of())
              .build();
+    }
+
+    private LoadFlowParametersInfos buildParametersWithSpecific(Map<String, Map<String, String>> specificParametersPerProvider) {
+        return buildCommonAndSpecificParameters()
+                .provider(PROVIDER)
+                .limitReduction(0.8f)
+                .specificParametersPerProvider(specificParametersPerProvider)
+                .build();
+    }
+
+    private Map<String, Map<String, String>> getSavedSpecificParameters(UUID parametersUuid) {
+        return parametersService
+                .toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).orElseThrow())
+                .getSpecificParametersPerProvider();
+    }
+
+    private void updateParameters(UUID parametersUuid, LoadFlowParametersInfos parameters) throws Exception {
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid)
+                        .content(mapper.writeValueAsString(parameters))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
     }
 }
