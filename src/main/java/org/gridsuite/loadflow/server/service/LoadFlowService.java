@@ -87,7 +87,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
         UUID resultUuid = loadFlowRunContext.getResultUuid();
 
         // update status to running status
-        setStatus(List.of(resultUuid), LoadFlowStatus.RUNNING);
+        setStatus(List.of(resultUuid), LoadFlowStatus.PRELOADING);
         notificationService.sendRunMessage(new LoadFlowResultContext(resultUuid, loadFlowRunContext).toMessage(objectMapper));
         return resultUuid;
     }
