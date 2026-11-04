@@ -114,10 +114,14 @@ public class LoadFlowParametersEntity {
 
     public void assignAttributes(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
         provider = loadFlowParametersInfos.getProvider();
-        limitReduction = loadFlowParametersInfos.getLimitReduction();
+        if (loadFlowParametersInfos.getLimitReduction() != null) {
+            limitReduction = loadFlowParametersInfos.getLimitReduction();
+        }
         assignCommonValues(loadFlowParametersInfos.getCommonParameters());
         assignSpecificValues(loadFlowParametersInfos.getSpecificParametersPerProvider());
-        assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+        if (loadFlowParametersInfos.getLimitReductions() != null) {
+            assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+        }
     }
 
     private void assignLimitReductions(@Nullable List<List<Double>> values) {

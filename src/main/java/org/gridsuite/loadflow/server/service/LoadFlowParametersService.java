@@ -46,20 +46,13 @@ public class LoadFlowParametersService {
     }
 
     private Optional<List<LimitReductionsByVoltageLevel>> getLimitReductionsForProvider(LoadFlowParametersEntity entity) {
-        // Only for some providers
-        if (!limitReductionService.getProviders().contains(entity.getProvider())) {
-            return Optional.empty();
-        }
         List<List<Double>> limitReductionsValues = entity.toLimitReductionsValues();
         return Optional.of(limitReductionsValues.isEmpty() ? limitReductionService.createDefaultLimitReductions() : limitReductionService.createLimitReductions(limitReductionsValues));
     }
 
     private Optional<Float> getLimitReductionValueForProvider(LoadFlowParametersEntity entity) {
-        // Only for providers other than OpenLoadFlow
-        if (!limitReductionService.getProviders().contains(entity.getProvider())) {
-            return Optional.of(entity.getLimitReduction() != null ? entity.getLimitReduction() : DEFAULT_LIMIT_REDUCTION_VALUE);
-        }
-        return Optional.empty();
+        return Optional.of(entity.getLimitReduction() != null ? entity.getLimitReduction() : DEFAULT_LIMIT_REDUCTION_VALUE);
+
     }
 
     private Float getDefaultLimitReductionValueForProvider(String provider) {
