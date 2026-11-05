@@ -67,6 +67,8 @@
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
         <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
         <gridsuite-computation.version>2.7.0</gridsuite-computation.version>
+        <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+        <powsybl-network-store.version>1.52.0</powsybl-network-store.version>
     </properties>
 
     <build>
@@ -101,6 +103,31 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-iidm-impl</artifactId>
+                <version>${powsybl-network-store.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-model</artifactId>
+                <version>${powsybl-network-store.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>com.powsybl</groupId>
+                <artifactId>powsybl-network-store-client</artifactId>
+                <version>${powsybl-network-store.version}</version>
+            </dependency>
+            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
+            <dependency>
+                <groupId>org.gridsuite</groupId>
+                <artifactId>gridsuite-computation</artifactId>
+                <version>${gridsuite-computation.version}</version>
+            </dependency>
+
             <dependency>
                 <groupId>org.gridsuite</groupId>
                 <artifactId>gridsuite-dependencies</artifactId>
@@ -140,8 +167,6 @@
         <dependency>
             <groupId>org.gridsuite</groupId>
             <artifactId>gridsuite-computation</artifactId>
-            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-            <version>${gridsuite-computation.version}</version>
         </dependency>
         <dependency>
             <groupId>com.powsybl</groupId>
