@@ -105,7 +105,9 @@ public class LoadFlowParametersEntity {
     }
 
     public List<List<Double>> toLimitReductionsValues() {
-        return this.limitReductions.stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
+        return Optional.ofNullable(this.limitReductions)
+                .orElse(Collections.emptyList())
+                .stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
     }
 
     public void update(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
