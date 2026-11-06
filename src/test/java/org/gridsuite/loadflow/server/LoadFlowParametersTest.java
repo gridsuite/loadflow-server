@@ -298,6 +298,53 @@ class LoadFlowParametersTest {
     }
 
     @Test
+    void testResetToDefaultValuesWhenLimitsAlreadyPersisted() throws Exception {
+        List<List<Double>> limitReductions = List.of(
+                List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+        UUID parametersUuid = saveAndReturnId(buildCommonAndSpecificParameters()
+                .limitReduction(0.6f)
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
+                .build());
+
+        // --- test reset to default values by sending null body --- //
+        LoadFlowParametersInfos defaults = parametersService.getDefaultParametersValues();
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        // check when resetting, the storedEntity limits values are reset to default values
+        LoadFlowParametersEntity storedEntity = parametersRepository.findById(parametersUuid).orElseThrow();
+        assertEquals(defaults.getLimitReduction(), storedEntity.getLimitReduction());
+        assertEquals(defaults.getLimitReductionsValues(), storedEntity.toLimitReductionsValues());
+    }
+
+    @Test
+    void testUpdateKeepsOmittedLimitReductions() throws Exception {
+        List<List<Double>> reductions = List.of(
+                List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+        UUID parametersUuid = saveAndReturnId(buildCommonAndSpecificParameters()
+                .limitReduction(0.6f)
+                .limitReductions(limitReductionService.createLimitReductions(reductions))
+                .build());
+
+        // --- test change only a common parameter, limits is not changed --- //
+        LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+        loadFlowParameters.setDc(true);
+        LoadFlowParametersInfos parametersToUpdate = buildCommonAndSpecificParameters()
+                .commonParameters(loadFlowParameters)
+                .build();
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid)
+                        .content(mapper.writeValueAsString(parametersToUpdate))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        // check when updating without limits, the storedEntity values are not changed
+        LoadFlowParametersEntity storedEntity = parametersRepository.findById(parametersUuid).orElseThrow();
+        assertTrue(storedEntity.isDc());
+        assertEquals(Float.valueOf(0.6f), storedEntity.getLimitReduction());
+        assertEquals(reductions, storedEntity.toLimitReductionsValues());
+    }
+
+    @Test
     void testDelete() throws Exception {
 
         LoadFlowParametersInfos parametersToDelete = buildParameters().build();

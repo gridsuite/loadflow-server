@@ -130,7 +130,8 @@ public class LoadFlowParametersEntity {
         if (values == null) {
             return;
         }
-        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new).toList();
+        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new)
+                .collect(Collectors.toCollection(ArrayList::new));
         if (limitReductions == null) {
             limitReductions = entities;
         } else {
