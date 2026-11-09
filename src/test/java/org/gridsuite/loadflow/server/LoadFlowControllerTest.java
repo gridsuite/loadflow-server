@@ -111,9 +111,12 @@ class LoadFlowControllerTest {
     private static final int TIMEOUT = 1000;
 
     private static final List<LimitViolation> LIMIT_VIOLATIONS_WITH_LOCATION = List.of(
-            new LimitViolation("VLGEN", "", LimitViolationType.LOW_VOLTAGE, "limit1", 60, 1500, 0.7F, 1300, ThreeSides.TWO, new BusBreakerViolationLocation(List.of("NHV1"))),
-            new LimitViolation("VLGEN", "", LimitViolationType.HIGH_VOLTAGE, "limit2", 300, 900, 0.7F, 1000, ThreeSides.ONE, new BusBreakerViolationLocation(List.of("NHV2"))),
-            new LimitViolation("l3", LimitViolationType.CURRENT, "limit3", Integer.MAX_VALUE, 10, 1, 11, TwoSides.ONE));
+            LimitViolation.builder().type(LimitViolationType.LOW_VOLTAGE).subject("VLGEN").subjectName("").limitName("limit1")
+                .limit(1500).scaling(0.7F).value(1300).violationLocation(new BusBreakerViolationLocation(List.of("NHV1"))).build(),
+            LimitViolation.builder().type(LimitViolationType.HIGH_VOLTAGE).subject("VLGEN").subjectName("").limitName("limit2")
+                .limit(900).scaling(0.7F).value(1000).violationLocation(new BusBreakerViolationLocation(List.of("NHV2"))).build(),
+            LimitViolation.builder().current().subject("l3").limitName("limit3")
+                .limit(10).scaling(1).value(11).side(TwoSides.ONE).build());
 
     @Autowired
     private OutputDestination output;
@@ -982,16 +985,21 @@ class LoadFlowControllerTest {
         static final LoadFlowResult RESULT = new LoadFlowResultImpl(true, new HashMap<>(), null, componentResults);
     }
 
+    private static LimitViolation currentViolation(String subjectId, String subjectName, String limitName, int duration, double limit, double value, ThreeSides side) {
+        return LimitViolation.builder().current().subject(subjectId).subjectName(subjectName).limitName(limitName)
+            .duration(duration).limit(limit).scaling(0.7F).value(value).side(side).build();
+    }
+
     private static final class LimitViolationsMock {
         static List<LimitViolation> limitViolations = List.of(
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_1", "lineName2", LimitViolationType.CURRENT, "limit2", 60, 1500, 0.7F, 1000, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
-                new LimitViolation("NHV1_NHV2_2", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, TwoSides.TWO));
+                currentViolation("NHV1_NHV2_1", "lineName1", "limit1", 60, 1500, 1300, ThreeSides.TWO),
+                currentViolation("NHV1_NHV2_1", "lineName2", "limit2", 60, 1500, 1000, ThreeSides.TWO),
+                currentViolation("NHV1_NHV2_2", "lineName3", "limit3", 300, 900, 1000, ThreeSides.ONE),
+                currentViolation("NHV1_NHV2_2", "lineName4", "limit4", 300, 900, 1000, ThreeSides.TWO));
         static List<LimitViolation> limitViolationsWithThreeSides = List.of(
-                new LimitViolation("NHV1_NHV2_1", "lineName1", LimitViolationType.CURRENT, "limit1", 60, 1500, 0.7F, 1300, TwoSides.TWO),
-                new LimitViolation("NHV1_NHV2_2", "lineName3", LimitViolationType.CURRENT, "limit3", 300, 900, 0.7F, 1000, TwoSides.ONE),
-                new LimitViolation("THREE_WINDING_TRANSFORMER", "lineName4", LimitViolationType.CURRENT, "limit4", 300, 900, 0.7F, 1000, ThreeSides.THREE));
+                currentViolation("NHV1_NHV2_1", "lineName1", "limit1", 60, 1500, 1300, ThreeSides.TWO),
+                currentViolation("NHV1_NHV2_2", "lineName3", "limit3", 300, 900, 1000, ThreeSides.ONE),
+                currentViolation("THREE_WINDING_TRANSFORMER", "lineName4", "limit4", 300, 900, 1000, ThreeSides.THREE));
     }
 
     @Test
