@@ -7,6 +7,7 @@
 package org.gridsuite.loadflow.server;
 
 import com.powsybl.iidm.network.*;
+import com.powsybl.iidm.network.regulation.RegulationMode;
 import com.powsybl.iidm.network.test.EurostagTutorialExample1Factory;
 import com.powsybl.network.store.iidm.impl.NetworkFactoryImpl;
 
@@ -38,10 +39,13 @@ final class Networks {
                     .setConnectableBus(bus.getId())
                     .setMinP(-9999.99)
                     .setMaxP(9999.99)
-                    .setVoltageRegulatorOn(true)
-                    .setTargetV(24.5)
                     .setTargetP(20000.)
-                    .setTargetQ(301.0)
+                    .setLocalTargetV(24.5)
+                    .setLocalTargetQ(301.0)
+                    .newVoltageRegulation()
+                        .withMode(RegulationMode.VOLTAGE)
+                        .withRegulating(true)
+                        .add()
                     .add();
 
             network.getVariantManager().setWorkingVariant(VariantManagerConstants.INITIAL_VARIANT_ID);
@@ -182,10 +186,13 @@ final class Networks {
                 .endStep()
                 .setTapPosition(1)
                 .setLoadTapChangingCapabilities(true)
-                .setRegulating(true)
-                .setTargetV(158.0)
-                .setTargetDeadband(0)
-                .setRegulationTerminal(nhv2Nload.getTerminal2())
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .withTargetValue(158.0)
+                    .withTargetDeadband(0)
+                    .withTerminal(nhv2Nload.getTerminal2())
+                    .add()
                 .add();
         vlload.newLoad()
                 .setId(prefix + "LOAD")
@@ -200,10 +207,13 @@ final class Networks {
                 .setConnectableBus(ngen.getId())
                 .setMinP(-9999.99)
                 .setMaxP(9999.99)
-                .setVoltageRegulatorOn(true)
-                .setTargetV(24.5)
                 .setTargetP(607.0)
-                .setTargetQ(301.0)
+                .setLocalTargetV(24.5)
+                .setLocalTargetQ(301.0)
+                .newVoltageRegulation()
+                    .withMode(RegulationMode.VOLTAGE)
+                    .withRegulating(true)
+                    .add()
                 .add();
         generator.newMinMaxReactiveLimits()
                 .setMinQ(-9999.99)
