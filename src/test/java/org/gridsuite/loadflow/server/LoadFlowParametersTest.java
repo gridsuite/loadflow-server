@@ -298,23 +298,23 @@ class LoadFlowParametersTest {
     }
 
     @Test
-    void testResetToDefaultValuesWhenLimitsAlreadyPersisted() throws Exception {
+    void testUpdateWithoutBody() throws Exception {
         List<List<Double>> limitReductions = List.of(
                 List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+        List<LimitReductionsByVoltageLevel> limitReductionsValues = limitReductionService.createLimitReductions(limitReductions);
         UUID parametersUuid = saveAndReturnId(buildCommonAndSpecificParameters()
                 .limitReduction(0.6f)
-                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
+                .limitReductions(limitReductionsValues)
                 .build());
 
-        // --- test reset to default values by sending null body --- //
-        LoadFlowParametersInfos defaults = parametersService.getDefaultParametersValues();
+        // --- an update without body is rejected and no longer resets to default values --- //
         mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk());
+                .andExpect(status().is5xxServerError());
 
         // check when resetting, the storedEntity limits values are reset to default values
         LoadFlowParametersEntity storedEntity = parametersRepository.findById(parametersUuid).orElseThrow();
-        assertEquals(defaults.getLimitReduction(), storedEntity.getLimitReduction());
-        assertEquals(defaults.getLimitReductionsValues(), storedEntity.toLimitReductionsValues());
+        assertEquals(0.6f, storedEntity.getLimitReduction());
+        assertEquals(limitReductions, storedEntity.toLimitReductionsValues());
     }
 
     @Test
@@ -342,18 +342,6 @@ class LoadFlowParametersTest {
         assertTrue(storedEntity.isDc());
         assertEquals(Float.valueOf(0.6f), storedEntity.getLimitReduction());
         assertEquals(reductions, storedEntity.toLimitReductionsValues());
-    }
-
-    @Test
-    void testUpdateWithoutBody() throws Exception {
-        LoadFlowParametersInfos parameters = buildParameters();
-        UUID parametersUuid = saveAndReturnId(parameters);
-
-        // an update without body is rejected and no longer resets to default values
-        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON));
-
-        LoadFlowParametersInfos storedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
-        assertThat(storedParameters).recursivelyEquals(parameters);
     }
 
     @Test
