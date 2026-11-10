@@ -10,7 +10,6 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import org.gridsuite.loadflow.server.service.LoadFlowService;
 import org.gridsuite.loadflow.server.service.SupervisionService;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -27,11 +26,9 @@ import org.springframework.web.bind.annotation.RestController;
 @Tag(name = "Loadflow server - Supervision")
 public class SupervisionController {
     private final SupervisionService supervisionService;
-    private final LoadFlowService loadFlowService;
 
-    public SupervisionController(SupervisionService supervisionService, LoadFlowService loadFlowService) {
+    public SupervisionController(SupervisionService supervisionService) {
         this.supervisionService = supervisionService;
-        this.loadFlowService = loadFlowService;
     }
 
     @GetMapping(value = "/results-count")
@@ -45,7 +42,7 @@ public class SupervisionController {
     @Operation(summary = "Delete all loadflow results from the database")
     @ApiResponses(value = {@ApiResponse(responseCode = "200", description = "All loadflow results have been deleted")})
     public ResponseEntity<Void> deleteAllResults() {
-        loadFlowService.deleteAllResults();
+        supervisionService.deleteAllResults();
         return ResponseEntity.ok().build();
     }
 }
