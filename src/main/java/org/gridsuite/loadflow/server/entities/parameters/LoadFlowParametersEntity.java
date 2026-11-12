@@ -105,7 +105,9 @@ public class LoadFlowParametersEntity {
     }
 
     public List<List<Double>> toLimitReductionsValues() {
-        return this.limitReductions.stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
+        return Optional.ofNullable(this.limitReductions)
+                .orElse(Collections.emptyList())
+                .stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
     }
 
     public void update(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
@@ -114,17 +116,22 @@ public class LoadFlowParametersEntity {
 
     public void assignAttributes(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
         provider = loadFlowParametersInfos.getProvider();
-        limitReduction = loadFlowParametersInfos.getLimitReduction();
+        if (loadFlowParametersInfos.getLimitReduction() != null) {
+            limitReduction = loadFlowParametersInfos.getLimitReduction();
+        }
         assignCommonValues(loadFlowParametersInfos.getCommonParameters());
         assignSpecificValues(loadFlowParametersInfos.getSpecificParametersPerProvider());
-        assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+        if (loadFlowParametersInfos.getLimitReductions() != null) {
+            assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
+        }
     }
 
     private void assignLimitReductions(@Nullable List<List<Double>> values) {
         if (values == null) {
             return;
         }
-        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new).toList();
+        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new)
+                .collect(Collectors.toCollection(ArrayList::new));
         if (limitReductions == null) {
             limitReductions = entities;
         } else {
