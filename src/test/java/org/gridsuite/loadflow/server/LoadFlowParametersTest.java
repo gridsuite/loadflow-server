@@ -96,6 +96,7 @@ class LoadFlowParametersTest {
         assertEquals("No configuration for limit durations", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
         limitReductionService.setLimitDurations(lrs);
 
+        List<List<Double>> defaultValues = limitReductionService.getDefaultValues();
         limitReductionService.setDefaultValues(List.of());
         assertEquals("No values provided", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
 
@@ -119,11 +120,12 @@ class LoadFlowParametersTest {
 
         limitReductionService.setDefaultValues(List.of(List.of(2.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0)));
         assertEquals("Value not between 0 and 1", assertThrows(ComputationException.class, () -> limitReductionService.createDefaultLimitReductions()).getMessage());
+        limitReductionService.setDefaultValues(defaultValues); // restore to avoid side effects
     }
 
     @Test
     void testCreate() throws Exception {
-        LoadFlowParametersInfos parametersToCreate = buildParameters();
+        LoadFlowParametersInfos parametersToCreate = buildParameters().build();
         String parametersToCreateJson = mapper.writeValueAsString(parametersToCreate);
 
         mockMvc.perform(post(URI_PARAMETERS_BASE).content(parametersToCreateJson).contentType(MediaType.APPLICATION_JSON))
@@ -131,7 +133,8 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos createdParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findAll().get(0));
 
-        assertThat(createdParameters).recursivelyEquals(parametersToCreate);
+        assertThat(createdParameters).recursivelyEquals(buildParameters()
+            .limitReductions(limitReductionService.createDefaultLimitReductions()).build());
     }
 
     @Test
@@ -176,28 +179,39 @@ class LoadFlowParametersTest {
     void testRead() throws Exception {
         List<List<Double>> limitReductions = List.of(List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
 
-        // Get no limits with no provider
-        testCreateAndGet(buildCommonAndSpecificParameters().limitReduction(0.8f).build());
-        // Get no limits with a provider other than 'OpenLoadFlow'
-        testCreateAndGet(buildCommonAndSpecificParameters().limitReduction(0.5f).provider(PROVIDER).build());
+        // Get default limits with no provider
+        testCreateAndGet(buildCommonAndSpecificParameters().limitReduction(0.8f).build(),
+                buildCommonAndSpecificParameters().limitReduction(0.8f)
+                    .limitReductions(limitReductionService.createDefaultLimitReductions()).build());
+        // Get default limits with a provider other than 'OpenLoadFlow'
+        testCreateAndGet(buildCommonAndSpecificParameters().limitReduction(0.5f).provider(PROVIDER).build(),
+                buildCommonAndSpecificParameters().limitReduction(0.5f).provider(PROVIDER)
+                    .limitReductions(limitReductionService.createDefaultLimitReductions()).build());
         testCreateAndGet(buildCommonAndSpecificParameters()
                 .provider(PROVIDER)
                 .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build(), buildCommonAndSpecificParameters()
                 .provider(PROVIDER)
                 .limitReduction(0.8f)
-                .limitReductions(null)
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build());
 
         // Get default limits with 'OpenLoadFlow' provider
         String provider = limitReductionService.getProviders().iterator().next();
-        testCreateAndGet(buildCommonAndSpecificParameters().provider(provider).limitReductions(List.of()).build(), buildCommonAndSpecificParameters()
+        testCreateAndGet(buildCommonAndSpecificParameters().provider(provider).limitReductions(List.of()).build(),
+                buildCommonAndSpecificParameters()
                 .provider(provider)
+                .limitReduction(0.8f)
                 .limitReductions(limitReductionService.createDefaultLimitReductions())
                 .build());
         // Get limits with 'OpenLoadFlow' provider
         testCreateAndGet(buildCommonAndSpecificParameters()
                 .provider(provider)
+                .limitReductions(limitReductionService.createLimitReductions(limitReductions))
+                .build(),
+                buildCommonAndSpecificParameters()
+                .provider(provider)
+                .limitReduction(0.8f)
                 .limitReductions(limitReductionService.createLimitReductions(limitReductions))
                 .build());
 
@@ -244,11 +258,11 @@ class LoadFlowParametersTest {
     @Test
     void testUpdate() throws Exception {
 
-        LoadFlowParametersInfos parametersToUpdate = buildParameters();
+        LoadFlowParametersInfos parametersToUpdate = buildParameters().build();
 
         UUID parametersUuid = saveAndReturnId(parametersToUpdate);
 
-        parametersToUpdate = buildParametersUpdate();
+        parametersToUpdate = buildParametersUpdate().build();
 
         String parametersToUpdateJson = mapper.writeValueAsString(parametersToUpdate);
 
@@ -257,11 +271,13 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
 
-        assertThat(updatedParameters).recursivelyEquals(parametersToUpdate);
+        assertThat(updatedParameters).recursivelyEquals(buildParametersUpdate()
+            .limitReductions(limitReductionService.createDefaultLimitReductions()).build());
     }
 
     @Test
     void testResetToDefaultValues() throws Exception {
+        List<List<Double>> limitReductionDefaultValues = limitReductionService.getDefaultValues();
         limitReductionService.setDefaultValues(List.of(List.of(1.0, 1.0, 1.0, 1.0), List.of(1.0, 1.0, 1.0, 1.0)));
 
         LoadFlowParametersInfos defaultValues = parametersService.getDefaultParametersValues();
@@ -278,24 +294,60 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos updatedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
         assertThat(updatedParameters).recursivelyEquals(defaultValues);
+        limitReductionService.setDefaultValues(limitReductionDefaultValues); // restore to avoid side effects
     }
 
     @Test
     void testUpdateWithoutBody() throws Exception {
-        LoadFlowParametersInfos parameters = buildParameters();
-        UUID parametersUuid = saveAndReturnId(parameters);
+        List<List<Double>> limitReductions = List.of(
+                List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+        List<LimitReductionsByVoltageLevel> limitReductionsValues = limitReductionService.createLimitReductions(limitReductions);
+        UUID parametersUuid = saveAndReturnId(buildCommonAndSpecificParameters()
+                .limitReduction(0.6f)
+                .limitReductions(limitReductionsValues)
+                .build());
 
-        // an update without body is rejected and no longer resets to default values
-        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON));
+        // --- an update without body is rejected and no longer resets to default values --- //
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid).contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().is5xxServerError());
 
-        LoadFlowParametersInfos storedParameters = parametersService.toLoadFlowParametersInfos(parametersRepository.findById(parametersUuid).get());
-        assertThat(storedParameters).recursivelyEquals(parameters);
+        // check when resetting, the storedEntity limits values are reset to default values
+        LoadFlowParametersEntity storedEntity = parametersRepository.findById(parametersUuid).orElseThrow();
+        assertEquals(0.6f, storedEntity.getLimitReduction());
+        assertEquals(limitReductions, storedEntity.toLimitReductionsValues());
+    }
+
+    @Test
+    void testUpdateKeepsOmittedLimitReductions() throws Exception {
+        List<List<Double>> reductions = List.of(
+                List.of(1.0, 0.9, 0.8, 0.7), List.of(1.0, 0.9, 0.8, 0.7));
+        UUID parametersUuid = saveAndReturnId(buildCommonAndSpecificParameters()
+                .limitReduction(0.6f)
+                .limitReductions(limitReductionService.createLimitReductions(reductions))
+                .build());
+
+        // --- test change only a common parameter, limits is not changed --- //
+        LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
+        loadFlowParameters.setDc(true);
+        LoadFlowParametersInfos parametersToUpdate = buildCommonAndSpecificParameters()
+                .commonParameters(loadFlowParameters)
+                .build();
+        mockMvc.perform(put(URI_PARAMETERS_GET_PUT + parametersUuid)
+                        .content(mapper.writeValueAsString(parametersToUpdate))
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk());
+
+        // check when updating without limits, the storedEntity values are not changed
+        LoadFlowParametersEntity storedEntity = parametersRepository.findById(parametersUuid).orElseThrow();
+        assertTrue(storedEntity.isDc());
+        assertEquals(Float.valueOf(0.6f), storedEntity.getLimitReduction());
+        assertEquals(reductions, storedEntity.toLimitReductionsValues());
     }
 
     @Test
     void testDelete() throws Exception {
 
-        LoadFlowParametersInfos parametersToDelete = buildParameters();
+        LoadFlowParametersInfos parametersToDelete = buildParameters().build();
 
         UUID parametersUuid = saveAndReturnId(parametersToDelete);
 
@@ -308,7 +360,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testDuplicate() throws Exception {
-        LoadFlowParametersInfos parametersToDuplicate = buildParameters();
+        LoadFlowParametersInfos parametersToDuplicate = buildParameters().build();
 
         UUID parametersUuid = saveAndReturnId(parametersToDuplicate);
 
@@ -328,7 +380,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testGetParametersValuesForAProvider() throws Exception {
-        LoadFlowParametersInfos parameters = buildParameters();
+        LoadFlowParametersInfos parameters = buildParameters().build();
 
         UUID parametersUuid = saveAndReturnId(parameters);
 
@@ -345,7 +397,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testGetParametersValues() {
-        LoadFlowParametersInfos parameters = buildParameters();
+        LoadFlowParametersInfos parameters = buildParameters().build();
 
         UUID parametersUuid = saveAndReturnId(parameters);
 
@@ -356,7 +408,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testgetProvider() throws Exception {
-        LoadFlowParametersInfos parameters = buildParameters();
+        LoadFlowParametersInfos parameters = buildParameters().build();
         UUID parametersUuid = saveAndReturnId(parameters);
 
         MvcResult result = mockMvc.perform(get(
@@ -369,7 +421,7 @@ class LoadFlowParametersTest {
 
     @Test
     void testGetParametersWithoutDifferences() throws Exception {
-        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        LoadFlowParametersInfos parameters = buildParametersUpdate().build();
         UUID parametersUuid = saveAndReturnId(parameters);
 
         MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid)).andExpectAll(
@@ -381,13 +433,14 @@ class LoadFlowParametersTest {
             LoadFlowParametersInfos.class
         );
 
-        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertThat(receivedParameters).recursivelyEquals(buildParametersUpdate()
+            .limitReductions(limitReductionService.createDefaultLimitReductions()).build());
         assertNull(receivedParameters.getParametersDifferences());
     }
 
     @Test
     void testGetParametersWithDifferencesAgainstDefaultValues() throws Exception {
-        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        LoadFlowParametersInfos parameters = buildParametersUpdate().build();
         UUID parametersUuid = saveAndReturnId(parameters);
 
         MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true"))
@@ -396,18 +449,20 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
 
-        parameters.setParametersDifferences(Map.of("dc", new ParameterDifference(true, false)));
-        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertThat(receivedParameters).recursivelyEquals(buildParametersUpdate()
+            .limitReductions(limitReductionService.createDefaultLimitReductions())
+            .parametersDifferences(Map.of("dc", new ParameterDifference(true, false)))
+            .build());
         assertNotNull(receivedParameters.getParametersDifferences());
         assertEquals(new ParameterDifference(true, false), receivedParameters.getParametersDifferences().get("dc"));
     }
 
     @Test
     void testGetParametersWithDifferencesAgainstReferenceParameters() throws Exception {
-        LoadFlowParametersInfos referenceParameters = buildParameters();
+        LoadFlowParametersInfos referenceParameters = buildParameters().build();
         UUID referenceParametersUuid = saveAndReturnId(referenceParameters);
 
-        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        LoadFlowParametersInfos parameters = buildParametersUpdate().build();
         UUID parametersUuid = parametersService.createParameters(parameters);
 
         MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true").queryParam("referenceUuid", referenceParametersUuid.toString()))
@@ -418,14 +473,17 @@ class LoadFlowParametersTest {
 
         parameters.setParametersDifferences(Map.of("dc", new ParameterDifference(true, false)));
 
-        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertThat(receivedParameters).recursivelyEquals(buildParametersUpdate()
+            .limitReductions(limitReductionService.createDefaultLimitReductions())
+            .parametersDifferences(Map.of("dc", new ParameterDifference(true, false)))
+            .build());
         assertNotNull(receivedParameters.getParametersDifferences());
         assertEquals(new ParameterDifference(true, false), receivedParameters.getParametersDifferences().get("dc"));
     }
 
     @Test
     void testGetParametersWithDifferencesAndMissingReferenceUsesDefaultValues() throws Exception {
-        LoadFlowParametersInfos parameters = buildParametersUpdate();
+        LoadFlowParametersInfos parameters = buildParametersUpdate().build();
         UUID parametersUuid = saveAndReturnId(parameters);
 
         MvcResult result = mockMvc.perform(get(URI_PARAMETERS_GET_PUT + parametersUuid).queryParam("withDifferences", "true").queryParam("referenceUuid", UUID.randomUUID().toString()))
@@ -466,23 +524,18 @@ class LoadFlowParametersTest {
         String defaultValue = String.valueOf(referenceParameter.getDefaultValue());
         String differentValue = Boolean.toString(!Objects.equals(defaultValue, "true"));
 
-        boolean providerHasLimitReductions = limitReductionService.getProviders().contains(provider);
-        Float limitReduction = providerHasLimitReductions ? null : 0.8f;
-        List<LimitReductionsByVoltageLevel> limitReductions = providerHasLimitReductions
-            ? limitReductionService.createDefaultLimitReductions()
-            : null;
-
         LoadFlowParametersInfos referenceParameters = buildCommonAndSpecificParameters()
             .provider(provider)
-            .limitReduction(limitReduction)
-            .limitReductions(limitReductions)
+            .limitReduction(0.8f)
+            .limitReductions(limitReductionService.createDefaultLimitReductions())
             .specificParametersPerProvider(Map.of(provider, Map.of(parameterName, defaultValue)))
             .build();
-        LoadFlowParametersInfos parameters = buildCommonAndSpecificParameters()
-            .provider(provider)
-            .limitReduction(limitReduction)
-            .limitReductions(limitReductions)
-            .specificParametersPerProvider(Map.of(provider, Map.of(parameterName, differentValue)))
+        LoadFlowParametersInfos.LoadFlowParametersInfosBuilder parametersBuilder = buildCommonAndSpecificParameters()
+                .provider(provider)
+                .limitReduction(0.8f)
+                .limitReductions(limitReductionService.createDefaultLimitReductions())
+                .specificParametersPerProvider(Map.of(provider, Map.of(parameterName, differentValue)));
+        LoadFlowParametersInfos parameters = parametersBuilder
             .build();
 
         UUID referenceParametersUuid = saveAndReturnId(referenceParameters);
@@ -494,9 +547,9 @@ class LoadFlowParametersTest {
 
         LoadFlowParametersInfos receivedParameters = mapper.readValue(result.getResponse().getContentAsString(), LoadFlowParametersInfos.class);
 
-        parameters.setParametersDifferences(Map.of(parameterName, new ParameterDifference(differentValue, defaultValue)));
-
-        assertThat(receivedParameters).recursivelyEquals(parameters);
+        assertThat(receivedParameters).recursivelyEquals(parametersBuilder
+            .parametersDifferences(Map.of(parameterName, new ParameterDifference(differentValue, defaultValue)))
+            .build());
         assertNotNull(receivedParameters.getParametersDifferences());
         assertEquals(new ParameterDifference(differentValue, defaultValue), receivedParameters.getParametersDifferences().get(parameterName));
     }
@@ -509,12 +562,12 @@ class LoadFlowParametersTest {
         Map<String, Map<String, String>> initialSpecific = Map.of(
                 PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1", "pro1Param2", "1.0"),
                 PROVIDER_2, Map.of("pro2Param1", "true", "pro2Param2", "false"));
-        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific).build());
 
         // update: only PROVIDER_1 is present, PROVIDER_2 is absent
         Map<String, Map<String, String>> updatedSpecific = Map.of(
                 PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value2"));
-        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific).build());
 
         Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
         assertEquals(2, savedSpecificParams.size());
@@ -528,12 +581,12 @@ class LoadFlowParametersTest {
     void testReplacesAllSpecificParamsOfPresentProvider() throws Exception {
         Map<String, Map<String, String>> initialSpecific = Map.of(
                 PROVIDER_2, Map.of("pro2Param1", "true", "pro2Param2", "false", "pro2Param3", "63.0"));
-        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific).build());
 
         // "pro2Param1" is changed, "pro2Param2" and "pro2Param3" are removed, "pro2Param4" is added
         Map<String, Map<String, String>> updatedSpecific = Map.of(
                 PROVIDER_2, Map.of("pro2Param1", "false", "pro2Param4", "warm"));
-        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific).build());
 
         Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
         assertEquals(Set.of(PROVIDER_2), savedSpecificParams.keySet());
@@ -545,12 +598,12 @@ class LoadFlowParametersTest {
         Map<String, Map<String, String>> initialSpecific = Map.of(
                 PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1", "pro1Param2", "1.0"),
                 PROVIDER_2, Map.of("pro2Param1", "true", "pro2Param2", "false"));
-        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific).build());
 
         Map<String, Map<String, String>> updatedSpecific = Map.of(
                 PROVIDER_1, Map.of("pro1Param2", "2.5"),
                 PROVIDER_2, Map.of("pro2Param2", "true"));
-        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific).build());
 
         Map<String, Map<String, String>> savedSpecificParams = getSavedSpecificParameters(parametersUuid);
         assertEquals(updatedSpecific, savedSpecificParams);
@@ -561,11 +614,11 @@ class LoadFlowParametersTest {
         Map<String, Map<String, String>> initialSpecific = Map.of(
                 PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1"),
                 PROVIDER_2, Map.of("pro2Param1", "true"));
-        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific).build());
 
         // PROVIDER_1 is present but with an empty map: all its parameters are deleted, PROVIDER_2 is kept
         Map<String, Map<String, String>> updatedSpecific = Map.of(PROVIDER_1, Map.of());
-        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific));
+        updateParameters(parametersUuid, buildParametersWithSpecific(updatedSpecific).build());
 
         Map<String, Map<String, String>> stored = getSavedSpecificParameters(parametersUuid);
         assertEquals(Set.of(PROVIDER_2), stored.keySet());
@@ -577,10 +630,10 @@ class LoadFlowParametersTest {
         Map<String, Map<String, String>> initialSpecific = Map.of(
                 PROVIDER_1, Map.of("pro1Param1", "pro1Param1Value1"),
                 PROVIDER_2, Map.of("pro2Param1", "true"));
-        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific));
+        UUID parametersUuid = saveAndReturnId(buildParametersWithSpecific(initialSpecific).build());
 
         // no provider at all: every existing specific parameter is cleared
-        updateParameters(parametersUuid, buildParametersWithSpecific(Map.of()));
+        updateParameters(parametersUuid, buildParametersWithSpecific(Map.of()).build());
 
         assertTrue(getSavedSpecificParameters(parametersUuid).isEmpty());
     }
@@ -598,34 +651,27 @@ class LoadFlowParametersTest {
                 .commonParameters(LoadFlowParameters.load()).specificParametersPerProvider(Map.of());
     }
 
-    protected LoadFlowParametersInfos buildParametersWithProvider(String provider) {
+    protected LoadFlowParametersInfos.LoadFlowParametersInfosBuilder buildParametersWithProvider(String provider) {
         return buildCommonAndSpecificParameters()
                 .provider(provider)
-                .limitReduction(0.8f)
-                .build();
+                .limitReduction(0.8f);
     }
 
-    protected LoadFlowParametersInfos buildParameters() {
+    protected LoadFlowParametersInfos.LoadFlowParametersInfosBuilder buildParameters() {
         return buildParametersWithProvider(PROVIDER);
     }
 
-    protected LoadFlowParametersInfos buildParametersUpdate() {
+    protected LoadFlowParametersInfos.LoadFlowParametersInfosBuilder buildParametersUpdate() {
         LoadFlowParameters loadFlowParameters = LoadFlowParameters.load();
         loadFlowParameters.setDc(true);
-        return LoadFlowParametersInfos.builder()
-            .provider(PROVIDER)
+        return buildParameters()
             .limitReduction(0.5f)
-            .commonParameters(loadFlowParameters)
-            .specificParametersPerProvider(Map.of())
-             .build();
+            .commonParameters(loadFlowParameters);
     }
 
-    private LoadFlowParametersInfos buildParametersWithSpecific(Map<String, Map<String, String>> specificParametersPerProvider) {
-        return buildCommonAndSpecificParameters()
-                .provider(PROVIDER)
-                .limitReduction(0.8f)
-                .specificParametersPerProvider(specificParametersPerProvider)
-                .build();
+    private LoadFlowParametersInfos.LoadFlowParametersInfosBuilder buildParametersWithSpecific(Map<String, Map<String, String>> specificParametersPerProvider) {
+        return buildParameters()
+                .specificParametersPerProvider(specificParametersPerProvider);
     }
 
     private Map<String, Map<String, String>> getSavedSpecificParameters(UUID parametersUuid) {
