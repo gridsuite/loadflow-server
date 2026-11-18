@@ -6,8 +6,10 @@
  */
 package org.gridsuite.loadflow.server.service;
 
+import org.gridsuite.loadflow.server.repositories.GlobalStatusRepository;
 import org.gridsuite.loadflow.server.repositories.ResultRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 /**
  * @author Hugo Marcellin <hugo.marcelin at rte-france.com>
@@ -15,12 +17,20 @@ import org.springframework.stereotype.Service;
 @Service
 public class SupervisionService {
     private final ResultRepository resultRepository;
+    private final GlobalStatusRepository globalStatusRepository;
 
-    public SupervisionService(ResultRepository resultRepository) {
+    public SupervisionService(ResultRepository resultRepository, GlobalStatusRepository globalStatusRepository) {
         this.resultRepository = resultRepository;
+        this.globalStatusRepository = globalStatusRepository;
     }
 
     public Integer getResultsCount() {
         return (int) resultRepository.count();
+    }
+
+    @Transactional
+    public void deleteAllResults() {
+        globalStatusRepository.deleteAll();
+        resultRepository.deleteAll();
     }
 }
