@@ -216,12 +216,6 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
         return resultRepository.findByResultUuid(resultUuid);
     }
 
-    @Transactional
-    public void deleteAll() {
-        globalStatusRepository.deleteAll();
-        resultRepository.deleteAll();
-    }
-
     @Override
     @Transactional(readOnly = true)
     public LoadFlowStatus findStatus(UUID resultUuid) {
