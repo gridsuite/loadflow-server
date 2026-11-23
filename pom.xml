@@ -49,7 +49,7 @@
         <maven.jib.version>3.5.1</maven.jib.version>
         <jib.from.image>powsybl/java-dynawo:4.0.0</jib.from.image>
         <liquibase-hibernate-package>org.gridsuite.loadflow.server</liquibase-hibernate-package>
-        <gridsuite-dependencies.version>51.1.0</gridsuite-dependencies.version>
+        <gridsuite-dependencies.version>51.2.0-SNAPSHOT</gridsuite-dependencies.version>
         <!-- need to override the version v3.17.0 in liquibase because powsybl-open-loadflow uses v3.20.0 -->
         <commonslang3.version>3.20.0</commonslang3.version>
         <!--
@@ -65,12 +65,6 @@
         <antlr4.version>4.10.1</antlr4.version>
         <sonar.organization>gridsuite</sonar.organization>
         <sonar.projectKey>org.gridsuite:loadflow-server</sonar.projectKey>
-        <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-        <gridsuite-computation.version>2.11.0</gridsuite-computation.version>
-        <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-        <gridsuite-filter.version>2.0.0</gridsuite-filter.version>
-        <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-        <powsybl-network-store.version>1.52.0</powsybl-network-store.version>
     </properties>
 
     <build>
@@ -105,37 +99,6 @@
 
     <dependencyManagement>
         <dependencies>
-            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-            <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-network-store-iidm-impl</artifactId>
-                <version>${powsybl-network-store.version}</version>
-            </dependency>
-            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-            <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-network-store-model</artifactId>
-                <version>${powsybl-network-store.version}</version>
-            </dependency>
-            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-            <dependency>
-                <groupId>com.powsybl</groupId>
-                <artifactId>powsybl-network-store-client</artifactId>
-                <version>${powsybl-network-store.version}</version>
-            </dependency>
-            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-            <dependency>
-                <groupId>org.gridsuite</groupId>
-                <artifactId>gridsuite-computation</artifactId>
-                <version>${gridsuite-computation.version}</version>
-            </dependency>
-            <!-- FIXME: to be removed at next gridsuite-dependencies upgrade  -->
-            <dependency>
-                <groupId>org.gridsuite</groupId>
-                <artifactId>gridsuite-filter</artifactId>
-                <version>${gridsuite-filter.version}</version>
-            </dependency>
-
             <dependency>
                 <groupId>org.gridsuite</groupId>
                 <artifactId>gridsuite-dependencies</artifactId>
