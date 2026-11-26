@@ -12,10 +12,8 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.gridsuite.loadflow.server.dto.parameters.LoadFlowParametersInfos;
 import org.springframework.lang.Nullable;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
+
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -107,41 +105,23 @@ public class LoadFlowParametersEntity {
     }
 
     public List<List<Double>> toLimitReductionsValues() {
-        return this.limitReductions.stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
+        return Optional.ofNullable(this.limitReductions)
+                .orElse(Collections.emptyList())
+                .stream().map(LimitReductionEntity::getReductions).map(ArrayList::new).collect(Collectors.toList());
     }
 
     public void update(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
         assignAttributes(loadFlowParametersInfos);
     }
 
-    public void assignAttributes(LoadFlowParametersInfos loadFlowParametersInfos) {
-        LoadFlowParameters allCommonValues;
-        List<LoadFlowSpecificParameterEntity> allSpecificValuesEntities = new ArrayList<>(List.of());
-        if (loadFlowParametersInfos == null) {
-            allCommonValues = LoadFlowParameters.load();
-        } else {
-            allCommonValues = loadFlowParametersInfos.getCommonParameters();
-            if (loadFlowParametersInfos.getSpecificParametersPerProvider() != null) {
-                loadFlowParametersInfos.getSpecificParametersPerProvider().forEach((p, paramsMap) -> {
-                    if (paramsMap != null) {
-                        paramsMap.forEach((paramName, paramValue) -> {
-                            if (paramValue != null) {
-                                allSpecificValuesEntities.add(new LoadFlowSpecificParameterEntity(
-                                        null,
-                                        p,
-                                        paramName,
-                                        paramValue));
-                            }
-                        });
-                    }
-                });
-            }
-            provider = loadFlowParametersInfos.getProvider();
+    public void assignAttributes(@NonNull LoadFlowParametersInfos loadFlowParametersInfos) {
+        provider = loadFlowParametersInfos.getProvider();
+        if (loadFlowParametersInfos.getLimitReduction() != null) {
             limitReduction = loadFlowParametersInfos.getLimitReduction();
         }
-        assignCommonValues(allCommonValues);
-        assignSpecificValues(allSpecificValuesEntities);
-        if (loadFlowParametersInfos != null) {
+        assignCommonValues(loadFlowParametersInfos.getCommonParameters());
+        assignSpecificValues(loadFlowParametersInfos.getSpecificParametersPerProvider());
+        if (loadFlowParametersInfos.getLimitReductions() != null) {
             assignLimitReductions(loadFlowParametersInfos.getLimitReductionsValues());
         }
     }
@@ -150,7 +130,8 @@ public class LoadFlowParametersEntity {
         if (values == null) {
             return;
         }
-        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new).toList();
+        List<LimitReductionEntity> entities = values.stream().map(LimitReductionEntity::new)
+                .collect(Collectors.toCollection(ArrayList::new));
         if (limitReductions == null) {
             limitReductions = entities;
         } else {
@@ -177,15 +158,32 @@ public class LoadFlowParametersEntity {
         dcPowerFactor = allCommonValues.getDcPowerFactor();
     }
 
-    private void assignSpecificValues(List<LoadFlowSpecificParameterEntity> allSpecificValuesEntities) {
+    private void assignSpecificValues(Map<String, Map<String, String>> specificParametersPerProvider) {
         if (specificParameters == null) {
-            specificParameters = allSpecificValuesEntities;
-        } else {
-            specificParameters.clear();
-            if (!allSpecificValuesEntities.isEmpty()) {
-                specificParameters.addAll(allSpecificValuesEntities);
-            }
+            specificParameters = new ArrayList<>();
         }
+
+        // nothing provided: clear every existing specific parameters
+        if (specificParametersPerProvider == null || specificParametersPerProvider.isEmpty()) {
+            specificParameters.clear();
+            return;
+        }
+
+        //  build new entities from provided specific parameters
+        List<LoadFlowSpecificParameterEntity> newEntities = new ArrayList<>();
+        specificParametersPerProvider.forEach((currProvider, currParams) -> {
+            if (currParams != null) {
+                currParams.forEach((name, value) -> {
+                    if (value != null) {
+                        newEntities.add(new LoadFlowSpecificParameterEntity(null, currProvider, name, value));
+                    }
+                });
+            }
+        });
+
+        // override all specific parameters of the selected provider, keep specific parameters of other providers untouched
+        specificParameters.removeIf(param -> specificParametersPerProvider.containsKey(param.getProvider()));
+        specificParameters.addAll(newEntities);
     }
 
     public LoadFlowParameters toLoadFlowParameters() {

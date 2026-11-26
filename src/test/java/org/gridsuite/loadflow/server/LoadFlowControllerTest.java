@@ -32,9 +32,9 @@ import org.assertj.core.api.Assertions;
 import org.gridsuite.computation.dto.GlobalFilter;
 import org.gridsuite.computation.dto.ResourceFilterDTO;
 import org.gridsuite.computation.service.*;
-import org.gridsuite.filter.AbstractFilter;
-import org.gridsuite.filter.identifierlistfilter.IdentifierListFilter;
-import org.gridsuite.filter.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
+import org.gridsuite.filter.dto.AbstractFilter;
+import org.gridsuite.filter.dto.identifierlistfilter.IdentifierListFilter;
+import org.gridsuite.filter.dto.identifierlistfilter.IdentifierListFilterEquipmentAttributes;
 import org.gridsuite.filter.utils.EquipmentType;
 import org.gridsuite.loadflow.server.dto.*;
 import org.gridsuite.loadflow.server.dto.modifications.*;
@@ -252,7 +252,7 @@ class LoadFlowControllerTest {
     @SneakyThrows
     @AfterEach
     void tearDown() {
-        mockMvc.perform(delete("/" + VERSION + "/results"))
+        mockMvc.perform(delete("/" + VERSION + "/supervision/results"))
                 .andExpect(status().isOk());
 
         mocks.close();
@@ -271,6 +271,12 @@ class LoadFlowControllerTest {
                     .thenReturn(CompletableFuture.completedFuture(LoadFlowResultMock.RESULT));
 
             runTest(false);
+
+            String resultsCount = mockMvc.perform(get("/" + VERSION + "/supervision/results-count")).andReturn().getResponse().getContentAsString();
+            assertNotEquals("0", resultsCount);
+            mockMvc.perform(delete("/" + VERSION + "/results")).andExpect(status().isBadRequest());
+            mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", "")).andExpect(status().isOk());
+            mockMvc.perform(get("/" + VERSION + "/supervision/results-count")).andExpect(content().string(resultsCount));
 
             // test one result deletion
             mockMvc.perform(delete("/" + VERSION + "/results").queryParam("resultsUuids", RESULT_UUID.toString()))
