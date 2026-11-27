@@ -256,7 +256,11 @@ public class LoadFlowResultService extends AbstractComputationResultService<Load
             return null;
         }
         List<ResourceFilterDTO> resourceFilters = fromStringFiltersToDTO(stringFilters, objectMapper);
-        List<ComponentResultEntity> componentResults = findComponentResults(resultUuid, resourceFilters, sort);
+        List<ResourceFilterDTO> parentFilters = resourceFilters.stream()
+                .filter(filter -> !slackBusResultSpecificationBuilder
+                        .isNotParentFilter(filter))
+                .collect(Collectors.toList());
+        List<ComponentResultEntity> componentResults = findComponentResults(resultUuid, parentFilters, sort);
         boolean hasChildFilter = resourceFilters.stream().anyMatch(slackBusResultSpecificationBuilder::isNotParentFilter);
         List<SlackBusResultEntity> slackBusResultEntities = new ArrayList<>();
         if (hasChildFilter) {
