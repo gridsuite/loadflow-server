@@ -713,8 +713,25 @@ class LoadFlowControllerTest {
             org.gridsuite.loadflow.server.dto.LoadFlowResult resultDto = mapper.readValue(resultAsString, org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
             assertResultsEquals(LoadFlowResultMock.RESULT, resultDto);
 
+            mvcResult = mockMvc.perform(get("/" + VERSION + "/results/" + RESULT_UUID + "?" + buildNoMatchingSlackBusFilterUrl()))
+                    .andExpectAll(
+                            status().isOk(),
+                            content().contentType(MediaType.APPLICATION_JSON)
+                    ).andReturn();
+            resultDto = mapper.readValue(mvcResult.getResponse().getContentAsString(), org.gridsuite.loadflow.server.dto.LoadFlowResult.class);
+            assertEquals(LoadFlowResultMock.componentResults.size(), resultDto.getComponentResults().size());
+            assertTrue(resultDto.getComponentResults().stream().allMatch(componentResult -> componentResult.getSlackBusResults().isEmpty()));
+
         }
 
+    }
+
+    private String buildNoMatchingSlackBusFilterUrl() throws JsonProcessingException {
+        List<ResourceFilterDTO> childFilters = List.of(
+                new ResourceFilterDTO(ResourceFilterDTO.DataType.TEXT, ResourceFilterDTO.Type.EQUALS, "no-slack-bus-match",
+                        Column.ID.columnName())
+        );
+        return "filters=" + URLEncoder.encode(mapper.writeValueAsString(childFilters), StandardCharsets.UTF_8);
     }
 
     private String buildFilterUrl(boolean hasChildFilter) {

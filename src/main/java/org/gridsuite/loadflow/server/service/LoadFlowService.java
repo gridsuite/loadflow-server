@@ -147,7 +147,7 @@ public class LoadFlowService extends AbstractComputationService<LoadFlowRunConte
             if (map.isEmpty()) {
                 return List.of();
             }
-            slackBusResults.addAll(map.get(componentResultEntity.getComponentResultUuid()));
+            slackBusResults.addAll(map.getOrDefault(componentResultEntity.getComponentResultUuid(), List.of()));
         }
 
         return slackBusResults.stream().map(slackBusResultEntity -> new SlackBusResult(slackBusResultEntity.getId(), slackBusResultEntity.getActivePowerMismatch())).toList();
